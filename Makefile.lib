@@ -1,0 +1,261 @@
+# Mario Builder 64 Library Collection
+# Usage: make -f Makefile.lib [target]
+#
+# This creates multiple focused libraries that projects can import independently.
+# 
+# REQUIREMENTS for host projects:
+# - Must provide N64/SM64 compatibility headers: ultra64.h, PR/gbi.h, PR/ultratypes.h
+# - Must define N64 types: OSThread, OSMesgQueue, Gfx, Mtx, Vp, Vtx, Vec3f, Vec3s, etc.
+# - Must provide standard math constants: M_PI, and macros: MAX, MIN
+# - Assembly blocks will need host-equivalent implementations
+
+# Build configuration
+BUILD_DIR := build/lib
+CC := gcc
+CXX := g++
+AR := ar
+CFLAGS := -O2 -Wall -Wextra -std=c99
+INCLUDES := -Iinclude -Isrc -I. -Isrc/libcart/include
+
+# Defines for host build
+DEFINES := -DTARGET_N64=0 -DVERSION_US=1 -DSRAM=1 -DNO_ERRNO_H=1
+
+#==============================================================================#
+# Library Source Definitions                                                  #
+#==============================================================================#
+
+# 1. Core Math & Collision Library (minimal dependencies)
+MATH_SOURCES := \
+	src/engine/math_util.c
+
+# 2. Surface Collision Library  
+COLLISION_SOURCES := \
+	src/engine/surface_collision.c \
+	src/engine/surface_load.c
+
+# 3. Behavior System Library
+BEHAVIOR_SOURCES := \
+	src/engine/behavior_script.c
+
+# 4. Geometry & Layout Library
+GEO_SOURCES := \
+	src/engine/geo_layout.c \
+	src/engine/graph_node.c \
+	src/engine/graph_node_manager.c
+
+# 5. Color & Material Library
+MATERIAL_SOURCES := \
+	src/engine/colors.c \
+	src/game/materials.c
+
+# 6. Mario Builder 64 Core Editor Logic
+MB64_CORE_SOURCES := \
+	src/mb64/data.c \
+	src/mb64/compatibility.c
+
+# 7. Mario Builder 64 Menu System
+MB64_MENU_SOURCES := \
+	src/mb64/menu.c \
+	src/mb64/menu_engine.c \
+	src/mb64/menu_settings.c
+
+# 8. Mario Builder 64 Display & Rendering
+MB64_DISPLAY_SOURCES := \
+	src/mb64/display_funcs.c \
+	src/mb64/painting_frame.c
+
+# 9. Mario Builder 64 Main Logic
+MB64_MAIN_SOURCES := \
+	src/mb64/main.c
+
+# 10. Game Utilities
+GAME_UTIL_SOURCES := \
+	src/game/mario_misc.c \
+	src/game/debug.c
+
+# 11. Audio System (if needed)
+AUDIO_SOURCES := \
+	src/audio/external.c
+
+# Object file lists
+MATH_OBJECTS := $(MATH_SOURCES:%.c=$(BUILD_DIR)/%.o)
+COLLISION_OBJECTS := $(COLLISION_SOURCES:%.c=$(BUILD_DIR)/%.o)
+BEHAVIOR_OBJECTS := $(BEHAVIOR_SOURCES:%.c=$(BUILD_DIR)/%.o)
+GEO_OBJECTS := $(GEO_SOURCES:%.c=$(BUILD_DIR)/%.o)
+MATERIAL_OBJECTS := $(MATERIAL_SOURCES:%.c=$(BUILD_DIR)/%.o)
+MB64_CORE_OBJECTS := $(MB64_CORE_SOURCES:%.c=$(BUILD_DIR)/%.o)
+MB64_MENU_OBJECTS := $(MB64_MENU_SOURCES:%.c=$(BUILD_DIR)/%.o)
+MB64_DISPLAY_OBJECTS := $(MB64_DISPLAY_SOURCES:%.c=$(BUILD_DIR)/%.o)
+MB64_MAIN_OBJECTS := $(MB64_MAIN_SOURCES:%.c=$(BUILD_DIR)/%.o)
+GAME_UTIL_OBJECTS := $(GAME_UTIL_SOURCES:%.c=$(BUILD_DIR)/%.o)
+AUDIO_OBJECTS := $(AUDIO_SOURCES:%.c=$(BUILD_DIR)/%.o)
+
+#==============================================================================#
+# Library Targets                                                             #
+#==============================================================================#
+
+.PHONY: all libs clean list-libs help
+.PHONY: math-lib collision-lib behavior-lib geo-lib material-lib
+.PHONY: mb64-core-lib mb64-menu-lib mb64-display-lib mb64-main-lib game-util-lib audio-lib
+
+# Default target builds the most commonly needed libraries
+all: math-lib collision-lib mb64-core-lib
+
+# Build all libraries
+libs: math-lib collision-lib behavior-lib geo-lib material-lib mb64-core-lib mb64-menu-lib mb64-display-lib game-util-lib
+
+# Individual library targets
+math-lib: $(BUILD_DIR)/libmb64-math.a
+collision-lib: $(BUILD_DIR)/libmb64-collision.a  
+behavior-lib: $(BUILD_DIR)/libmb64-behavior.a
+geo-lib: $(BUILD_DIR)/libmb64-geo.a
+material-lib: $(BUILD_DIR)/libmb64-material.a
+mb64-core-lib: $(BUILD_DIR)/libmb64-core.a
+mb64-menu-lib: $(BUILD_DIR)/libmb64-menu.a
+mb64-display-lib: $(BUILD_DIR)/libmb64-display.a
+mb64-main-lib: $(BUILD_DIR)/libmb64-main.a
+game-util-lib: $(BUILD_DIR)/libmb64-gameutil.a
+audio-lib: $(BUILD_DIR)/libmb64-audio.a
+
+#==============================================================================#
+# Library Build Rules                                                         #
+#==============================================================================#
+
+$(BUILD_DIR)/libmb64-math.a: $(MATH_OBJECTS)
+	@echo "Building Math Library: $@"
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+
+$(BUILD_DIR)/libmb64-collision.a: $(COLLISION_OBJECTS)
+	@echo "Building Collision Library: $@"
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+
+$(BUILD_DIR)/libmb64-behavior.a: $(BEHAVIOR_OBJECTS)
+	@echo "Building Behavior Library: $@"
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+
+$(BUILD_DIR)/libmb64-geo.a: $(GEO_OBJECTS)
+	@echo "Building Geometry Library: $@"
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+
+$(BUILD_DIR)/libmb64-material.a: $(MATERIAL_OBJECTS)
+	@echo "Building Material Library: $@"
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+
+$(BUILD_DIR)/libmb64-core.a: $(MB64_CORE_OBJECTS)
+	@echo "Building MB64 Core Library: $@"
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+
+$(BUILD_DIR)/libmb64-menu.a: $(MB64_MENU_OBJECTS)
+	@echo "Building MB64 Menu Library: $@"
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+
+$(BUILD_DIR)/libmb64-display.a: $(MB64_DISPLAY_OBJECTS)
+	@echo "Building MB64 Display Library: $@"
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+
+$(BUILD_DIR)/libmb64-main.a: $(MB64_MAIN_OBJECTS)
+	@echo "Building MB64 Main Library: $@"
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+
+$(BUILD_DIR)/libmb64-gameutil.a: $(GAME_UTIL_OBJECTS)
+	@echo "Building Game Utilities Library: $@"
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+
+$(BUILD_DIR)/libmb64-audio.a: $(AUDIO_OBJECTS)
+	@echo "Building Audio Library: $@"
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+
+# Compilation rule
+$(BUILD_DIR)/%.o: %.c
+	@echo "Compiling $<"
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -c $< -o $@
+
+# Clean all build artifacts
+clean:
+	rm -rf $(BUILD_DIR)
+
+#==============================================================================#
+# Information Targets                                                         #
+#==============================================================================#
+
+help:
+	@echo "Mario Builder 64 Library Collection"
+	@echo "===================================="
+	@echo ""
+	@echo "REQUIREMENTS for host projects:"
+	@echo "  - N64/SM64 compatibility headers (ultra64.h, PR/gbi.h, etc.)"
+	@echo "  - N64 types (OSThread, Gfx, Mtx, Vp, Vtx, Vec3f, Vec3s, etc.)"
+	@echo "  - Math constants (M_PI) and macros (MAX, MIN)"
+	@echo "  - Host implementations for N64 assembly blocks"
+	@echo ""
+	@echo "Available libraries:"
+	@echo "  math-lib       - Core mathematical utilities"
+	@echo "  collision-lib  - Surface collision detection and processing"
+	@echo "  behavior-lib   - Object behavior scripting system"
+	@echo "  geo-lib        - Geometry layout and graph node management"
+	@echo "  material-lib   - Color and material management"
+	@echo "  mb64-core-lib  - Mario Builder 64 core editor logic"
+	@echo "  mb64-menu-lib  - Mario Builder 64 menu system"
+	@echo "  mb64-display-lib - Mario Builder 64 display and rendering"
+	@echo "  mb64-main-lib  - Mario Builder 64 main logic"
+	@echo "  game-util-lib  - General game utilities"
+	@echo "  audio-lib      - Audio system components"
+	@echo ""
+	@echo "Meta targets:"
+	@echo "  all            - Build core libraries (math, collision, mb64-core)"
+	@echo "  libs           - Build all libraries"
+	@echo "  clean          - Remove all build artifacts"
+	@echo "  list-libs      - Show detailed library contents"
+	@echo "  help           - Show this help"
+	@echo ""
+	@echo "Example usage in host project Makefile:"
+	@echo "  CFLAGS += -Lpath/to/mario-builder-64/build/lib"
+	@echo "  LIBS += -lmb64-math -lmb64-collision -lmb64-core"
+
+list-libs:
+	@echo "=== Mario Builder 64 Library Collection ==="
+	@echo ""
+	@echo "1. libmb64-math.a (Core Math - Minimal Dependencies)"
+	@echo "   Sources: $(MATH_SOURCES)"
+	@echo ""
+	@echo "2. libmb64-collision.a (Surface Collision)"
+	@echo "   Sources: $(COLLISION_SOURCES)"
+	@echo ""
+	@echo "3. libmb64-behavior.a (Behavior System)"
+	@echo "   Sources: $(BEHAVIOR_SOURCES)"
+	@echo ""
+	@echo "4. libmb64-geo.a (Geometry & Layout)"
+	@echo "   Sources: $(GEO_SOURCES)"
+	@echo ""
+	@echo "5. libmb64-material.a (Colors & Materials)"
+	@echo "   Sources: $(MATERIAL_SOURCES)"
+	@echo ""
+	@echo "6. libmb64-core.a (MB64 Core Editor)"
+	@echo "   Sources: $(MB64_CORE_SOURCES)"
+	@echo ""
+	@echo "7. libmb64-menu.a (MB64 Menu System)"
+	@echo "   Sources: $(MB64_MENU_SOURCES)"
+	@echo ""
+	@echo "8. libmb64-display.a (MB64 Display & Rendering)"
+	@echo "   Sources: $(MB64_DISPLAY_SOURCES)"
+	@echo ""
+	@echo "9. libmb64-main.a (MB64 Main Logic)"
+	@echo "   Sources: $(MB64_MAIN_SOURCES)"
+	@echo ""
+	@echo "10. libmb64-gameutil.a (Game Utilities)"
+	@echo "    Sources: $(GAME_UTIL_SOURCES)"
+	@echo ""
+	@echo "11. libmb64-audio.a (Audio System)"
+	@echo "    Sources: $(AUDIO_SOURCES)"

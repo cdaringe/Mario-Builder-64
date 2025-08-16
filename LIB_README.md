@@ -2,20 +2,24 @@
 
 This directory provides a library-mode build system that extracts Mario Builder 64 functionality into focused, reusable static libraries.
 
+## Primary Use Case: SM64CoopDX Integration
+
+**Target**: Load and play Mario Builder 64 levels in SM64CoopDX with Lua bindings
+- **Need**: Level loading, parsing, and runtime support
+- **Don't need**: Level editor UI, creation tools, menu systems
+- **Goal**: Minimal, optimized libraries for level playback only
+
 ## Quick Start
 
 ```bash
-# See all available libraries and requirements
+# Build main library for SM64CoopDX level loading
+make -f Makefile.lib
+
+# This creates: build/lib/libmb64-levels.a
+# Contains everything needed for level loading/playback
+
+# See all options and requirements  
 make -f Makefile.lib help
-
-# Build core libraries
-make -f Makefile.lib all
-
-# Build specific library
-make -f Makefile.lib mb64-core-lib
-
-# Build everything
-make -f Makefile.lib libs
 ```
 
 ## Available Libraries
@@ -77,16 +81,16 @@ The libraries contain N64 MIPS assembly blocks that will need host-equivalent im
 
 ## Integration Example
 
-### In your host project Makefile:
+### In SM64CoopDX Makefile:
 ```makefile
 # Add Mario Builder 64 library path
-LIBDIR += -L/path/to/mario-builder-64/build/lib
+LIBDIR += -L./mario-builder-64/build/lib
 
-# Link desired libraries
-LIBS += -lmb64-math -lmb64-collision -lmb64-core
+# Link the main library (contains everything needed)
+LIBS += -lmb64-levels
 
-# Ensure N64 compatibility headers are available
-INCLUDES += -I/path/to/your/n64-compat-headers
+# Ensure includes are available for integration code
+INCLUDES += -I./mario-builder-64/include -I./mario-builder-64/src
 ```
 
 ### In your source code:

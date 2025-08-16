@@ -1,13 +1,19 @@
 # Mario Builder 64 Library Collection
 # Usage: make -f Makefile.lib [target]
 #
-# This creates multiple focused libraries that projects can import independently.
+# PRIMARY USE CASE: SM64CoopDX Integration
+# - Load and play Mario Builder 64 levels (NO editor functionality)
+# - Optimized for Lua bindings in SM64CoopDX
+# - Level loading, parsing, and runtime support only
 # 
 # REQUIREMENTS for host projects:
 # - Must provide N64/SM64 compatibility headers: ultra64.h, PR/gbi.h, PR/ultratypes.h
 # - Must define N64 types: OSThread, OSMesgQueue, Gfx, Mtx, Vp, Vtx, Vec3f, Vec3s, etc.
 # - Must provide standard math constants: M_PI, and macros: MAX, MIN
 # - Assembly blocks will need host-equivalent implementations
+# 
+# NOTE: lib/stub/ contains minimal headers only for library compilation.
+#       Host projects should provide their own full implementations.
 
 # Build configuration
 BUILD_DIR := build/lib
@@ -15,67 +21,83 @@ CC := gcc
 CXX := g++
 AR := ar
 CFLAGS := -O2 -Wall -Wextra -std=c99
-INCLUDES := -Iinclude -Isrc -I. -Isrc/libcart/include
+# Include stub headers for compilation when in external mode
+ifeq ($(EXTERNAL_MODE),1)
+  INCLUDES := -Ilib/stub -Iinclude -Isrc -I. -Isrc/libcart/include
+else
+  INCLUDES := -Iinclude -Isrc -I. -Isrc/libcart/include
+endif
 
 # Defines for host build
 DEFINES := -DTARGET_N64=0 -DVERSION_US=1 -DSRAM=1 -DNO_ERRNO_H=1
+
+# External dependencies mode - mark these as external symbols
+# Host project must provide these at link time
+EXTERNAL_MODE ?= 1
+ifeq ($(EXTERNAL_MODE),1)
+  DEFINES += -DMB64_EXTERNAL_DEPS=1
+endif
 
 #==============================================================================#
 # Library Source Definitions                                                  #
 #==============================================================================#
 
-# 1. Core Math & Collision Library (minimal dependencies)
-MATH_SOURCES := \
-	src/engine/math_util.c
-
-# 2. Surface Collision Library  
-COLLISION_SOURCES := \
+# Core dependencies that SM64CoopDX should already have
+EXTERNAL_DEPS_SOURCES := \
+	src/engine/math_util.c \
 	src/engine/surface_collision.c \
-	src/engine/surface_load.c
-
-# 3. Behavior System Library
-BEHAVIOR_SOURCES := \
-	src/engine/behavior_script.c
-
-# 4. Geometry & Layout Library
-GEO_SOURCES := \
-	src/engine/geo_layout.c \
+	src/engine/surface_load.c \
 	src/engine/graph_node.c \
-	src/engine/graph_node_manager.c
-
-# 5. Color & Material Library
-MATERIAL_SOURCES := \
-	src/engine/colors.c \
-	src/game/materials.c
-
-# 6. Mario Builder 64 Core Editor Logic
-MB64_CORE_SOURCES := \
-	src/mb64/data.c \
-	src/mb64/compatibility.c
-
-# 7. Mario Builder 64 Menu System
-MB64_MENU_SOURCES := \
-	src/mb64/menu.c \
-	src/mb64/menu_engine.c \
-	src/mb64/menu_settings.c
-
-# 8. Mario Builder 64 Display & Rendering
-MB64_DISPLAY_SOURCES := \
-	src/mb64/display_funcs.c \
-	src/mb64/painting_frame.c
-
-# 9. Mario Builder 64 Main Logic
-MB64_MAIN_SOURCES := \
-	src/mb64/main.c
-
-# 10. Game Utilities
-GAME_UTIL_SOURCES := \
+	src/engine/graph_node_manager.c \
+	src/engine/behavior_script.c \
+	src/game/materials.c \
 	src/game/mario_misc.c \
-	src/game/debug.c
+	src/game/debug.c \
+	src/mb64/main.c \
+	src/mb64/data.c
 
-# 11. Audio System (if needed)
-AUDIO_SOURCES := \
-	src/audio/external.c
+# Mario Builder 64 specific sources (always included)
+MB64_CORE_SOURCES := \
+	src/mb64/compatibility.c \
+	src/mb64/level_api.c
+	# Note: src/mb64/main.c has heavy graphics/OS dependencies, moved to external deps
+	# Note: src/mb64/data.c has heavy object system dependencies, moved to external deps
+	# Note: level_api.c provides minimal level loading interface for SM64CoopDX
+
+# Lighter engine components (usually safe to include)
+ENGINE_LITE_SOURCES := \
+	src/engine/geo_layout.c \
+	src/engine/colors.c
+	# Note: behavior_script.c has heavy OS dependencies, moved to external deps
+
+# Game utilities (lightweight) - all moved to external deps
+GAME_UTIL_SOURCES := 
+	# Note: mario_misc.c has heavy graphics dependencies, moved to external deps
+	# Note: debug.c has heavy OS dependencies, moved to external deps
+
+# Select sources based on external mode
+ifeq ($(EXTERNAL_MODE),1)
+  # External mode: Only include MB64-specific and lightweight components
+  CORE_SOURCES := $(MB64_CORE_SOURCES) $(ENGINE_LITE_SOURCES) $(GAME_UTIL_SOURCES)
+  $(info Building in EXTERNAL mode - heavy dependencies expected from host)
+else
+  # Bundle mode: Include everything
+  CORE_SOURCES := $(MB64_CORE_SOURCES) $(ENGINE_LITE_SOURCES) $(GAME_UTIL_SOURCES) $(EXTERNAL_DEPS_SOURCES)
+  $(info Building in BUNDLE mode - including all dependencies)
+endif
+
+# Legacy individual source definitions (for component libraries)
+MATH_SOURCES := src/engine/math_util.c
+COLLISION_SOURCES := src/engine/surface_collision.c src/engine/surface_load.c
+BEHAVIOR_SOURCES := src/engine/behavior_script.c
+GEO_SOURCES := src/engine/geo_layout.c src/engine/graph_node.c src/engine/graph_node_manager.c
+MATERIAL_SOURCES := src/engine/colors.c src/game/materials.c
+
+# Excluded from main library (editor-only)
+MB64_MENU_SOURCES := src/mb64/menu.c src/mb64/menu_engine.c src/mb64/menu_settings.c
+MB64_DISPLAY_SOURCES := src/mb64/display_funcs.c src/mb64/painting_frame.c
+MB64_MAIN_SOURCES := src/mb64/main.c
+AUDIO_SOURCES := src/audio/external.c
 
 # Object file lists
 MATH_OBJECTS := $(MATH_SOURCES:%.c=$(BUILD_DIR)/%.o)
@@ -94,15 +116,27 @@ AUDIO_OBJECTS := $(AUDIO_SOURCES:%.c=$(BUILD_DIR)/%.o)
 # Library Targets                                                             #
 #==============================================================================#
 
-.PHONY: all libs clean list-libs help
+.PHONY: all libs clean list-libs help mb64-levels show-external
 .PHONY: math-lib collision-lib behavior-lib geo-lib material-lib
 .PHONY: mb64-core-lib mb64-menu-lib mb64-display-lib mb64-main-lib game-util-lib audio-lib
 
-# Default target builds the most commonly needed libraries
-all: math-lib collision-lib mb64-core-lib
+# Default target builds libraries for SM64CoopDX level loading/playback
+all: mb64-levels
 
-# Build all libraries
-libs: math-lib collision-lib behavior-lib geo-lib material-lib mb64-core-lib mb64-menu-lib mb64-display-lib game-util-lib
+# Build all individual libraries (for development/debugging)
+libs: math-lib collision-lib behavior-lib geo-lib material-lib mb64-core-lib game-util-lib
+
+# PRIMARY TARGET: All-in-one library for SM64CoopDX level loading
+mb64-levels: $(BUILD_DIR)/libmb64-levels.a
+
+# Combined library objects based on build mode
+CORE_OBJECTS := $(CORE_SOURCES:%.c=$(BUILD_DIR)/%.o)
+
+$(BUILD_DIR)/libmb64-levels.a: $(CORE_OBJECTS)
+	@echo "Building MB64 Levels Library (SM64CoopDX): $@"
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+	@echo "✓ Ready for SM64CoopDX integration: $@"
 
 # Individual library targets
 math-lib: $(BUILD_DIR)/libmb64-math.a
@@ -176,11 +210,15 @@ $(BUILD_DIR)/libmb64-audio.a: $(AUDIO_OBJECTS)
 	@mkdir -p $(dir $@)
 	$(AR) rcs $@ $^
 
-# Compilation rule
+# Compilation rule with conditional includes
 $(BUILD_DIR)/%.o: %.c
 	@echo "Compiling $<"
 	@mkdir -p $(dir $@)
+ifeq ($(EXTERNAL_MODE),1)
+	$(CC) $(CFLAGS) -include lib/stub/ultra64.h -Ilib/stub -Iinclude -Isrc -I. -Isrc/libcart/include $(DEFINES) -c $< -o $@
+else
 	$(CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -c $< -o $@
+endif
 
 # Clean all build artifacts
 clean:
@@ -191,38 +229,47 @@ clean:
 #==============================================================================#
 
 help:
-	@echo "Mario Builder 64 Library Collection"
-	@echo "===================================="
+	@echo "Mario Builder 64 - SM64CoopDX Integration"
+	@echo "========================================"
 	@echo ""
-	@echo "REQUIREMENTS for host projects:"
+	@echo "PRIMARY USE CASE: Load/play MB64 levels in SM64CoopDX"
+	@echo "PURPOSE: Lua bindings for level loading and playback"
+	@echo ""
+	@echo "🎯 MAIN TARGET:"
+	@echo "  mb64-levels    - All-in-one library for level loading/playback"
+	@echo "                   ➜ build/lib/libmb64-levels.a"
+	@echo ""
+	@echo "🔧 COMPONENT LIBRARIES (for development/debugging):"
+	@echo "  math-lib       - Core mathematical utilities"
+	@echo "  collision-lib  - Surface collision detection"
+	@echo "  behavior-lib   - Object behavior scripting"
+	@echo "  geo-lib        - Geometry layout and scene graph"
+	@echo "  material-lib   - Color and material management"
+	@echo "  mb64-core-lib  - MB64 level data and parsing"
+	@echo "  game-util-lib  - General game utilities"
+	@echo ""
+	@echo "🚫 EXCLUDED (not needed for level playback):"
+	@echo "  mb64-menu-lib, mb64-display-lib, mb64-main-lib, audio-lib"
+	@echo ""
+	@echo "📋 BUILD MODES:"
+	@echo "  make -f Makefile.lib                      # External mode (default)"
+	@echo "  make -f Makefile.lib EXTERNAL_MODE=0      # Bundle mode (include all deps)"
+	@echo ""
+	@echo "📋 OTHER COMMANDS:"
+	@echo "  make -f Makefile.lib libs                 # Build individual libraries"
+	@echo "  make -f Makefile.lib clean                # Clean build artifacts"
+	@echo "  make -f Makefile.lib show-external        # Show what's marked external"
+	@echo ""
+	@echo "🔗 SM64CoopDX INTEGRATION:"
+	@echo "  LIBS += -L./mario-builder-64/build/lib -lmb64-levels"
+	@echo ""
+	@echo "⚠️  REQUIREMENTS:"
 	@echo "  - N64/SM64 compatibility headers (ultra64.h, PR/gbi.h, etc.)"
 	@echo "  - N64 types (OSThread, Gfx, Mtx, Vp, Vtx, Vec3f, Vec3s, etc.)"
 	@echo "  - Math constants (M_PI) and macros (MAX, MIN)"
-	@echo "  - Host implementations for N64 assembly blocks"
 	@echo ""
-	@echo "Available libraries:"
-	@echo "  math-lib       - Core mathematical utilities"
-	@echo "  collision-lib  - Surface collision detection and processing"
-	@echo "  behavior-lib   - Object behavior scripting system"
-	@echo "  geo-lib        - Geometry layout and graph node management"
-	@echo "  material-lib   - Color and material management"
-	@echo "  mb64-core-lib  - Mario Builder 64 core editor logic"
-	@echo "  mb64-menu-lib  - Mario Builder 64 menu system"
-	@echo "  mb64-display-lib - Mario Builder 64 display and rendering"
-	@echo "  mb64-main-lib  - Mario Builder 64 main logic"
-	@echo "  game-util-lib  - General game utilities"
-	@echo "  audio-lib      - Audio system components"
-	@echo ""
-	@echo "Meta targets:"
-	@echo "  all            - Build core libraries (math, collision, mb64-core)"
-	@echo "  libs           - Build all libraries"
-	@echo "  clean          - Remove all build artifacts"
-	@echo "  list-libs      - Show detailed library contents"
-	@echo "  help           - Show this help"
-	@echo ""
-	@echo "Example usage in host project Makefile:"
-	@echo "  CFLAGS += -Lpath/to/mario-builder-64/build/lib"
-	@echo "  LIBS += -lmb64-math -lmb64-collision -lmb64-core"
+	@echo "📁 NOTE: lib/stub/ contains minimal headers for library compilation only."
+	@echo "  Host projects should provide their own full implementations."
 
 list-libs:
 	@echo "=== Mario Builder 64 Library Collection ==="
@@ -259,3 +306,19 @@ list-libs:
 	@echo ""
 	@echo "11. libmb64-audio.a (Audio System)"
 	@echo "    Sources: $(AUDIO_SOURCES)"
+
+show-external:
+	@echo "=== External Dependencies Configuration ==="
+	@echo ""
+ifeq ($(EXTERNAL_MODE),1)
+	@echo "🔗 EXTERNAL MODE: These dependencies expected from host:"
+	@echo "$(EXTERNAL_DEPS_SOURCES)" | tr ' ' '\n' | sed 's/^/  /'
+	@echo ""
+	@echo "📦 INCLUDED in library:"
+	@echo "$(CORE_SOURCES)" | tr ' ' '\n' | sed 's/^/  /'
+else
+	@echo "📦 BUNDLE MODE: All dependencies included in library"
+	@echo "$(CORE_SOURCES)" | tr ' ' '\n' | sed 's/^/  /'
+endif
+	@echo ""
+	@echo "Total object files in library: $(words $(CORE_OBJECTS))"

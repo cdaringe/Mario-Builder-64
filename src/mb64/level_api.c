@@ -14,67 +14,52 @@ extern u16 mb64_object_count;
 extern u8 mb64_play_stars_max;
 
 // File I/O functions - host must provide
-#ifndef MB64_EXTERNAL_DEPS
 #include "libcart/ff/ff.h"
 extern FIL mb64_file;
 extern FILINFO mb64_file_info;
 extern char mb64_file_name[MAX_FILE_NAME_SIZE];
-#endif
 
 // Minimal level loading function
 // Host must provide: bzero, file I/O, mb64_save structure
 int mb64_load_level_data(const char* filename __attribute__((unused))) {
-#ifdef MB64_EXTERNAL_DEPS
-    // Host implementation expected
-    return -1;
-#else
     bzero(&mb64_save, sizeof(mb64_save));
     bzero(&mb64_grid_data, sizeof(mb64_grid_data));
 
     TCHAR path[256];
     create_level_file_path(path, filename, NULL);
     FRESULT code = f_stat(path, &mb64_file_info);
-    
+
     if (code != FR_OK) {
         return -1; // File not found
     }
 
     UINT bytes_read;
     f_open(&mb64_file, path, FA_READ);
-    
+
     // Read header
     f_read(&mb64_file, &mb64_save, sizeof(mb64_save), &bytes_read);
-    
+
     // Read tiles
     f_read(&mb64_file, &mb64_tile_data, sizeof(mb64_tile_data[0]) * mb64_save.tile_count, &bytes_read);
-    
-    // Read objects  
+
+    // Read objects
     f_read(&mb64_file, &mb64_object_data, sizeof(mb64_object_data[0]) * mb64_save.object_count, &bytes_read);
-    
+
     f_close(&mb64_file);
-    
+
     mb64_tile_count = mb64_save.tile_count;
     mb64_object_count = mb64_save.object_count;
-    
+
     return 0; // Success
-#endif
 }
 
 // Minimal object generation function
 // Host must provide: spawn_object, gMarioObject, object behavior constants
 int mb64_generate_level_objects(void) {
-#ifdef MB64_EXTERNAL_DEPS
-    // Host implementation expected - this is where SM64CoopDX would:
-    // 1. Iterate through mb64_object_data[]
-    // 2. Use their own spawn_object() function
-    // 3. Set positions using GRID_TO_POS() macro
-    // 4. Apply behaviors from mb64_object_type_list[]
-    return -1;
-#else
     struct Object *obj;
     u32 i;
     mb64_play_stars_max = 0;
-    
+
     for(i = 0; i < mb64_object_count; i++) {
         struct mb64_object_info *info = &mb64_object_type_list[mb64_object_data[i].type];
         s32 param = mb64_object_data[i].bparam;
@@ -97,9 +82,8 @@ int mb64_generate_level_objects(void) {
             }
         }
     }
-    
+
     return 0; // Success
-#endif
 }
 
 // Data accessor functions - these should always work

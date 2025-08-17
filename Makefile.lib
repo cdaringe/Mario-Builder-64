@@ -5,13 +5,13 @@
 # - Load and play Mario Builder 64 levels (NO editor functionality)
 # - Optimized for Lua bindings in SM64CoopDX
 # - Level loading, parsing, and runtime support only
-# 
+#
 # REQUIREMENTS for host projects:
 # - Must provide N64/SM64 compatibility headers: ultra64.h, PR/gbi.h, PR/ultratypes.h
 # - Must define N64 types: OSThread, OSMesgQueue, Gfx, Mtx, Vp, Vtx, Vec3f, Vec3s, etc.
 # - Must provide standard math constants: M_PI, and macros: MAX, MIN
 # - Assembly blocks will need host-equivalent implementations
-# 
+#
 # NOTE: lib/stub/ contains minimal headers only for library compilation.
 #       Host projects should provide their own full implementations.
 
@@ -21,22 +21,44 @@ CC := gcc
 CXX := g++
 AR := ar
 CFLAGS := -O2 -Wall -Wextra -std=c99
-# Include stub headers for compilation when in external mode
-ifeq ($(EXTERNAL_MODE),1)
-  INCLUDES := -Ilib/stub -Iinclude -Isrc -I. -Isrc/libcart/include
-else
-  INCLUDES := -Iinclude -Isrc -I. -Isrc/libcart/include
-endif
-
 # Defines for host build
 DEFINES := -DTARGET_N64=0 -DVERSION_US=1 -DSRAM=1 -DNO_ERRNO_H=1
 
 # External dependencies mode - mark these as external symbols
 # Host project must provide these at link time
+ENABLE_STUB ?= 1
 EXTERNAL_MODE ?= 1
-ifeq ($(EXTERNAL_MODE),1)
-  DEFINES += -DMB64_EXTERNAL_DEPS=1
+
+# Get all MB64 headers
+MB64_DEFAULT_INCLUDES := $(shell find ./include -name "*.h" | sort)
+
+# Base includes
+INCLUDES := -Isrc -I. -Isrc/libcart/include
+
+ifeq ($(ENABLE_STUB), 1)
+  INCLUDES := $(INCLUDES) -Ilib/stub
 endif
+
+ifneq ($(EXTERNAL_MODE),1)
+	INCLUDES := $(INCLUDES) -Iinclude
+endif
+
+# Convert comma-separated list back to space-separated
+ifdef PARENT_INCLUDES
+	INCLUDES_CANDIDATES := $(subst $(comma),$(space),$(PARENT_INCLUDES))
+	# Drop all files that perfectly match from parent build from local build
+	# Maybe pass a basedir instead.
+	# This is terrible in bash.
+	INTERNAL_INCLUDES_NORMALIZED := $(filter-out $(MB64_DEFAULT_INCLUDES),$(INCLUDES_CANDIDATES_NORMALIZED))
+	INCLUDES := $(INCLUDES) -I.. -I../include $(addprefix -I,$(INTERNAL_INCLUDES_NORMALIZED)) $(addprefix -I.,$(INCLUDES_CANDIDATES))
+	DEFINES := $(DEFINES) -DNON_MATCHING=1 -DAVOID_UB=1
+else
+	INCLUDES := $(INCLUDES) $(addprefix -I,$(MB64_DEFAULT_INCLUDES))
+endif
+
+# Use filtered headers in your build
+INCLUDE_DIRS := $(sort $(dir $(MB64_FILTERED_HEADERS)))
+CFLAGS += $(addprefix -I,$(INCLUDE_DIRS))
 
 #==============================================================================#
 # Library Source Definitions                                                  #
@@ -71,9 +93,20 @@ ENGINE_LITE_SOURCES := \
 	# Note: behavior_script.c has heavy OS dependencies, moved to external deps
 
 # Game utilities (lightweight) - all moved to external deps
-GAME_UTIL_SOURCES := 
+GAME_UTIL_SOURCES :=
 	# Note: mario_misc.c has heavy graphics dependencies, moved to external deps
 	# Note: debug.c has heavy OS dependencies, moved to external deps
+
+# Debug output (optional)
+debug-inputs:
+	@echo "[debug] ENABLE_STUB: $(ENABLE_STUB)"
+	@echo "[debug] EXTERNAL_MODE: $(EXTERNAL_MODE)"
+	@echo "[debug] Common SM64 headers to exclude: $(words $(COMMON_HEADER_PATHS))"
+	@echo "[debug] MB64 total/filtered headers: $(words $(MB64_ALL_HEADERS))/$(words $(MB64_FILTERED_HEADERS))"
+	@echo "[debug] Excluded:"
+	@$(foreach header,$(filter $(COMMON_HEADER_PATHS),$(MB64_ALL_HEADERS)),echo "  $(header)";)
+	@echo "[debug] INCLUDES:"
+	@$(foreach include,$(INCLUDES),echo "  $(include)";)
 
 # Select sources based on external mode
 ifeq ($(EXTERNAL_MODE),1)
@@ -127,7 +160,7 @@ all: mb64-levels
 libs: math-lib collision-lib behavior-lib geo-lib material-lib mb64-core-lib game-util-lib
 
 # PRIMARY TARGET: All-in-one library for SM64CoopDX level loading
-mb64-levels: $(BUILD_DIR)/libmb64-levels.a
+mb64-levels: debug-inputs $(BUILD_DIR)/libmb64-levels.a
 
 # Combined library objects based on build mode
 CORE_OBJECTS := $(CORE_SOURCES:%.c=$(BUILD_DIR)/%.o)
@@ -140,7 +173,7 @@ $(BUILD_DIR)/libmb64-levels.a: $(CORE_OBJECTS)
 
 # Individual library targets
 math-lib: $(BUILD_DIR)/libmb64-math.a
-collision-lib: $(BUILD_DIR)/libmb64-collision.a  
+collision-lib: $(BUILD_DIR)/libmb64-collision.a
 behavior-lib: $(BUILD_DIR)/libmb64-behavior.a
 geo-lib: $(BUILD_DIR)/libmb64-geo.a
 material-lib: $(BUILD_DIR)/libmb64-material.a
@@ -214,12 +247,7 @@ $(BUILD_DIR)/libmb64-audio.a: $(AUDIO_OBJECTS)
 $(BUILD_DIR)/%.o: %.c
 	@echo "Compiling $<"
 	@mkdir -p $(dir $@)
-ifeq ($(EXTERNAL_MODE),1)
-	$(CC) $(CFLAGS) -include lib/stub/ultra64.h -Ilib/stub -Iinclude -Isrc -I. -Isrc/libcart/include $(DEFINES) -c $< -o $@
-else
 	$(CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -c $< -o $@
-endif
-
 # Clean all build artifacts
 clean:
 	rm -rf $(BUILD_DIR)

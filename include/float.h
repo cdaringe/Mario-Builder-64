@@ -39,7 +39,7 @@ extern void fcr_enable_exceptions(FloatExceptionBits);
 extern void fcr_disable_exceptions(FloatExceptionBits);
 
 // Returns TRUE if all of the given exceptions are enabled
-inline Bool32 fcr_check_exceptions_enabled(FloatExceptionBits exceptions) {
+inline u32 fcr_check_exceptions_enabled(FloatExceptionBits exceptions) {
     return (fcr_get_enabled_exceptions() & exceptions) == exceptions;
 }
 

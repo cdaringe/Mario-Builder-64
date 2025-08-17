@@ -1,14 +1,10 @@
-// Mario Builder 64 Level API - Minimal level loading functions for SM64CoopDX integration
-// Re-exports essential level loading functionality from main.c in external dependencies
+// Mario Builder 64 Level API - Public interface for SM64CoopDX integration
+// Provides complete level loading and playback functionality
 
 #include "main.h"
 #include <string.h>
 
-// Note: In external mode, main.c is provided by the host (SM64CoopDX) which gives us access to:
-// - load_level() function 
-// - generate_objects_to_level() function
-// - All the global data arrays (mb64_save, mb64_object_data, etc.)
-
+// In external mode, main.c functions are provided by the host (SM64CoopDX)
 // Forward declarations for functions that will be provided by main.c (external dependency)
 extern void load_level(void);
 extern void generate_objects_to_level(void);

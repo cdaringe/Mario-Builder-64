@@ -1,19 +1,14 @@
-# Mario Builder 64 Library Collection
-# Usage: make -f Makefile.lib [target]
+# Mario Builder 64 Library Export
+# Usage: make -f Makefile.lib
 #
-# PRIMARY USE CASE: SM64CoopDX Integration
-# - Load and play Mario Builder 64 levels (NO editor functionality)
-# - Optimized for Lua bindings in SM64CoopDX
-# - Level loading, parsing, and runtime support only
+# Exports Mario Builder 64 level loading functionality as a library for integration
+# into external projects like SM64CoopDX. Provides complete API without requiring
+# integrators to define any structures manually.
 #
 # REQUIREMENTS for host projects:
 # - Must provide N64/SM64 compatibility headers: ultra64.h, PR/gbi.h, PR/ultratypes.h
 # - Must define N64 types: OSThread, OSMesgQueue, Gfx, Mtx, Vp, Vtx, Vec3f, Vec3s, etc.
 # - Must provide standard math constants: M_PI, and macros: MAX, MIN
-# - Assembly blocks will need host-equivalent implementations
-#
-# NOTE: lib/stub/ contains minimal headers only for library compilation.
-#       Host projects should provide their own full implementations.
 
 default: all
 
@@ -26,13 +21,13 @@ CFLAGS := -O2 -Wall -Wextra -std=c99
 # Defines for host build
 DEFINES := -DTARGET_N64=0 -DVERSION_US=1 -DSRAM=1 -DNO_ERRNO_H=1
 
-# External dependencies mode - mark these as external symbols
-# Host project must provide these at link time
-ENABLE_STUB ?= 1
-EXTERNAL_MODE ?= 1
-
+# Library export configuration  
+# Host project provides heavy dependencies at link time
 INCLUDES ?= -Ilib/stub
 INCLUDES := $(INCLUDES) -Isrc -I. -Isrc/libcart/include -Iinclude
+
+# Public API header that gets exported with the library
+PUBLIC_HEADERS := include/mb64_api.h
 
 INTERNAL_INCLUDES_DROPPED :=
 PARENT_INCLUDES_CANDIDATES :=
@@ -54,8 +49,8 @@ PARENT_INCLUDES_CANDIDATES :=
 # Library Source Definitions                                                  #
 #==============================================================================#
 
-# Core dependencies that SM64CoopDX should already have
-EXTERNAL_DEPS_SOURCES := \
+# Dependencies that host projects (SM64CoopDX) should provide at link time
+HOST_PROVIDED_SOURCES := \
 	src/engine/math_util.c \
 	src/engine/surface_collision.c \
 	src/engine/surface_load.c \
@@ -68,35 +63,15 @@ EXTERNAL_DEPS_SOURCES := \
 	src/mb64/main.c \
 	src/mb64/data.c
 
-# Mario Builder 64 specific sources (always included)
-MB64_CORE_SOURCES := \
+# Library export sources - minimal, focused on level loading API
+LIBRARY_SOURCES := \
 	src/mb64/compatibility.c \
-	src/mb64/level_api.c
-	# Note: src/mb64/main.c has heavy graphics/OS dependencies, moved to external deps
-	# Note: src/mb64/data.c has heavy object system dependencies, moved to external deps  
-	# Note: level_api.c provides minimal level loading interface for SM64CoopDX
-
-# Lighter engine components (usually safe to include)
-ENGINE_LITE_SOURCES := \
+	src/mb64/level_api.c \
 	src/engine/geo_layout.c \
 	src/engine/colors.c
-	# Note: behavior_script.c has heavy OS dependencies, moved to external deps
 
-# Game utilities (lightweight) - all moved to external deps
-GAME_UTIL_SOURCES :=
-	# Note: mario_misc.c has heavy graphics dependencies, moved to external deps
-	# Note: debug.c has heavy OS dependencies, moved to external deps
-
-# Select sources based on external mode
-ifeq ($(EXTERNAL_MODE),1)
-  # External mode: Only include MB64-specific and lightweight components
-  CORE_SOURCES := $(MB64_CORE_SOURCES) $(ENGINE_LITE_SOURCES) $(GAME_UTIL_SOURCES)
-  $(info Building in EXTERNAL mode - heavy dependencies expected from host)
-else
-  # Bundle mode: Include everything
-  CORE_SOURCES := $(MB64_CORE_SOURCES) $(ENGINE_LITE_SOURCES) $(GAME_UTIL_SOURCES) $(EXTERNAL_DEPS_SOURCES)
-  $(info Building in BUNDLE mode - including all dependencies)
-endif
+# Core sources for library export
+CORE_SOURCES := $(LIBRARY_SOURCES)
 
 # Legacy individual source definitions (for component libraries)
 MATH_SOURCES := src/engine/math_util.c
@@ -128,27 +103,28 @@ AUDIO_OBJECTS := $(AUDIO_SOURCES:%.c=$(BUILD_DIR)/%.o)
 # Library Targets                                                             #
 #==============================================================================#
 
-.PHONY: all libs clean list-libs help mb64-levels show-external
+.PHONY: all library mb64-levels libs clean list-libs help show-sources install-headers
 .PHONY: math-lib collision-lib behavior-lib geo-lib material-lib
 .PHONY: mb64-core-lib mb64-menu-lib mb64-display-lib mb64-main-lib game-util-lib audio-lib
 
-# Default target builds libraries for SM64CoopDX level loading/playback
-all: mb64-levels
+# Default target builds library for level loading integration
+all: library
 
 # Build all individual libraries (for development/debugging)
 libs: math-lib collision-lib behavior-lib geo-lib material-lib mb64-core-lib game-util-lib
 
-# PRIMARY TARGET: All-in-one library for SM64CoopDX level loading
-mb64-levels: $(BUILD_DIR)/libmb64-levels.a
+# PRIMARY TARGET: Mario Builder 64 Library Export
+library: $(BUILD_DIR)/libmb64-levels.a install-headers
+mb64-levels: library  # Legacy alias
 
 # Combined library objects based on build mode
 CORE_OBJECTS := $(CORE_SOURCES:%.c=$(BUILD_DIR)/%.o)
 
 $(BUILD_DIR)/libmb64-levels.a: $(CORE_OBJECTS)
-	@echo "Building MB64 Levels Library (SM64CoopDX): $@"
+	@echo "Building Mario Builder 64 Library Export: $@"
 	@mkdir -p $(dir $@)
 	$(AR) rcs $@ $^
-	@echo "✓ Ready for SM64CoopDX integration: $@"
+	@echo "✓ Library ready for integration: $@"
 
 # Individual library targets
 math-lib: $(BUILD_DIR)/libmb64-math.a
@@ -227,6 +203,13 @@ $(BUILD_DIR)/%.o: %.c
 	@echo "Compiling $<"
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -c $< -o $@
+# Install public headers for integration
+install-headers:
+	@echo "Installing public API headers..."
+	@mkdir -p $(BUILD_DIR)/include
+	@cp $(PUBLIC_HEADERS) $(BUILD_DIR)/include/
+	@echo "✓ Headers exported to $(BUILD_DIR)/include/"
+
 # Clean all build artifacts
 clean:
 	rm -rf $(BUILD_DIR)
@@ -236,47 +219,36 @@ clean:
 #==============================================================================#
 
 help:
-	@echo "Mario Builder 64 - SM64CoopDX Integration"
-	@echo "========================================"
+	@echo "Mario Builder 64 Library Export"
+	@echo "==============================="
 	@echo ""
-	@echo "PRIMARY USE CASE: Load/play MB64 levels in SM64CoopDX"
-	@echo "PURPOSE: Lua bindings for level loading and playback"
+	@echo "PURPOSE: Export MB64 level loading functionality as a library"
+	@echo "TARGET: External projects like SM64CoopDX"
 	@echo ""
 	@echo "🎯 MAIN TARGET:"
-	@echo "  mb64-levels    - All-in-one library for level loading/playback"
-	@echo "                   ➜ build/lib/libmb64-levels.a"
+	@echo "  library        - Mario Builder 64 library export"
+	@echo "                   ➜ build/lib/libmb64-levels.a + headers"
 	@echo ""
-	@echo "🔧 COMPONENT LIBRARIES (for development/debugging):"
-	@echo "  math-lib       - Core mathematical utilities"
-	@echo "  collision-lib  - Surface collision detection"
-	@echo "  behavior-lib   - Object behavior scripting"
-	@echo "  geo-lib        - Geometry layout and scene graph"
-	@echo "  material-lib   - Color and material management"
-	@echo "  mb64-core-lib  - MB64 level data and parsing"
-	@echo "  game-util-lib  - General game utilities"
-	@echo ""
-	@echo "🚫 EXCLUDED (not needed for level playback):"
-	@echo "  mb64-menu-lib, mb64-display-lib, mb64-main-lib, audio-lib"
-	@echo ""
-	@echo "📋 BUILD MODES:"
-	@echo "  make -f Makefile.lib                      # External mode (default)"
-	@echo "  make -f Makefile.lib EXTERNAL_MODE=0      # Bundle mode (include all deps)"
-	@echo ""
-	@echo "📋 OTHER COMMANDS:"
-	@echo "  make -f Makefile.lib libs                 # Build individual libraries"
+	@echo "📋 COMMANDS:"
+	@echo "  make -f Makefile.lib                      # Build library (default)"
 	@echo "  make -f Makefile.lib clean                # Clean build artifacts"
-	@echo "  make -f Makefile.lib show-external        # Show what's marked external"
+	@echo "  make -f Makefile.lib show-sources         # Show what's included vs host-provided"
+	@echo "  make -f Makefile.lib libs                 # Build individual component libraries"
 	@echo ""
-	@echo "🔗 SM64CoopDX INTEGRATION:"
+	@echo "🔗 INTEGRATION:"
 	@echo "  LIBS += -L./mario-builder-64/build/lib -lmb64-levels"
+	@echo "  INCLUDES += -I./mario-builder-64/build/lib/include"
+	@echo "  #include \"mb64_api.h\"  // Complete API - no manual struct definitions needed!"
 	@echo ""
-	@echo "⚠️  REQUIREMENTS:"
+	@echo "📦 LIBRARY EXPORTS:"
+	@echo "  - build/lib/libmb64-levels.a       # Compiled library"
+	@echo "  - build/lib/include/mb64_api.h     # Complete public API header"
+	@echo ""
+	@echo "⚠️  HOST REQUIREMENTS:"
 	@echo "  - N64/SM64 compatibility headers (ultra64.h, PR/gbi.h, etc.)"
 	@echo "  - N64 types (OSThread, Gfx, Mtx, Vp, Vtx, Vec3f, Vec3s, etc.)"
 	@echo "  - Math constants (M_PI) and macros (MAX, MIN)"
-	@echo ""
-	@echo "📁 NOTE: lib/stub/ contains minimal headers for library compilation only."
-	@echo "  Host projects should provide their own full implementations."
+	@echo "  - Host must provide heavy dependencies at link time"
 
 list-libs:
 	@echo "=== Mario Builder 64 Library Collection ==="
@@ -314,18 +286,13 @@ list-libs:
 	@echo "11. libmb64-audio.a (Audio System)"
 	@echo "    Sources: $(AUDIO_SOURCES)"
 
-show-external:
-	@echo "=== External Dependencies Configuration ==="
+show-sources:
+	@echo "=== Mario Builder 64 Library Export Sources ==="
 	@echo ""
-ifeq ($(EXTERNAL_MODE),1)
-	@echo "🔗 EXTERNAL MODE: These dependencies expected from host:"
-	@echo "$(EXTERNAL_DEPS_SOURCES)" | tr ' ' '\n' | sed 's/^/  /'
+	@echo "📦 INCLUDED in library export:"
+	@echo "$(LIBRARY_SOURCES)" | tr ' ' '\n' | sed 's/^/  /'
 	@echo ""
-	@echo "📦 INCLUDED in library:"
-	@echo "$(CORE_SOURCES)" | tr ' ' '\n' | sed 's/^/  /'
-else
-	@echo "📦 BUNDLE MODE: All dependencies included in library"
-	@echo "$(CORE_SOURCES)" | tr ' ' '\n' | sed 's/^/  /'
-endif
+	@echo "🔗 HOST PROVIDED (not included, host must provide at link time):"
+	@echo "$(HOST_PROVIDED_SOURCES)" | tr ' ' '\n' | sed 's/^/  /'
 	@echo ""
 	@echo "Total object files in library: $(words $(CORE_OBJECTS))"

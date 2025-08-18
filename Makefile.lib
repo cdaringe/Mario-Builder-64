@@ -21,7 +21,7 @@ CFLAGS := -O2 -Wall -Wextra -std=c99
 # Defines for host build
 DEFINES := -DTARGET_N64=0 -DVERSION_US=1 -DSRAM=1 -DNO_ERRNO_H=1
 
-# Library export configuration  
+# Library export configuration
 # Host project provides heavy dependencies at link time
 INCLUDES ?= -Ilib/stub
 INCLUDES := $(INCLUDES) -Isrc -I. -Isrc/libcart/include -Iinclude
@@ -67,6 +67,7 @@ HOST_PROVIDED_SOURCES := \
 LIBRARY_SOURCES := \
 	src/mb64/compatibility.c \
 	src/mb64/level_api.c \
+	src/mb64/level_disk_api.c \
 	src/engine/geo_layout.c \
 	src/engine/colors.c
 
@@ -243,6 +244,12 @@ help:
 	@echo "📦 LIBRARY EXPORTS:"
 	@echo "  - build/lib/libmb64-levels.a       # Compiled library"
 	@echo "  - build/lib/include/mb64_api.h     # Complete public API header"
+	@echo ""
+	@echo "🆕 STANDARD DISK LOADING SUPPORT:"
+	@echo "  - mb64_load_level_from_disk()      # Load from standard computer filesystem"
+	@echo "  - mb64_load_level_from_buffer()    # Load from memory buffer"
+	@echo "  - mb64_is_valid_level_file()       # Validate .mb64 files"
+	@echo "  - Complements existing mb64_load_level_data() (cartridge/SD)"
 	@echo ""
 	@echo "⚠️  HOST REQUIREMENTS:"
 	@echo "  - N64/SM64 compatibility headers (ultra64.h, PR/gbi.h, etc.)"

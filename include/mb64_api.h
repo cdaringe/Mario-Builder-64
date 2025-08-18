@@ -22,6 +22,8 @@
 #ifndef MB64_API_H
 #define MB64_API_H
 
+#include <stddef.h>  // For size_t
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -450,15 +452,84 @@ enum mb64_themes {
 //=============================================================================
 
 /**
+ * MARIO BUILDER 64 LEVEL LOADING API
+ * 
+ * This API provides multiple ways to load .mb64 level files:
+ * 
+ * 1. mb64_load_level_data() - Original cartridge/SD card loading (FatFS)
+ * 2. mb64_load_level_from_disk() - NEW: Standard computer disk loading
+ * 3. mb64_load_level_from_buffer() - NEW: Load from memory buffer
+ * 
+ * All functions load into the same shared data structures and are followed
+ * by the same mb64_generate_level_objects() call to spawn the level.
+ * 
+ * EXAMPLE USAGE (SM64CoopDX integration):
+ * 
+ *   // Simple one-call loading (recommended for most cases)
+ *   if (mb64_load_level_complete("/path/to/level.mb64") == 0) {
+ *       // Level loaded and objects spawned successfully
+ *   }
+ * 
+ *   // Manual step-by-step loading for advanced control
+ *   if (mb64_load_level_from_disk("/path/to/level.mb64") == 0) {
+ *       mb64_generate_level_objects();
+ *       // Level is now loaded and objects spawned
+ *   }
+ * 
+ *   // Check if file is valid before loading
+ *   if (mb64_is_valid_level_file("/path/to/level.mb64")) {
+ *       mb64_load_level_complete("/path/to/level.mb64");
+ *   }
+ * 
+ *   // Load from memory (e.g., embedded data, network transfer)
+ *   if (mb64_load_level_from_buffer(data_ptr, data_size) == 0) {
+ *       mb64_generate_level_objects();
+ *   }
+ */
+
+/**
  * Level Loading Functions
  */
 
 /**
- * Load a Mario Builder 64 level from file
- * @param filename Path to the .mb64 level file
+ * Load a Mario Builder 64 level from file (cartridge/SD card filesystem)
+ * Uses libcart FatFS to read from N64 cartridge or SD card
+ * @param filename Path to the .mb64 level file (relative to cartridge filesystem)
  * @return 0 on success, -1 on failure
  */
 int mb64_load_level_data(const char* filename);
+
+/**
+ * Load a Mario Builder 64 level from standard disk file
+ * Uses standard C file I/O to read from host computer filesystem
+ * @param filepath Full path to the .mb64 level file on standard disk
+ * @return 0 on success, -1 on failure
+ */
+int mb64_load_level_from_disk(const char* filepath);
+
+/**
+ * Load a Mario Builder 64 level from memory buffer
+ * Useful for embedded data or custom loading schemes
+ * @param buffer Pointer to .mb64 file data in memory
+ * @param buffer_size Size of the buffer in bytes
+ * @return 0 on success, -1 on failure
+ */
+int mb64_load_level_from_buffer(const void* buffer, size_t buffer_size);
+
+/**
+ * Check if a file is a valid Mario Builder 64 level file
+ * @param filepath Path to file to check
+ * @return 1 if valid .mb64 file, 0 if not, -1 on error
+ */
+int mb64_is_valid_level_file(const char* filepath);
+
+/**
+ * Load and initialize a level from disk in one call
+ * Convenience function that combines loading and object generation
+ * @param filepath Path to the .mb64 level file
+ * @return 0 on success, -1 on failure
+ */
+int mb64_load_level_complete(const char* filepath);
 
 /**
  * Generate objects and geometry from loaded level data
@@ -526,6 +597,17 @@ u8 mb64_get_stars_max(void);
  * Convert world position to grid coordinates
  */
 #define POS_TO_GRID(pos) (((pos) + (32 * TILE_SIZE) - TILE_SIZE/2) / TILE_SIZE)
+
+/**
+ * Simple level loading macro for most common use case
+ * Loads from disk and generates objects in one call
+ */
+#define MB64_LOAD_LEVEL_SIMPLE(filepath) mb64_load_level_complete(filepath)
+
+/**
+ * Check if level loading was successful
+ */
+#define MB64_LEVEL_LOADED() (mb64_get_tile_count() > 0 || mb64_get_object_count() > 0)
 
 #ifdef __cplusplus
 }

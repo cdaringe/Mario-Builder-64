@@ -1,0 +1,3 @@
+[submodule "lib/libpl"]
+	path = lib/libpl
+	url = ssh://git@framework.cd:2222/cdaringe/libpl.git

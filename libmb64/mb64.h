@@ -100,6 +100,30 @@ typedef struct {
     mb64_traj_t    trajectories[MB64_TRAJ_COUNT];  /* 1000 waypoints, always present */
 } mb64_level_t;
 
+typedef enum {
+    MB64_MESH_FACE_TOP = 0,
+    MB64_MESH_FACE_BOTTOM = 1,
+    MB64_MESH_FACE_NEG_X = 2,
+    MB64_MESH_FACE_POS_X = 3,
+    MB64_MESH_FACE_NEG_Z = 4,
+    MB64_MESH_FACE_POS_Z = 5,
+} mb64_mesh_face_dir_t;
+
+typedef struct {
+    int16_t v[4][3];      /* MB64 coordinates in sixteenths of one tile */
+    uint8_t material;
+    uint8_t tile_type;
+    uint8_t direction;
+    uint8_t is_water;
+} mb64_mesh_face_t;
+
+typedef struct {
+    mb64_mesh_face_t *faces;
+    uint32_t face_count;
+    uint32_t solid_tile_count;
+    uint32_t water_tile_count;
+} mb64_mesh_t;
+
 /**
  * mb64_load() — Parse an .mb64 file.
  *
@@ -122,6 +146,9 @@ mb64_level_t *mb64_load(const char *path);
  * Safe to call with NULL.
  */
 void mb64_free(mb64_level_t *level);
+
+int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh);
+void mb64_free_render_mesh(mb64_mesh_t *mesh);
 
 #ifdef __cplusplus
 }

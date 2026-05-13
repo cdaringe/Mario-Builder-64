@@ -35,6 +35,13 @@ enum mb64_material_id {
     MB64_MAT_DESERT_SLOWSAND = 121,
 };
 
+enum mb64_surface_id {
+    MB64_SURFACE_DEFAULT = 0x0000,
+    MB64_SURFACE_BURNING = 0x0001,
+    MB64_SURFACE_DEEP_QUICKSAND = 0x0022,
+    MB64_SURFACE_INSTANT_QUICKSAND = 0x0023,
+};
+
 typedef struct {
     uint8_t side;
     uint8_t top;
@@ -68,6 +75,7 @@ static const mb64_material_def_t s_theme_materials[][MB64_MATERIAL_SLOT_COUNT] =
 };
 
 static uint8_t s_solid_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
+static uint8_t s_water_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
 
 static int tile_in_range(const mb64_tile_t *t) {
     return t != NULL &&
@@ -96,13 +104,20 @@ static int solid_at(int x, int y, int z) {
     return s_solid_grid[z][y][x] != 0;
 }
 
-static uint8_t resolve_material(const mb64_level_t *level,
-                                const mb64_tile_t *tile,
-                                uint8_t direction) {
+static int water_at(int x, int y, int z) {
+    if (x < 0 || y < 0 || z < 0 ||
+        x >= MB64_GRID_SIZE || y >= MB64_GRID_SIZE || z >= MB64_GRID_SIZE) {
+        return 0;
+    }
+    return s_water_grid[z][y][x] != 0;
+}
+
+uint8_t mb64_resolve_tile_material(const mb64_level_t *level,
+                                   const mb64_tile_t *tile,
+                                   uint8_t top_face) {
     uint8_t slot = tile->mat % MB64_MATERIAL_SLOT_COUNT;
     if (level->header.theme == MB64_THEME_CUSTOM) {
-        if (direction == MB64_MESH_FACE_TOP &&
-            level->header.custom_theme.topmats_enabled[slot]) {
+        if (top_face && level->header.custom_theme.topmats_enabled[slot]) {
             return level->header.custom_theme.topmats[slot];
         }
         return level->header.custom_theme.mats[slot];
@@ -113,7 +128,27 @@ static uint8_t resolve_material(const mb64_level_t *level,
         theme = 0;
     }
     const mb64_material_def_t *def = &s_theme_materials[theme][slot];
-    return direction == MB64_MESH_FACE_TOP ? def->top : def->side;
+    return top_face ? def->top : def->side;
+}
+
+int16_t mb64_surface_for_material(uint8_t material) {
+    switch (material) {
+        case MB64_MAT_LAVA:
+            return MB64_SURFACE_BURNING;
+        case MB64_MAT_QUICKSAND:
+            return MB64_SURFACE_INSTANT_QUICKSAND;
+        case MB64_MAT_DESERT_SLOWSAND:
+            return MB64_SURFACE_DEEP_QUICKSAND;
+        default:
+            return MB64_SURFACE_DEFAULT;
+    }
+}
+
+int16_t mb64_surface_for_tile(const mb64_level_t *level, const mb64_tile_t *tile) {
+    if (level == NULL || tile == NULL) {
+        return MB64_SURFACE_DEFAULT;
+    }
+    return mb64_surface_for_material(mb64_resolve_tile_material(level, tile, 1));
 }
 
 static void tile_bounds(const mb64_tile_t *t,
@@ -135,7 +170,7 @@ static void emit_face(mb64_mesh_t *mesh, uint32_t *idx,
     mb64_mesh_face_t *face = &mesh->faces[(*idx)++];
     memcpy(face->v, p, sizeof(face->v));
     face->material = t->mat;
-    face->resolved_material = resolve_material(level, t, direction);
+    face->resolved_material = mb64_resolve_tile_material(level, t, direction == MB64_MESH_FACE_TOP);
     face->tile_type = t->type;
     face->direction = direction;
     face->is_water = is_water;
@@ -149,6 +184,7 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
     }
 
     memset(s_solid_grid, 0, sizeof(s_solid_grid));
+    memset(s_water_grid, 0, sizeof(s_water_grid));
 
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
@@ -156,11 +192,23 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
             s_solid_grid[t->z][t->y][t->x] = 1;
             mesh->solid_tile_count++;
         } else if (tile_is_water(t)) {
+            s_water_grid[t->z][t->y][t->x] = 1;
             mesh->water_tile_count++;
         }
     }
 
-    uint32_t face_count = mesh->water_tile_count;
+    uint32_t face_count = 0;
+    for (uint32_t i = 0; i < level->header.tile_count; i++) {
+        const mb64_tile_t *t = &level->tiles[i];
+        if (!tile_is_water(t) || water_at(t->x, t->y - 1, t->z)) { continue; }
+        int y1 = t->y + 1;
+        while (water_at(t->x, y1, t->z)) { y1++; }
+        face_count++; /* top of the merged water column */
+        if (!water_at(t->x - 1, t->y, t->z)) { face_count++; }
+        if (!water_at(t->x + 1, t->y, t->z)) { face_count++; }
+        if (!water_at(t->x, t->y, t->z - 1)) { face_count++; }
+        if (!water_at(t->x, t->y, t->z + 1)) { face_count++; }
+    }
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
         if (!tile_is_solid(t)) { continue; }
@@ -219,12 +267,33 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
         if (!tile_is_water(t)) { continue; }
+        if (water_at(t->x, t->y - 1, t->z)) { continue; }
         int16_t x0, x1, y0, y1, z0, z1;
         tile_bounds(t, &x0, &x1, &y0, &y1, &z0, &z1);
-        (void)y1;
-        int16_t water_y = (int16_t)(y0 + 14);
-        const int16_t p[4][3] = {{x0,water_y,z1},{x0,water_y,z0},{x1,water_y,z1},{x1,water_y,z0}};
-        emit_face(mesh, &out, level, t, MB64_MESH_FACE_TOP, 1, p);
+        while (water_at(t->x, (y1 / MB64_TILE_SUBUNITS), t->z)) {
+            y1 = (int16_t)(y1 + MB64_TILE_SUBUNITS);
+        }
+        int16_t water_top_y = (int16_t)(y1 - 2);
+        int16_t water_side_top_y = water_top_y;
+        int16_t water_side_bottom_y = (int16_t)(y0 - 2);
+        const int16_t top[4][3] = {{x0,water_top_y,z1},{x0,water_top_y,z0},{x1,water_top_y,z1},{x1,water_top_y,z0}};
+        emit_face(mesh, &out, level, t, MB64_MESH_FACE_TOP, 1, top);
+        if (!water_at(t->x - 1, t->y, t->z)) {
+            const int16_t p[4][3] = {{x0,water_side_top_y,z0},{x0,water_side_bottom_y,z0},{x0,water_side_top_y,z1},{x0,water_side_bottom_y,z1}};
+            emit_face(mesh, &out, level, t, MB64_MESH_FACE_NEG_X, 1, p);
+        }
+        if (!water_at(t->x + 1, t->y, t->z)) {
+            const int16_t p[4][3] = {{x1,water_side_top_y,z1},{x1,water_side_bottom_y,z1},{x1,water_side_top_y,z0},{x1,water_side_bottom_y,z0}};
+            emit_face(mesh, &out, level, t, MB64_MESH_FACE_POS_X, 1, p);
+        }
+        if (!water_at(t->x, t->y, t->z - 1)) {
+            const int16_t p[4][3] = {{x1,water_side_top_y,z0},{x1,water_side_bottom_y,z0},{x0,water_side_top_y,z0},{x0,water_side_bottom_y,z0}};
+            emit_face(mesh, &out, level, t, MB64_MESH_FACE_NEG_Z, 1, p);
+        }
+        if (!water_at(t->x, t->y, t->z + 1)) {
+            const int16_t p[4][3] = {{x0,water_side_top_y,z1},{x0,water_side_bottom_y,z1},{x1,water_side_top_y,z1},{x1,water_side_bottom_y,z1}};
+            emit_face(mesh, &out, level, t, MB64_MESH_FACE_POS_Z, 1, p);
+        }
     }
 
     return out == face_count;

@@ -150,6 +150,11 @@ void mb64_free(mb64_level_t *level);
 
 int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh);
 void mb64_free_render_mesh(mb64_mesh_t *mesh);
+uint8_t mb64_resolve_tile_material(const mb64_level_t *level,
+                                   const mb64_tile_t *tile,
+                                   uint8_t top_face);
+int16_t mb64_surface_for_material(uint8_t material);
+int16_t mb64_surface_for_tile(const mb64_level_t *level, const mb64_tile_t *tile);
 
 #ifdef __cplusplus
 }

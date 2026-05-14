@@ -116,6 +116,7 @@ typedef struct {
     uint8_t tile_type;
     uint8_t direction;
     uint8_t is_water;
+    uint8_t vertex_count;
 } mb64_mesh_face_t;
 
 typedef struct {

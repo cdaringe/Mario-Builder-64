@@ -11,6 +11,27 @@
 #define MB64_THEME_CUSTOM 9
 #define MB64_MATERIAL_SLOT_COUNT 10
 
+#define TILE_TYPE_SLOPE 2
+#define TILE_TYPE_DSLOPE 3
+#define TILE_TYPE_SLAB 4
+#define TILE_TYPE_DSLAB 5
+#define TILE_TYPE_CORNER 6
+#define TILE_TYPE_DCORNER 7
+#define TILE_TYPE_ICORNER 8
+#define TILE_TYPE_DICORNER 9
+#define TILE_TYPE_SCORNER 10
+#define TILE_TYPE_DSCORNER 11
+#define TILE_TYPE_ISCORNER 12
+#define TILE_TYPE_DISCORNER 13
+#define TILE_TYPE_UGENTLE 14
+#define TILE_TYPE_DUGENTLE 15
+#define TILE_TYPE_LGENTLE 16
+#define TILE_TYPE_DLGENTLE 17
+#define TILE_TYPE_BLOCK 18
+#define TILE_TYPE_SSLOPE 19
+#define TILE_TYPE_SSLAB 20
+#define TILE_TYPE_TROLL 22
+
 enum mb64_material_id {
     MB64_MAT_GRASS = 0,
     MB64_MAT_SAND = 8,
@@ -76,6 +97,157 @@ static const mb64_material_def_t s_theme_materials[][MB64_MATERIAL_SLOT_COUNT] =
 
 static uint8_t s_solid_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
 static uint8_t s_water_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
+
+typedef struct {
+    int8_t v[4][3];
+    uint8_t direction;
+    uint8_t vertex_count;
+} mb64_shape_face_t;
+
+typedef struct {
+    const mb64_shape_face_t *faces;
+    uint8_t face_count;
+} mb64_shape_t;
+
+#define Q(dir, ...) { { __VA_ARGS__ }, dir, 4 }
+#define T(dir, ...) { { __VA_ARGS__, {0,0,0} }, dir, 3 }
+
+static const uint8_t s_rotated_dirs[4][6] = {
+    {0, 1, 2, 3, 4, 5},
+    {0, 1, 5, 4, 2, 3},
+    {0, 1, 3, 2, 5, 4},
+    {0, 1, 4, 5, 3, 2},
+};
+
+static const mb64_shape_face_t s_shape_full[] = {
+    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    Q(2, {16,16,16}, {16,0,16}, {16,16,0}, {16,0,0}),
+    Q(3, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
+    Q(4, {0,16,16}, {0,0,16}, {16,16,16}, {16,0,16}),
+    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+};
+
+static const mb64_shape_face_t s_shape_slope[] = {
+    Q(0, {16,0,16}, {16,16,0}, {0,0,16}, {0,16,0}),
+    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    T(2, {16,0,0}, {16,16,0}, {16,0,16}),
+    T(3, {0,16,0}, {0,0,0}, {0,0,16}),
+};
+
+static const mb64_shape_face_t s_shape_dslope[] = {
+    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(1, {16,16,16}, {0,16,16}, {16,0,0}, {0,0,0}),
+    T(2, {16,0,0}, {16,16,0}, {16,16,16}),
+    T(3, {0,16,0}, {0,0,0}, {0,16,16}),
+};
+
+static const mb64_shape_face_t s_shape_bottom_slab[] = {
+    Q(0, {16,8,16}, {16,8,0}, {0,8,16}, {0,8,0}),
+    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    Q(2, {16,8,16}, {16,0,16}, {16,8,0}, {16,0,0}),
+    Q(3, {0,8,0}, {0,0,0}, {0,8,16}, {0,0,16}),
+    Q(4, {0,8,16}, {0,0,16}, {16,8,16}, {16,0,16}),
+    Q(5, {16,8,0}, {16,0,0}, {0,8,0}, {0,0,0}),
+};
+
+static const mb64_shape_face_t s_shape_top_slab[] = {
+    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    Q(1, {16,8,16}, {0,8,16}, {16,8,0}, {0,8,0}),
+    Q(2, {16,16,16}, {16,8,16}, {16,16,0}, {16,8,0}),
+    Q(3, {0,16,0}, {0,8,0}, {0,16,16}, {0,8,16}),
+    Q(4, {0,16,16}, {0,8,16}, {16,16,16}, {16,8,16}),
+    Q(5, {16,16,0}, {16,8,0}, {0,16,0}, {0,8,0}),
+};
+
+static const mb64_shape_face_t s_shape_corner[] = {
+    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    T(0, {0,0,16}, {16,0,16}, {0,16,0}),
+    T(0, {0,16,0}, {16,0,16}, {16,0,0}),
+    T(3, {0,16,0}, {0,0,0}, {0,0,16}),
+    T(5, {0,0,0}, {0,16,0}, {16,0,0}),
+};
+
+static const mb64_shape_face_t s_shape_icorner[] = {
+    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(3, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
+    T(0, {0,16,16}, {16,0,16}, {0,16,0}),
+    T(0, {0,16,0}, {16,0,16}, {16,16,0}),
+    T(2, {16,0,0}, {16,16,0}, {16,0,16}),
+    T(4, {0,16,16}, {0,0,16}, {16,0,16}),
+};
+
+static const mb64_shape_face_t s_shape_discorner[] = {
+    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(3, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
+    T(2, {16,0,0}, {16,16,0}, {16,16,16}),
+    T(4, {0,16,16}, {0,0,16}, {16,16,16}),
+    T(1, {16,0,0}, {0,0,16}, {0,0,0}),
+    T(1, {0,0,16}, {16,0,0}, {16,16,16}),
+};
+
+static const mb64_shape_face_t s_shape_ugentle[] = {
+    Q(0, {16,8,16}, {16,16,0}, {0,8,16}, {0,16,0}),
+    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(4, {0,8,16}, {0,0,16}, {16,8,16}, {16,0,16}),
+    Q(2, {16,8,16}, {16,0,16}, {16,8,0}, {16,0,0}),
+    Q(3, {0,8,0}, {0,0,0}, {0,8,16}, {0,0,16}),
+    T(2, {16,8,0}, {16,16,0}, {16,8,16}),
+    T(3, {0,16,0}, {0,8,0}, {0,8,16}),
+};
+
+static const mb64_shape_face_t s_shape_lgentle[] = {
+    Q(0, {16,0,16}, {16,8,0}, {0,0,16}, {0,8,0}),
+    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    Q(5, {16,8,0}, {16,0,0}, {0,8,0}, {0,0,0}),
+    T(2, {16,0,0}, {16,8,0}, {16,0,16}),
+    T(3, {0,8,0}, {0,0,0}, {0,0,16}),
+};
+
+static const mb64_shape_face_t s_shape_vslab[] = {
+    Q(0, {16,16,8}, {16,16,0}, {0,16,8}, {0,16,0}),
+    Q(1, {16,0,8}, {0,0,8}, {16,0,0}, {0,0,0}),
+    Q(2, {16,16,8}, {16,0,8}, {16,16,0}, {16,0,0}),
+    Q(3, {0,16,0}, {0,0,0}, {0,16,8}, {0,0,8}),
+    Q(4, {0,16,8}, {0,0,8}, {16,16,8}, {16,0,8}),
+    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+};
+
+static const mb64_shape_face_t s_shape_sslope[] = {
+    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(3, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
+    Q(4, {16,16,0}, {0,16,16}, {16,0,0}, {0,0,16}),
+    T(0, {0,16,16}, {16,16,0}, {0,16,0}),
+    T(1, {16,0,0}, {0,0,16}, {0,0,0}),
+};
+
+static const mb64_shape_t s_shapes[32] = {
+    [TILE_TYPE_SLOPE] = {s_shape_slope, sizeof(s_shape_slope) / sizeof(s_shape_slope[0])},
+    [TILE_TYPE_DSLOPE] = {s_shape_dslope, sizeof(s_shape_dslope) / sizeof(s_shape_dslope[0])},
+    [TILE_TYPE_SLAB] = {s_shape_bottom_slab, sizeof(s_shape_bottom_slab) / sizeof(s_shape_bottom_slab[0])},
+    [TILE_TYPE_DSLAB] = {s_shape_top_slab, sizeof(s_shape_top_slab) / sizeof(s_shape_top_slab[0])},
+    [TILE_TYPE_CORNER] = {s_shape_corner, sizeof(s_shape_corner) / sizeof(s_shape_corner[0])},
+    [TILE_TYPE_DCORNER] = {s_shape_discorner, sizeof(s_shape_discorner) / sizeof(s_shape_discorner[0])},
+    [TILE_TYPE_ICORNER] = {s_shape_icorner, sizeof(s_shape_icorner) / sizeof(s_shape_icorner[0])},
+    [TILE_TYPE_DICORNER] = {s_shape_discorner, sizeof(s_shape_discorner) / sizeof(s_shape_discorner[0])},
+    [TILE_TYPE_SCORNER] = {s_shape_corner, sizeof(s_shape_corner) / sizeof(s_shape_corner[0])},
+    [TILE_TYPE_DSCORNER] = {s_shape_discorner, sizeof(s_shape_discorner) / sizeof(s_shape_discorner[0])},
+    [TILE_TYPE_ISCORNER] = {s_shape_icorner, sizeof(s_shape_icorner) / sizeof(s_shape_icorner[0])},
+    [TILE_TYPE_DISCORNER] = {s_shape_discorner, sizeof(s_shape_discorner) / sizeof(s_shape_discorner[0])},
+    [TILE_TYPE_UGENTLE] = {s_shape_ugentle, sizeof(s_shape_ugentle) / sizeof(s_shape_ugentle[0])},
+    [TILE_TYPE_DUGENTLE] = {s_shape_ugentle, sizeof(s_shape_ugentle) / sizeof(s_shape_ugentle[0])},
+    [TILE_TYPE_LGENTLE] = {s_shape_lgentle, sizeof(s_shape_lgentle) / sizeof(s_shape_lgentle[0])},
+    [TILE_TYPE_DLGENTLE] = {s_shape_lgentle, sizeof(s_shape_lgentle) / sizeof(s_shape_lgentle[0])},
+    [TILE_TYPE_BLOCK] = {s_shape_full, sizeof(s_shape_full) / sizeof(s_shape_full[0])},
+    [TILE_TYPE_SSLOPE] = {s_shape_sslope, sizeof(s_shape_sslope) / sizeof(s_shape_sslope[0])},
+    [TILE_TYPE_SSLAB] = {s_shape_vslab, sizeof(s_shape_vslab) / sizeof(s_shape_vslab[0])},
+    [TILE_TYPE_TROLL] = {s_shape_full, sizeof(s_shape_full) / sizeof(s_shape_full[0])},
+};
 
 static int tile_in_range(const mb64_tile_t *t) {
     return t != NULL &&
@@ -174,6 +346,81 @@ static void emit_face(mb64_mesh_t *mesh, uint32_t *idx,
     face->tile_type = t->type;
     face->direction = direction;
     face->is_water = is_water;
+    face->vertex_count = 4;
+}
+
+static uint8_t rotate_direction(uint8_t direction, uint8_t rot) {
+    if (direction >= 6) {
+        return direction;
+    }
+    return s_rotated_dirs[rot & 3][direction];
+}
+
+static void rotate_vertex(uint8_t rot, const int8_t in[3], int16_t out[3]) {
+    int16_t x = in[0];
+    int16_t y = in[1];
+    int16_t z = in[2];
+    switch (rot & 3) {
+        case 1:
+            out[0] = (int16_t)(16 - z);
+            out[1] = y;
+            out[2] = x;
+            break;
+        case 2:
+            out[0] = (int16_t)(16 - x);
+            out[1] = y;
+            out[2] = (int16_t)(16 - z);
+            break;
+        case 3:
+            out[0] = z;
+            out[1] = y;
+            out[2] = (int16_t)(16 - x);
+            break;
+        default:
+            out[0] = x;
+            out[1] = y;
+            out[2] = z;
+            break;
+    }
+}
+
+static const mb64_shape_t *shape_for_tile(const mb64_tile_t *t) {
+    if (t == NULL || t->type >= (sizeof(s_shapes) / sizeof(s_shapes[0])) ||
+        s_shapes[t->type].faces == NULL) {
+        return NULL;
+    }
+    return &s_shapes[t->type];
+}
+
+static int tile_uses_shaped_mesh(const mb64_tile_t *t) {
+    return shape_for_tile(t) != NULL && t->type != TILE_TYPE_BLOCK && t->type != TILE_TYPE_TROLL;
+}
+
+static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
+                            const mb64_level_t *level,
+                            const mb64_tile_t *t,
+                            const mb64_shape_face_t *src) {
+    int16_t p[4][3];
+    int16_t x0, x1, y0, y1, z0, z1;
+    (void)x1; (void)y1; (void)z1;
+    tile_bounds(t, &x0, &x1, &y0, &y1, &z0, &z1);
+    for (uint8_t i = 0; i < 4; i++) {
+        int16_t v[3];
+        rotate_vertex(t->rot, src->v[i], v);
+        p[i][0] = (int16_t)(x0 + v[0]);
+        p[i][1] = (int16_t)(y0 + v[1]);
+        p[i][2] = (int16_t)(z0 + v[2]);
+    }
+
+    uint8_t direction = rotate_direction(src->direction, t->rot);
+    mb64_mesh_face_t *face = &mesh->faces[(*idx)++];
+    memcpy(face->v, p, sizeof(face->v));
+    face->material = t->mat;
+    face->resolved_material = mb64_resolve_tile_material(level, t, direction == MB64_MESH_FACE_TOP);
+    face->tile_type = t->type;
+    face->direction = direction;
+    face->is_water = 0;
+    face->vertex_count = src->vertex_count;
 }
 
 int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
@@ -212,6 +459,11 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
         if (!tile_is_solid(t)) { continue; }
+        const mb64_shape_t *shape = shape_for_tile(t);
+        if (tile_uses_shaped_mesh(t) && shape != NULL) {
+            face_count += shape->face_count;
+            continue;
+        }
         int tx = t->x, ty = t->y, tz = t->z;
         if (!solid_at(tx, ty + 1, tz)) { face_count++; }
         if (!solid_at(tx, ty - 1, tz)) { face_count++; }
@@ -233,6 +485,13 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
         if (!tile_is_solid(t)) { continue; }
+        const mb64_shape_t *shape = shape_for_tile(t);
+        if (tile_uses_shaped_mesh(t) && shape != NULL) {
+            for (uint8_t j = 0; j < shape->face_count; j++) {
+                emit_shape_face(mesh, &out, level, t, &shape->faces[j]);
+            }
+            continue;
+        }
 
         int16_t x0, x1, y0, y1, z0, z1;
         tile_bounds(t, &x0, &x1, &y0, &y1, &z0, &z1);

@@ -362,9 +362,9 @@ static void rotate_vertex(uint8_t rot, const int8_t in[3], int16_t out[3]) {
     int16_t z = in[2];
     switch (rot & 3) {
         case 1:
-            out[0] = (int16_t)(16 - z);
+            out[0] = z;
             out[1] = y;
-            out[2] = x;
+            out[2] = (int16_t)(16 - x);
             break;
         case 2:
             out[0] = (int16_t)(16 - x);
@@ -372,9 +372,9 @@ static void rotate_vertex(uint8_t rot, const int8_t in[3], int16_t out[3]) {
             out[2] = (int16_t)(16 - z);
             break;
         case 3:
-            out[0] = z;
+            out[0] = (int16_t)(16 - z);
             out[1] = y;
-            out[2] = (int16_t)(16 - x);
+            out[2] = x;
             break;
         default:
             out[0] = x;

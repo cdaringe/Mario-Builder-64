@@ -120,6 +120,8 @@ static const int16_t s_fence_tc[4][2] = {
     { 0 << 5,  0 << 5},
 };
 
+static int solid_at(int x, int y, int z);
+
 typedef struct {
     int8_t v[4][3];
     uint8_t direction;
@@ -506,6 +508,35 @@ static uint8_t rotate_direction(uint8_t direction, uint8_t rot) {
     return s_rotated_dirs[rot & 3][direction];
 }
 
+static int shape_face_is_occluded(const mb64_tile_t *t, uint8_t direction) {
+    int dx = 0;
+    int dy = 0;
+    int dz = 0;
+    switch (direction) {
+        case MB64_MESH_FACE_TOP:
+            dy = 1;
+            break;
+        case MB64_MESH_FACE_BOTTOM:
+            dy = -1;
+            break;
+        case 2: /* MB64_DIRECTION_POS_X */
+            dx = 1;
+            break;
+        case 3: /* MB64_DIRECTION_NEG_X */
+            dx = -1;
+            break;
+        case 4: /* MB64_DIRECTION_POS_Z */
+            dz = 1;
+            break;
+        case 5: /* MB64_DIRECTION_NEG_Z */
+            dz = -1;
+            break;
+        default:
+            return 0;
+    }
+    return solid_at((int)t->x + dx, (int)t->y + dy, (int)t->z + dz);
+}
+
 static void rotate_vertex(uint8_t rot, const int8_t in[3], int16_t out[3]) {
     int16_t x = in[0];
     int16_t y = in[1];
@@ -563,6 +594,9 @@ static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     }
 
     uint8_t direction = rotate_direction(src->direction, t->rot);
+    if (shape_face_is_occluded(t, direction)) {
+        return;
+    }
     mb64_mesh_face_t *face = &mesh->faces[(*idx)++];
     memcpy(face->v, p, sizeof(face->v));
     face->material = t->mat;
@@ -711,7 +745,8 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
         }
     }
 
-    return out == face_count;
+    mesh->face_count = out;
+    return out > 0;
 }
 
 void mb64_free_render_mesh(mb64_mesh_t *mesh) {

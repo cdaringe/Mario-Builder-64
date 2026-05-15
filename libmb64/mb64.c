@@ -255,8 +255,8 @@ mb64_level_t *mb64_load(const char *path) {
             t->z          = (uint8_t)((raw >> 14) & 0x3F);
             t->type       = (uint8_t)((raw >>  9) & 0x1F);
             t->mat        = (uint8_t)((raw >>  5) & 0x0F);
-            t->rot        = (uint8_t)((raw >>  2) & 0x03);
-            t->waterlogged= (uint8_t)((raw)        & 0x01);
+            t->rot        = (uint8_t)((raw >>  3) & 0x03);
+            t->waterlogged= (uint8_t)((raw >>  2) & 0x01);
 
             if (t->type < 32) type_hist[t->type]++;
             if (t->waterlogged) wl_count++;

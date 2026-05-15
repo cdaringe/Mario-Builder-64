@@ -126,6 +126,10 @@ typedef struct {
     uint32_t water_tile_count;
 } mb64_mesh_t;
 
+#define MB64_RENDER_MATERIAL_FENCE    240
+#define MB64_RENDER_MATERIAL_BARS     241
+#define MB64_RENDER_MATERIAL_BARS_TOP 242
+
 #define MB64_OBJECT_FLAG_BILLBOARD (1u << 0)
 #define MB64_OBJECT_FLAG_TRAJECTORY (1u << 1)
 #define MB64_OBJECT_FLAG_STAR (1u << 2)

@@ -31,6 +31,9 @@
 #define TILE_TYPE_SSLOPE 19
 #define TILE_TYPE_SSLAB 20
 #define TILE_TYPE_TROLL 22
+#define TILE_TYPE_FENCE 23
+#define TILE_TYPE_POLE 24
+#define TILE_TYPE_BARS 25
 
 enum mb64_material_id {
     MB64_MAT_GRASS = 0,
@@ -68,6 +71,13 @@ typedef struct {
     uint8_t top;
 } mb64_material_def_t;
 
+typedef struct {
+    uint8_t fence;
+    uint8_t pole;
+    uint8_t bars;
+    uint8_t water;
+} mb64_theme_special_t;
+
 static const mb64_material_def_t s_theme_materials[][MB64_MATERIAL_SLOT_COUNT] = {
     {
         {MB64_MAT_DIRT, MB64_MAT_GRASS},
@@ -93,6 +103,11 @@ static const mb64_material_def_t s_theme_materials[][MB64_MATERIAL_SLOT_COUNT] =
         {MB64_MAT_LAVA, MB64_MAT_LAVA},
         {MB64_MAT_QUICKSAND, MB64_MAT_QUICKSAND},
     },
+};
+
+static const mb64_theme_special_t s_theme_specials[] = {
+    {0, MB64_MAT_STONE, 0, 0},
+    {2, MB64_MAT_DESERT_TILES2, 7, 1},
 };
 
 static uint8_t s_solid_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
@@ -287,6 +302,29 @@ static const mb64_shape_face_t s_shape_sslope[] = {
     T(1, {16,0,0}, {0,0,16}, {0,0,0}),
 };
 
+static const mb64_shape_face_t s_shape_fence[] = {
+    Q(5, {0,8,0}, {0,0,0}, {16,8,0}, {16,0,0}),
+    Q(4, {16,8,0}, {16,0,0}, {0,8,0}, {0,0,0}),
+};
+
+static const mb64_shape_face_t s_shape_pole[] = {
+    Q(5, {8,16,9}, {8,0,9}, {9,16,8}, {9,0,8}),
+    Q(3, {9,16,8}, {9,0,8}, {8,16,7}, {8,0,7}),
+    Q(4, {8,16,7}, {8,0,7}, {7,16,8}, {7,0,8}),
+    Q(2, {7,16,8}, {7,0,8}, {8,16,9}, {8,0,9}),
+    Q(0, {8,16,9}, {9,16,8}, {7,16,8}, {8,16,7}),
+    Q(1, {8,0,9}, {7,0,8}, {9,0,8}, {8,0,7}),
+};
+
+static const mb64_shape_face_t s_shape_bars[] = {
+    Q(5, {9,16,9}, {7,16,9}, {9,0,9}, {7,0,9}),
+    Q(4, {7,16,7}, {9,16,7}, {7,0,7}, {9,0,7}),
+    Q(2, {7,16,9}, {7,0,9}, {7,16,7}, {7,0,7}),
+    Q(3, {9,16,7}, {9,0,7}, {9,16,9}, {9,0,9}),
+    Q(0, {7,16,9}, {9,16,9}, {7,16,7}, {9,16,7}),
+    Q(1, {9,0,9}, {7,0,9}, {9,0,7}, {7,0,7}),
+};
+
 static const mb64_shape_t s_shapes[32] = {
     [TILE_TYPE_SLOPE] = {s_shape_slope, sizeof(s_shape_slope) / sizeof(s_shape_slope[0])},
     [TILE_TYPE_DSLOPE] = {s_shape_dslope, sizeof(s_shape_dslope) / sizeof(s_shape_dslope[0])},
@@ -308,6 +346,9 @@ static const mb64_shape_t s_shapes[32] = {
     [TILE_TYPE_SSLOPE] = {s_shape_sslope, sizeof(s_shape_sslope) / sizeof(s_shape_sslope[0])},
     [TILE_TYPE_SSLAB] = {s_shape_vslab, sizeof(s_shape_vslab) / sizeof(s_shape_vslab[0])},
     [TILE_TYPE_TROLL] = {s_shape_full, sizeof(s_shape_full) / sizeof(s_shape_full[0])},
+    [TILE_TYPE_FENCE] = {s_shape_fence, sizeof(s_shape_fence) / sizeof(s_shape_fence[0])},
+    [TILE_TYPE_POLE] = {s_shape_pole, sizeof(s_shape_pole) / sizeof(s_shape_pole[0])},
+    [TILE_TYPE_BARS] = {s_shape_bars, sizeof(s_shape_bars) / sizeof(s_shape_bars[0])},
 };
 
 static int tile_in_range(const mb64_tile_t *t) {
@@ -364,6 +405,46 @@ uint8_t mb64_resolve_tile_material(const mb64_level_t *level,
     return top_face ? def->top : def->side;
 }
 
+static const mb64_theme_special_t *theme_specials(const mb64_level_t *level) {
+    static const mb64_theme_special_t fallback = {0, MB64_MAT_STONE, 0, 0};
+    if (level == NULL) {
+        return &fallback;
+    }
+    if (level->header.theme == MB64_THEME_CUSTOM) {
+        static mb64_theme_special_t custom;
+        custom.fence = level->header.custom_theme.fence;
+        custom.pole = level->header.custom_theme.pole;
+        custom.bars = level->header.custom_theme.bars;
+        custom.water = level->header.custom_theme.water;
+        return &custom;
+    }
+    uint8_t theme = level->header.theme;
+    if (theme >= (uint8_t)(sizeof(s_theme_specials) / sizeof(s_theme_specials[0]))) {
+        theme = 0;
+    }
+    return &s_theme_specials[theme];
+}
+
+static uint8_t mb64_resolve_face_material(const mb64_level_t *level,
+                                          const mb64_tile_t *tile,
+                                          uint8_t direction) {
+    if (tile == NULL) {
+        return 0;
+    }
+    switch (tile->type) {
+        case TILE_TYPE_FENCE:
+            return MB64_RENDER_MATERIAL_FENCE;
+        case TILE_TYPE_POLE:
+            return theme_specials(level)->pole;
+        case TILE_TYPE_BARS:
+            return direction == MB64_MESH_FACE_TOP || direction == MB64_MESH_FACE_BOTTOM
+                ? MB64_RENDER_MATERIAL_BARS_TOP
+                : MB64_RENDER_MATERIAL_BARS;
+        default:
+            return mb64_resolve_tile_material(level, tile, direction == MB64_MESH_FACE_TOP);
+    }
+}
+
 int16_t mb64_surface_for_material(uint8_t material) {
     switch (material) {
         case MB64_MAT_LAVA:
@@ -403,7 +484,7 @@ static void emit_face(mb64_mesh_t *mesh, uint32_t *idx,
     mb64_mesh_face_t *face = &mesh->faces[(*idx)++];
     memcpy(face->v, p, sizeof(face->v));
     face->material = t->mat;
-    face->resolved_material = mb64_resolve_tile_material(level, t, direction == MB64_MESH_FACE_TOP);
+    face->resolved_material = mb64_resolve_face_material(level, t, direction);
     face->tile_type = t->type;
     face->direction = direction;
     face->is_water = is_water;
@@ -477,7 +558,7 @@ static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     mb64_mesh_face_t *face = &mesh->faces[(*idx)++];
     memcpy(face->v, p, sizeof(face->v));
     face->material = t->mat;
-    face->resolved_material = mb64_resolve_tile_material(level, t, direction == MB64_MESH_FACE_TOP);
+    face->resolved_material = mb64_resolve_face_material(level, t, direction);
     face->tile_type = t->type;
     face->direction = direction;
     face->is_water = 0;

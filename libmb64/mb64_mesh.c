@@ -113,6 +113,13 @@ static const mb64_theme_special_t s_theme_specials[] = {
 static uint8_t s_solid_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
 static uint8_t s_water_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
 
+static const int16_t s_fence_tc[4][2] = {
+    {32 << 5, 16 << 5},
+    {32 << 5,  0 << 5},
+    { 0 << 5, 16 << 5},
+    { 0 << 5,  0 << 5},
+};
+
 typedef struct {
     int8_t v[4][3];
     uint8_t direction;
@@ -489,6 +496,7 @@ static void emit_face(mb64_mesh_t *mesh, uint32_t *idx,
     face->direction = direction;
     face->is_water = is_water;
     face->vertex_count = 4;
+    face->use_tc = 0;
 }
 
 static uint8_t rotate_direction(uint8_t direction, uint8_t rot) {
@@ -563,6 +571,12 @@ static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     face->direction = direction;
     face->is_water = 0;
     face->vertex_count = src->vertex_count;
+    if (t->type == TILE_TYPE_FENCE) {
+        memcpy(face->tc, s_fence_tc, sizeof(s_fence_tc));
+        face->use_tc = 1;
+    } else {
+        face->use_tc = 0;
+    }
 }
 
 int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {

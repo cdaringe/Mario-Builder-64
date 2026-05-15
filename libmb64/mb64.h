@@ -111,12 +111,14 @@ typedef enum {
 
 typedef struct {
     int16_t v[4][3];      /* MB64 coordinates in sixteenths of one tile */
+    int16_t tc[4][2];     /* Optional texture coordinates in native N64 units */
     uint8_t material;
     uint8_t resolved_material;
     uint8_t tile_type;
     uint8_t direction;
     uint8_t is_water;
     uint8_t vertex_count;
+    uint8_t use_tc;
 } mb64_mesh_face_t;
 
 typedef struct {

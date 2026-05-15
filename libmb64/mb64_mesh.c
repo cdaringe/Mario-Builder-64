@@ -170,12 +170,54 @@ static const mb64_shape_face_t s_shape_corner[] = {
     T(5, {0,0,0}, {0,16,0}, {16,0,0}),
 };
 
+static const mb64_shape_face_t s_shape_dcorner[] = {
+    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    T(1, {16,16,16}, {0,16,16}, {0,0,0}),
+    T(1, {0,0,0}, {16,16,0}, {16,16,16}),
+    T(3, {0,0,0}, {0,16,16}, {0,16,0}),
+    T(5, {0,0,0}, {0,16,0}, {16,16,0}),
+};
+
 static const mb64_shape_face_t s_shape_icorner[] = {
     Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
     Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
     Q(3, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
     T(0, {0,16,16}, {16,0,16}, {0,16,0}),
     T(0, {0,16,0}, {16,0,16}, {16,16,0}),
+    T(2, {16,0,0}, {16,16,0}, {16,0,16}),
+    T(4, {0,16,16}, {0,0,16}, {16,0,16}),
+};
+
+static const mb64_shape_face_t s_shape_dicorner[] = {
+    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(3, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
+    T(2, {16,0,0}, {16,16,0}, {16,16,16}),
+    T(4, {0,16,16}, {0,0,16}, {16,16,16}),
+    T(1, {16,16,16}, {0,0,16}, {0,0,0}),
+    T(1, {16,16,16}, {0,0,0}, {16,0,0}),
+};
+
+static const mb64_shape_face_t s_shape_scorner[] = {
+    T(0, {0,0,16}, {16,0,0}, {0,16,0}),
+    T(1, {16,0,0}, {0,0,16}, {0,0,0}),
+    T(3, {0,16,0}, {0,0,0}, {0,0,16}),
+    T(5, {0,0,0}, {0,16,0}, {16,0,0}),
+};
+
+static const mb64_shape_face_t s_shape_dscorner[] = {
+    T(1, {16,16,0}, {0,16,16}, {0,0,0}),
+    T(0, {0,16,16}, {16,16,0}, {0,16,0}),
+    T(3, {0,0,0}, {0,16,16}, {0,16,0}),
+    T(5, {0,0,0}, {0,16,0}, {16,16,0}),
+};
+
+static const mb64_shape_face_t s_shape_iscorner[] = {
+    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(3, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
+    T(0, {0,16,16}, {16,16,0}, {0,16,0}),
+    T(0, {0,16,16}, {16,0,16}, {16,16,0}),
     T(2, {16,0,0}, {16,16,0}, {16,0,16}),
     T(4, {0,16,16}, {0,0,16}, {16,0,16}),
 };
@@ -201,12 +243,31 @@ static const mb64_shape_face_t s_shape_ugentle[] = {
     T(3, {0,16,0}, {0,8,0}, {0,8,16}),
 };
 
+static const mb64_shape_face_t s_shape_dugentle[] = {
+    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(1, {16,0,0}, {16,8,16}, {0,0,0}, {0,8,16}),
+    Q(4, {0,16,16}, {0,8,16}, {16,16,16}, {16,8,16}),
+    Q(2, {16,16,16}, {16,8,16}, {16,16,0}, {16,8,0}),
+    Q(3, {0,16,0}, {0,8,0}, {0,16,16}, {0,8,16}),
+    T(2, {16,0,0}, {16,8,0}, {16,8,16}),
+    T(3, {0,8,0}, {0,0,0}, {0,8,16}),
+};
+
 static const mb64_shape_face_t s_shape_lgentle[] = {
     Q(0, {16,0,16}, {16,8,0}, {0,0,16}, {0,8,0}),
     Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
     Q(5, {16,8,0}, {16,0,0}, {0,8,0}, {0,0,0}),
     T(2, {16,0,0}, {16,8,0}, {16,0,16}),
     T(3, {0,8,0}, {0,0,0}, {0,0,16}),
+};
+
+static const mb64_shape_face_t s_shape_dlgentle[] = {
+    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    Q(5, {16,16,0}, {16,8,0}, {0,16,0}, {0,8,0}),
+    Q(1, {16,8,0}, {16,16,16}, {0,8,0}, {0,16,16}),
+    T(2, {16,8,0}, {16,16,0}, {16,16,16}),
+    T(3, {0,16,0}, {0,8,0}, {0,16,16}),
 };
 
 static const mb64_shape_face_t s_shape_vslab[] = {
@@ -232,17 +293,17 @@ static const mb64_shape_t s_shapes[32] = {
     [TILE_TYPE_SLAB] = {s_shape_bottom_slab, sizeof(s_shape_bottom_slab) / sizeof(s_shape_bottom_slab[0])},
     [TILE_TYPE_DSLAB] = {s_shape_top_slab, sizeof(s_shape_top_slab) / sizeof(s_shape_top_slab[0])},
     [TILE_TYPE_CORNER] = {s_shape_corner, sizeof(s_shape_corner) / sizeof(s_shape_corner[0])},
-    [TILE_TYPE_DCORNER] = {s_shape_discorner, sizeof(s_shape_discorner) / sizeof(s_shape_discorner[0])},
+    [TILE_TYPE_DCORNER] = {s_shape_dcorner, sizeof(s_shape_dcorner) / sizeof(s_shape_dcorner[0])},
     [TILE_TYPE_ICORNER] = {s_shape_icorner, sizeof(s_shape_icorner) / sizeof(s_shape_icorner[0])},
-    [TILE_TYPE_DICORNER] = {s_shape_discorner, sizeof(s_shape_discorner) / sizeof(s_shape_discorner[0])},
-    [TILE_TYPE_SCORNER] = {s_shape_corner, sizeof(s_shape_corner) / sizeof(s_shape_corner[0])},
-    [TILE_TYPE_DSCORNER] = {s_shape_discorner, sizeof(s_shape_discorner) / sizeof(s_shape_discorner[0])},
-    [TILE_TYPE_ISCORNER] = {s_shape_icorner, sizeof(s_shape_icorner) / sizeof(s_shape_icorner[0])},
+    [TILE_TYPE_DICORNER] = {s_shape_dicorner, sizeof(s_shape_dicorner) / sizeof(s_shape_dicorner[0])},
+    [TILE_TYPE_SCORNER] = {s_shape_scorner, sizeof(s_shape_scorner) / sizeof(s_shape_scorner[0])},
+    [TILE_TYPE_DSCORNER] = {s_shape_dscorner, sizeof(s_shape_dscorner) / sizeof(s_shape_dscorner[0])},
+    [TILE_TYPE_ISCORNER] = {s_shape_iscorner, sizeof(s_shape_iscorner) / sizeof(s_shape_iscorner[0])},
     [TILE_TYPE_DISCORNER] = {s_shape_discorner, sizeof(s_shape_discorner) / sizeof(s_shape_discorner[0])},
     [TILE_TYPE_UGENTLE] = {s_shape_ugentle, sizeof(s_shape_ugentle) / sizeof(s_shape_ugentle[0])},
-    [TILE_TYPE_DUGENTLE] = {s_shape_ugentle, sizeof(s_shape_ugentle) / sizeof(s_shape_ugentle[0])},
+    [TILE_TYPE_DUGENTLE] = {s_shape_dugentle, sizeof(s_shape_dugentle) / sizeof(s_shape_dugentle[0])},
     [TILE_TYPE_LGENTLE] = {s_shape_lgentle, sizeof(s_shape_lgentle) / sizeof(s_shape_lgentle[0])},
-    [TILE_TYPE_DLGENTLE] = {s_shape_lgentle, sizeof(s_shape_lgentle) / sizeof(s_shape_lgentle[0])},
+    [TILE_TYPE_DLGENTLE] = {s_shape_dlgentle, sizeof(s_shape_dlgentle) / sizeof(s_shape_dlgentle[0])},
     [TILE_TYPE_BLOCK] = {s_shape_full, sizeof(s_shape_full) / sizeof(s_shape_full[0])},
     [TILE_TYPE_SSLOPE] = {s_shape_sslope, sizeof(s_shape_sslope) / sizeof(s_shape_sslope[0])},
     [TILE_TYPE_SSLAB] = {s_shape_vslab, sizeof(s_shape_vslab) / sizeof(s_shape_vslab[0])},

@@ -1,7 +1,7 @@
 CC     ?= gcc
 CFLAGS += -Wall -Wextra -std=c11 -O2 -I.
 
-SRC    := mb64.c mb64_mesh.c
+SRC    := mb64.c mb64_mesh.c mb64_objects.c
 OBJ    := $(SRC:.c=.o)
 LIB    := libmb64.a
 

@@ -10,6 +10,7 @@
 #define MB64_TILE_WATER 26
 #define MB64_THEME_CUSTOM 9
 #define MB64_MATERIAL_SLOT_COUNT 10
+#define PACK_TILESIZE(w, d) (((w) << 2) + (d))
 
 #define TILE_TYPE_SLOPE 2
 #define TILE_TYPE_DSLOPE 3
@@ -55,8 +56,12 @@ enum mb64_material_id {
     MB64_MAT_SNOW = 10,
     MB64_MAT_SNOWDIRT = 20,
     MB64_MAT_LAVA = 116,
+    MB64_MAT_VANILLA_LAVA = 117,
+    MB64_MAT_SERVER_ACID = 118,
+    MB64_MAT_BURNING_ICE = 119,
     MB64_MAT_QUICKSAND = 120,
     MB64_MAT_DESERT_SLOWSAND = 121,
+    MB64_MAT_VOID = 122,
 };
 
 enum mb64_surface_id {
@@ -77,6 +82,13 @@ typedef struct {
     uint8_t bars;
     uint8_t water;
 } mb64_theme_special_t;
+
+enum mb64_water_id {
+    MB64_WATER_DEFAULT = 0,
+    MB64_WATER_GREEN = 1,
+    MB64_WATER_RETRO = 2,
+    MB64_WATER_MC = 3,
+};
 
 static const mb64_material_def_t s_theme_materials[][MB64_MATERIAL_SLOT_COUNT] = {
     {
@@ -374,6 +386,10 @@ static int tile_is_solid(const mb64_tile_t *t) {
            t->type != MB64_TILE_WATER;
 }
 
+uint8_t mb64_tile_has_collision(const mb64_tile_t *tile) {
+    return tile_is_solid(tile) && tile->type != TILE_TYPE_TROLL;
+}
+
 static int tile_is_water(const mb64_tile_t *t) {
     return tile_in_range(t) &&
            (t->type == MB64_TILE_WATER || t->waterlogged);
@@ -472,6 +488,39 @@ int16_t mb64_surface_for_tile(const mb64_level_t *level, const mb64_tile_t *tile
         return MB64_SURFACE_DEFAULT;
     }
     return mb64_surface_for_material(mb64_resolve_tile_material(level, tile, 1));
+}
+
+mb64_material_texture_animation_t mb64_texture_animation_for_material(uint8_t material) {
+    switch (material) {
+        case MB64_MAT_LAVA:
+        case MB64_MAT_VANILLA_LAVA:
+        case MB64_MAT_SERVER_ACID:
+        case MB64_MAT_BURNING_ICE:
+        case MB64_MAT_QUICKSAND:
+        case MB64_MAT_VOID:
+            return (mb64_material_texture_animation_t) {
+                1, 15, 1, PACK_TILESIZE(0, 1), PACK_TILESIZE(0, 1)
+            };
+        default:
+            return (mb64_material_texture_animation_t) { 0, 0, 0, 0, 0 };
+    }
+}
+
+mb64_material_texture_animation_t mb64_texture_animation_for_water(const mb64_level_t *level) {
+    const uint8_t water = theme_specials(level)->water;
+    switch (water) {
+        case MB64_WATER_DEFAULT:
+        case MB64_WATER_GREEN:
+            return (mb64_material_texture_animation_t) {
+                1, 16, 1, PACK_TILESIZE(0, 1), PACK_TILESIZE(0, 1)
+            };
+        case MB64_WATER_RETRO:
+            return (mb64_material_texture_animation_t) {
+                1, 16, 10, PACK_TILESIZE(0, 5), PACK_TILESIZE(0, 5)
+            };
+        default:
+            return (mb64_material_texture_animation_t) { 0, 0, 0, 0, 0 };
+    }
 }
 
 static void tile_bounds(const mb64_tile_t *t,

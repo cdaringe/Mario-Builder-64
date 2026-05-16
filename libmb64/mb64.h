@@ -128,6 +128,14 @@ typedef struct {
     uint32_t water_tile_count;
 } mb64_mesh_t;
 
+typedef struct {
+    uint8_t animated;
+    uint8_t tile_size_cmd;
+    uint8_t interval;
+    uint16_t step_s;
+    uint16_t step_t;
+} mb64_material_texture_animation_t;
+
 #define MB64_RENDER_MATERIAL_FENCE    240
 #define MB64_RENDER_MATERIAL_BARS     241
 #define MB64_RENDER_MATERIAL_BARS_TOP 242
@@ -288,11 +296,14 @@ void mb64_free(mb64_level_t *level);
 
 int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh);
 void mb64_free_render_mesh(mb64_mesh_t *mesh);
+uint8_t mb64_tile_has_collision(const mb64_tile_t *tile);
 uint8_t mb64_resolve_tile_material(const mb64_level_t *level,
                                    const mb64_tile_t *tile,
                                    uint8_t top_face);
 int16_t mb64_surface_for_material(uint8_t material);
 int16_t mb64_surface_for_tile(const mb64_level_t *level, const mb64_tile_t *tile);
+mb64_material_texture_animation_t mb64_texture_animation_for_material(uint8_t material);
+mb64_material_texture_animation_t mb64_texture_animation_for_water(const mb64_level_t *level);
 const mb64_object_spec_t *mb64_object_spec_for_type(uint8_t type);
 size_t mb64_object_spec_count(void);
 

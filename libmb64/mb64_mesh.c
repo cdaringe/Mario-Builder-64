@@ -613,7 +613,7 @@ static void assign_fence_texture_coordinates(mb64_mesh_face_t *face,
 
     for (uint8_t i = 0; i < face->vertex_count; i++) {
         int16_t u = (int16_t)(16 - s_fence_alt_uvs[i][0]);
-        int16_t v = (int16_t)(16 - s_fence_alt_uvs[i][1]);
+        int16_t v = s_fence_alt_uvs[i][1];
         u = (int16_t)(u - u_pos * 16);
         face->tc[i][0] = (int16_t)(u * 64 - 16);
         face->tc[i][1] = (int16_t)(v * 64 - 16);

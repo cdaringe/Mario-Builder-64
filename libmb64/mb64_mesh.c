@@ -141,6 +141,8 @@ enum mb64_material_id {
     MB64_MAT_VP_MESH = 124,
     MB64_MAT_HMC_MESH = 125,
     MB64_MAT_BBH_MESH = 126,
+    MB64_MAT_PINK_MESH = 127,
+    MB64_MAT_TTC_MESH = 128,
     MB64_MAT_ICE = 129,
     MB64_MAT_CRYSTAL = 130,
     MB64_MAT_VP_SCREEN = 131,
@@ -570,7 +572,15 @@ static uint8_t mb64_resolve_face_material(const mb64_level_t *level,
                 ? MB64_RENDER_MATERIAL_BARS_TOP
                 : MB64_RENDER_MATERIAL_BARS;
         default:
-            return mb64_resolve_tile_material(level, tile, direction == MB64_MESH_FACE_TOP);
+            {
+                const uint8_t resolved =
+                    mb64_resolve_tile_material(level, tile, direction == MB64_MESH_FACE_TOP);
+                if (resolved == MB64_MAT_TTC_MESH &&
+                    (direction == MB64_MESH_FACE_TOP || direction == MB64_MESH_FACE_BOTTOM)) {
+                    return MB64_RENDER_MATERIAL_TTC_GRATE_TOP;
+                }
+                return resolved;
+            }
     }
 }
 
@@ -726,6 +736,26 @@ static void assign_fence_texture_coordinates(mb64_mesh_face_t *face,
 }
 
 static int shape_face_is_occluded(const mb64_tile_t *t, uint8_t direction) {
+    switch (t->type) {
+        case TILE_TYPE_SCORNER:
+        case TILE_TYPE_DSCORNER:
+        case TILE_TYPE_ISCORNER:
+        case TILE_TYPE_DISCORNER:
+        case TILE_TYPE_UGENTLE:
+        case TILE_TYPE_DUGENTLE:
+        case TILE_TYPE_LGENTLE:
+        case TILE_TYPE_DLGENTLE:
+        case TILE_TYPE_SSLAB:
+            /*
+             * MB64's renderer culls shaped tiles by face shape, not just by
+             * occupied neighbor cells. These partial/diagonal faces are the
+             * cases where cell-only culling drops visible surfaces and exposes
+             * interiors through angled blocks. Keep the exact shaped faces
+             * emitted here until libmb64 exports the full MB64 faceshape culler.
+             */
+            return 0;
+    }
+
     int dx = 0;
     int dy = 0;
     int dz = 0;

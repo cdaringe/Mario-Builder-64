@@ -125,11 +125,11 @@ static const mb64_theme_special_t s_theme_specials[] = {
 static uint8_t s_solid_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
 static uint8_t s_water_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
 
-static const int16_t s_fence_tc[4][2] = {
-    {32 << 5, 16 << 5},
-    {32 << 5,  0 << 5},
-    { 0 << 5, 16 << 5},
-    { 0 << 5,  0 << 5},
+static const int8_t s_fence_alt_uvs[4][2] = {
+    {32, 16},
+    {32,  0},
+    { 0, 16},
+    { 0,  0},
 };
 
 static int solid_at(int x, int y, int z);
@@ -557,6 +557,70 @@ static uint8_t rotate_direction(uint8_t direction, uint8_t rot) {
     return s_rotated_dirs[rot & 3][direction];
 }
 
+static uint8_t face_uv_axes(uint8_t direction, uint8_t *u_axis, uint8_t *v_axis) {
+    switch (direction) {
+        case 3: /* MB64_DIRECTION_NEG_X */
+            *u_axis = 2;
+            *v_axis = 1;
+            return 1;
+        case 2: /* MB64_DIRECTION_POS_X */
+            *u_axis = 2;
+            *v_axis = 1;
+            return 0;
+        case MB64_MESH_FACE_BOTTOM:
+        case MB64_MESH_FACE_TOP:
+            *u_axis = 2;
+            *v_axis = 0;
+            return 0;
+        case 5: /* MB64_DIRECTION_NEG_Z */
+            *u_axis = 0;
+            *v_axis = 1;
+            return 0;
+        case 4: /* MB64_DIRECTION_POS_Z */
+        default:
+            *u_axis = 0;
+            *v_axis = 1;
+            return 1;
+    }
+}
+
+static uint8_t tile_axis_value(const mb64_tile_t *tile, uint8_t axis) {
+    switch (axis) {
+        case 0: return tile->x;
+        case 1: return tile->y;
+        default: return tile->z;
+    }
+}
+
+static int16_t mb64_uv_wrap_offset(int32_t value) {
+    int32_t wrapped = value % 48;
+    if (wrapped < 0) {
+        wrapped += 48;
+    }
+    return (int16_t)(wrapped - 24);
+}
+
+static void assign_fence_texture_coordinates(mb64_mesh_face_t *face,
+                                             const mb64_tile_t *tile,
+                                             uint8_t direction) {
+    uint8_t u_axis;
+    uint8_t v_axis;
+    uint8_t flip_u = face_uv_axes(direction, &u_axis, &v_axis);
+    int32_t u_pos = flip_u ? 64 - tile_axis_value(tile, u_axis)
+                           : tile_axis_value(tile, u_axis);
+    (void)v_axis; /* MB64 clamps fence V coordinates for growth render type 3. */
+    u_pos = mb64_uv_wrap_offset(u_pos * 2);
+
+    for (uint8_t i = 0; i < face->vertex_count; i++) {
+        int16_t u = (int16_t)(16 - s_fence_alt_uvs[i][0]);
+        int16_t v = (int16_t)(16 - s_fence_alt_uvs[i][1]);
+        u = (int16_t)(u - u_pos * 16);
+        face->tc[i][0] = (int16_t)(u * 64 - 16);
+        face->tc[i][1] = (int16_t)(v * 64 - 16);
+    }
+    face->use_tc = 1;
+}
+
 static int shape_face_is_occluded(const mb64_tile_t *t, uint8_t direction) {
     int dx = 0;
     int dy = 0;
@@ -655,8 +719,7 @@ static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     face->is_water = 0;
     face->vertex_count = src->vertex_count;
     if (t->type == TILE_TYPE_FENCE) {
-        memcpy(face->tc, s_fence_tc, sizeof(s_fence_tc));
-        face->use_tc = 1;
+        assign_fence_texture_coordinates(face, t, direction);
     } else {
         face->use_tc = 0;
     }

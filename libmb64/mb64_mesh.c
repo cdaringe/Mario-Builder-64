@@ -735,6 +735,33 @@ static void assign_fence_texture_coordinates(mb64_mesh_face_t *face,
     face->use_tc = 1;
 }
 
+static void assign_tile_texture_coordinates(mb64_mesh_face_t *face,
+                                            const mb64_tile_t *tile,
+                                            const int16_t local[4][3],
+                                            uint8_t direction) {
+    uint8_t u_axis;
+    uint8_t v_axis;
+    uint8_t flip_u = face_uv_axes(direction, &u_axis, &v_axis);
+    int32_t u_pos = flip_u ? 64 - tile_axis_value(tile, u_axis)
+                           : tile_axis_value(tile, u_axis);
+    int32_t v_pos = tile_axis_value(tile, v_axis);
+    u_pos = mb64_uv_wrap_offset(u_pos);
+    v_pos = mb64_uv_wrap_offset(v_pos);
+
+    for (uint8_t i = 0; i < face->vertex_count; i++) {
+        int16_t u = local[i][u_axis];
+        int16_t v = (int16_t)(16 - local[i][v_axis]);
+        if (!flip_u) {
+            u = (int16_t)(16 - u);
+        }
+        u = (int16_t)(u - u_pos * 16);
+        v = (int16_t)(v - v_pos * 16);
+        face->tc[i][0] = (int16_t)(u * 64 - 16);
+        face->tc[i][1] = (int16_t)(v * 64 - 16);
+    }
+    face->use_tc = 1;
+}
+
 static int shape_face_is_occluded(const mb64_tile_t *t, uint8_t direction) {
     switch (t->type) {
         case TILE_TYPE_SCORNER:
@@ -829,15 +856,15 @@ static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
                             const mb64_tile_t *t,
                             const mb64_shape_face_t *src) {
     int16_t p[4][3];
+    int16_t local[4][3];
     int16_t x0, x1, y0, y1, z0, z1;
     (void)x1; (void)y1; (void)z1;
     tile_bounds(t, &x0, &x1, &y0, &y1, &z0, &z1);
     for (uint8_t i = 0; i < 4; i++) {
-        int16_t v[3];
-        rotate_vertex(t->rot, src->v[i], v);
-        p[i][0] = (int16_t)(x0 + v[0]);
-        p[i][1] = (int16_t)(y0 + v[1]);
-        p[i][2] = (int16_t)(z0 + v[2]);
+        rotate_vertex(t->rot, src->v[i], local[i]);
+        p[i][0] = (int16_t)(x0 + local[i][0]);
+        p[i][1] = (int16_t)(y0 + local[i][1]);
+        p[i][2] = (int16_t)(z0 + local[i][2]);
     }
 
     uint8_t direction = rotate_direction(src->direction, t->rot);
@@ -855,7 +882,7 @@ static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     if (t->type == TILE_TYPE_FENCE) {
         assign_fence_texture_coordinates(face, t, direction);
     } else {
-        face->use_tc = 0;
+        assign_tile_texture_coordinates(face, t, local, direction);
     }
 }
 

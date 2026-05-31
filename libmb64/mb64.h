@@ -103,10 +103,10 @@ typedef struct {
 typedef enum {
     MB64_MESH_FACE_TOP = 0,
     MB64_MESH_FACE_BOTTOM = 1,
-    MB64_MESH_FACE_NEG_X = 2,
-    MB64_MESH_FACE_POS_X = 3,
-    MB64_MESH_FACE_NEG_Z = 4,
-    MB64_MESH_FACE_POS_Z = 5,
+    MB64_MESH_FACE_POS_X = 2,
+    MB64_MESH_FACE_NEG_X = 3,
+    MB64_MESH_FACE_POS_Z = 4,
+    MB64_MESH_FACE_NEG_Z = 5,
 } mb64_mesh_face_dir_t;
 
 typedef struct {

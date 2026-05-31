@@ -179,6 +179,36 @@ enum mb64_surface_id {
     MB64_SURFACE_INSTANT_QUICKSAND = 0x0023,
 };
 
+enum mb64_faceshape_id {
+    MB64_FACESHAPE_FULL = 0,
+    MB64_FACESHAPE_POLETOP = 1,
+    MB64_FACESHAPE_TRI_1 = 2,
+    MB64_FACESHAPE_TRI_2 = 3,
+    MB64_FACESHAPE_DOWNTRI_1 = 4,
+    MB64_FACESHAPE_DOWNTRI_2 = 5,
+    MB64_FACESHAPE_HALFSIDE_1 = 6,
+    MB64_FACESHAPE_HALFSIDE_2 = 7,
+    MB64_FACESHAPE_TOPTRI = 8,
+    MB64_FACESHAPE_TOPHALF = 9,
+    MB64_FACESHAPE_BOTTOMSLAB_PRI = 0x10,
+    MB64_FACESHAPE_UPPERGENTLE_1 = MB64_FACESHAPE_BOTTOMSLAB_PRI,
+    MB64_FACESHAPE_UPPERGENTLE_2 = MB64_FACESHAPE_BOTTOMSLAB_PRI + 1,
+    MB64_FACESHAPE_BOTTOMSLAB = MB64_FACESHAPE_BOTTOMSLAB_PRI + 2,
+    MB64_FACESHAPE_LOWERGENTLE_1 = MB64_FACESHAPE_BOTTOMSLAB_PRI + 4,
+    MB64_FACESHAPE_LOWERGENTLE_2 = MB64_FACESHAPE_BOTTOMSLAB_PRI + 5,
+    MB64_FACESHAPE_TOPSLAB_PRI = 0x20,
+    MB64_FACESHAPE_DOWNUPPERGENTLE_1 = MB64_FACESHAPE_TOPSLAB_PRI,
+    MB64_FACESHAPE_DOWNUPPERGENTLE_2 = MB64_FACESHAPE_TOPSLAB_PRI + 1,
+    MB64_FACESHAPE_TOPSLAB = MB64_FACESHAPE_TOPSLAB_PRI + 2,
+    MB64_FACESHAPE_DOWNLOWERGENTLE_1 = MB64_FACESHAPE_TOPSLAB_PRI + 4,
+    MB64_FACESHAPE_DOWNLOWERGENTLE_2 = MB64_FACESHAPE_TOPSLAB_PRI + 5,
+    MB64_FACESHAPE_EMPTY = 0x40,
+    MB64_FACESHAPE_EMPTY_0 = MB64_FACESHAPE_EMPTY + 1,
+    MB64_FACESHAPE_EMPTY_1 = MB64_FACESHAPE_EMPTY + 2,
+    MB64_FACESHAPE_EMPTY_2 = MB64_FACESHAPE_EMPTY + 3,
+    MB64_FACESHAPE_EMPTY_3 = MB64_FACESHAPE_EMPTY + 4,
+};
+
 typedef struct {
     uint8_t side;
     uint8_t top;
@@ -230,6 +260,7 @@ static const mb64_theme_special_t s_theme_specials[] = {
 
 static uint8_t s_solid_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
 static uint8_t s_water_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
+static const mb64_tile_t *s_tile_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
 
 static const int8_t s_fence_alt_uvs[4][2] = {
     {32, 16},
@@ -243,6 +274,7 @@ static int solid_at(int x, int y, int z);
 typedef struct {
     int8_t v[4][3];
     uint8_t direction;
+    uint8_t faceshape;
     uint8_t vertex_count;
 } mb64_shape_face_t;
 
@@ -251,8 +283,10 @@ typedef struct {
     uint8_t face_count;
 } mb64_shape_t;
 
-#define Q(dir, ...) { { __VA_ARGS__ }, dir, 4 }
-#define T(dir, ...) { { __VA_ARGS__, {0,0,0} }, dir, 3 }
+static const mb64_shape_t *shape_for_tile(const mb64_tile_t *t);
+
+#define Q(dir, faceshape, ...) { { __VA_ARGS__ }, dir, faceshape, 4 }
+#define T(dir, faceshape, ...) { { __VA_ARGS__, {0,0,0} }, dir, faceshape, 3 }
 
 static const uint8_t s_rotated_dirs[4][6] = {
     {0, 1, 2, 3, 4, 5},
@@ -262,194 +296,194 @@ static const uint8_t s_rotated_dirs[4][6] = {
 };
 
 static const mb64_shape_face_t s_shape_full[] = {
-    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
-    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
-    Q(2, {16,16,16}, {16,0,16}, {16,16,0}, {16,0,0}),
-    Q(3, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
-    Q(4, {0,16,16}, {0,0,16}, {16,16,16}, {16,0,16}),
-    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(0, MB64_FACESHAPE_FULL, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    Q(1, MB64_FACESHAPE_FULL, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    Q(2, MB64_FACESHAPE_FULL, {16,16,16}, {16,0,16}, {16,16,0}, {16,0,0}),
+    Q(3, MB64_FACESHAPE_FULL, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
+    Q(4, MB64_FACESHAPE_FULL, {0,16,16}, {0,0,16}, {16,16,16}, {16,0,16}),
+    Q(5, MB64_FACESHAPE_FULL, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
 };
 
 static const mb64_shape_face_t s_shape_slope[] = {
-    Q(0, {16,0,16}, {16,16,0}, {0,0,16}, {0,16,0}),
-    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
-    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
-    T(2, {16,0,0}, {16,16,0}, {16,0,16}),
-    T(3, {0,16,0}, {0,0,0}, {0,0,16}),
+    Q(0, MB64_FACESHAPE_EMPTY_2, {16,0,16}, {16,16,0}, {0,0,16}, {0,16,0}),
+    Q(1, MB64_FACESHAPE_FULL, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    Q(5, MB64_FACESHAPE_FULL, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    T(2, MB64_FACESHAPE_TRI_1, {16,0,0}, {16,16,0}, {16,0,16}),
+    T(3, MB64_FACESHAPE_TRI_2, {0,16,0}, {0,0,0}, {0,0,16}),
 };
 
 static const mb64_shape_face_t s_shape_dslope[] = {
-    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
-    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
-    Q(1, {16,16,16}, {0,16,16}, {16,0,0}, {0,0,0}),
-    T(2, {16,0,0}, {16,16,0}, {16,16,16}),
-    T(3, {0,16,0}, {0,0,0}, {0,16,16}),
+    Q(0, MB64_FACESHAPE_FULL, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    Q(5, MB64_FACESHAPE_FULL, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(1, MB64_FACESHAPE_EMPTY_2, {16,16,16}, {0,16,16}, {16,0,0}, {0,0,0}),
+    T(2, MB64_FACESHAPE_DOWNTRI_1, {16,0,0}, {16,16,0}, {16,16,16}),
+    T(3, MB64_FACESHAPE_DOWNTRI_2, {0,16,0}, {0,0,0}, {0,16,16}),
 };
 
 static const mb64_shape_face_t s_shape_bottom_slab[] = {
-    Q(0, {16,8,16}, {16,8,0}, {0,8,16}, {0,8,0}),
-    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
-    Q(2, {16,8,16}, {16,0,16}, {16,8,0}, {16,0,0}),
-    Q(3, {0,8,0}, {0,0,0}, {0,8,16}, {0,0,16}),
-    Q(4, {0,8,16}, {0,0,16}, {16,8,16}, {16,0,16}),
-    Q(5, {16,8,0}, {16,0,0}, {0,8,0}, {0,0,0}),
+    Q(0, MB64_FACESHAPE_EMPTY, {16,8,16}, {16,8,0}, {0,8,16}, {0,8,0}),
+    Q(1, MB64_FACESHAPE_FULL, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    Q(2, MB64_FACESHAPE_BOTTOMSLAB, {16,8,16}, {16,0,16}, {16,8,0}, {16,0,0}),
+    Q(3, MB64_FACESHAPE_BOTTOMSLAB, {0,8,0}, {0,0,0}, {0,8,16}, {0,0,16}),
+    Q(4, MB64_FACESHAPE_BOTTOMSLAB, {0,8,16}, {0,0,16}, {16,8,16}, {16,0,16}),
+    Q(5, MB64_FACESHAPE_BOTTOMSLAB, {16,8,0}, {16,0,0}, {0,8,0}, {0,0,0}),
 };
 
 static const mb64_shape_face_t s_shape_top_slab[] = {
-    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
-    Q(1, {16,8,16}, {0,8,16}, {16,8,0}, {0,8,0}),
-    Q(2, {16,16,16}, {16,8,16}, {16,16,0}, {16,8,0}),
-    Q(3, {0,16,0}, {0,8,0}, {0,16,16}, {0,8,16}),
-    Q(4, {0,16,16}, {0,8,16}, {16,16,16}, {16,8,16}),
-    Q(5, {16,16,0}, {16,8,0}, {0,16,0}, {0,8,0}),
+    Q(0, MB64_FACESHAPE_FULL, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    Q(1, MB64_FACESHAPE_EMPTY, {16,8,16}, {0,8,16}, {16,8,0}, {0,8,0}),
+    Q(2, MB64_FACESHAPE_TOPSLAB, {16,16,16}, {16,8,16}, {16,16,0}, {16,8,0}),
+    Q(3, MB64_FACESHAPE_TOPSLAB, {0,16,0}, {0,8,0}, {0,16,16}, {0,8,16}),
+    Q(4, MB64_FACESHAPE_TOPSLAB, {0,16,16}, {0,8,16}, {16,16,16}, {16,8,16}),
+    Q(5, MB64_FACESHAPE_TOPSLAB, {16,16,0}, {16,8,0}, {0,16,0}, {0,8,0}),
 };
 
 static const mb64_shape_face_t s_shape_corner[] = {
-    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
-    T(0, {0,0,16}, {16,0,16}, {0,16,0}),
-    T(0, {0,16,0}, {16,0,16}, {16,0,0}),
-    T(3, {0,16,0}, {0,0,0}, {0,0,16}),
-    T(5, {0,0,0}, {0,16,0}, {16,0,0}),
+    Q(1, MB64_FACESHAPE_FULL, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    T(0, MB64_FACESHAPE_EMPTY_2, {0,0,16}, {16,0,16}, {0,16,0}),
+    T(0, MB64_FACESHAPE_EMPTY_0, {0,16,0}, {16,0,16}, {16,0,0}),
+    T(3, MB64_FACESHAPE_TRI_2, {0,16,0}, {0,0,0}, {0,0,16}),
+    T(5, MB64_FACESHAPE_TRI_1, {0,0,0}, {0,16,0}, {16,0,0}),
 };
 
 static const mb64_shape_face_t s_shape_dcorner[] = {
-    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
-    T(1, {16,16,16}, {0,16,16}, {0,0,0}),
-    T(1, {0,0,0}, {16,16,0}, {16,16,16}),
-    T(3, {0,0,0}, {0,16,16}, {0,16,0}),
-    T(5, {0,0,0}, {0,16,0}, {16,16,0}),
+    Q(0, MB64_FACESHAPE_FULL, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    T(1, MB64_FACESHAPE_EMPTY_2, {16,16,16}, {0,16,16}, {0,0,0}),
+    T(1, MB64_FACESHAPE_EMPTY_0, {0,0,0}, {16,16,0}, {16,16,16}),
+    T(3, MB64_FACESHAPE_DOWNTRI_2, {0,0,0}, {0,16,16}, {0,16,0}),
+    T(5, MB64_FACESHAPE_DOWNTRI_1, {0,0,0}, {0,16,0}, {16,16,0}),
 };
 
 static const mb64_shape_face_t s_shape_icorner[] = {
-    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
-    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
-    Q(3, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
-    T(0, {0,16,16}, {16,0,16}, {0,16,0}),
-    T(0, {0,16,0}, {16,0,16}, {16,16,0}),
-    T(2, {16,0,0}, {16,16,0}, {16,0,16}),
-    T(4, {0,16,16}, {0,0,16}, {16,0,16}),
+    Q(1, MB64_FACESHAPE_FULL, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    Q(5, MB64_FACESHAPE_FULL, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(3, MB64_FACESHAPE_FULL, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
+    T(0, MB64_FACESHAPE_EMPTY_0, {0,16,16}, {16,0,16}, {0,16,0}),
+    T(0, MB64_FACESHAPE_EMPTY_2, {0,16,0}, {16,0,16}, {16,16,0}),
+    T(2, MB64_FACESHAPE_TRI_1, {16,0,0}, {16,16,0}, {16,0,16}),
+    T(4, MB64_FACESHAPE_TRI_2, {0,16,16}, {0,0,16}, {16,0,16}),
 };
 
 static const mb64_shape_face_t s_shape_dicorner[] = {
-    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
-    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
-    Q(3, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
-    T(2, {16,0,0}, {16,16,0}, {16,16,16}),
-    T(4, {0,16,16}, {0,0,16}, {16,16,16}),
-    T(1, {16,16,16}, {0,0,16}, {0,0,0}),
-    T(1, {16,16,16}, {0,0,0}, {16,0,0}),
+    Q(0, MB64_FACESHAPE_FULL, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    Q(5, MB64_FACESHAPE_FULL, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(3, MB64_FACESHAPE_FULL, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
+    T(2, MB64_FACESHAPE_DOWNTRI_1, {16,0,0}, {16,16,0}, {16,16,16}),
+    T(4, MB64_FACESHAPE_DOWNTRI_2, {0,16,16}, {0,0,16}, {16,16,16}),
+    T(1, MB64_FACESHAPE_EMPTY_0, {16,16,16}, {0,0,16}, {0,0,0}),
+    T(1, MB64_FACESHAPE_EMPTY_2, {16,16,16}, {0,0,0}, {16,0,0}),
 };
 
 static const mb64_shape_face_t s_shape_scorner[] = {
-    T(0, {0,0,16}, {16,0,0}, {0,16,0}),
-    T(1, {16,0,0}, {0,0,16}, {0,0,0}),
-    T(3, {0,16,0}, {0,0,0}, {0,0,16}),
-    T(5, {0,0,0}, {0,16,0}, {16,0,0}),
+    T(0, MB64_FACESHAPE_EMPTY_2, {0,0,16}, {16,0,0}, {0,16,0}),
+    T(1, MB64_FACESHAPE_TOPTRI, {16,0,0}, {0,0,16}, {0,0,0}),
+    T(3, MB64_FACESHAPE_TRI_2, {0,16,0}, {0,0,0}, {0,0,16}),
+    T(5, MB64_FACESHAPE_TRI_1, {0,0,0}, {0,16,0}, {16,0,0}),
 };
 
 static const mb64_shape_face_t s_shape_dscorner[] = {
-    T(1, {16,16,0}, {0,16,16}, {0,0,0}),
-    T(0, {0,16,16}, {16,16,0}, {0,16,0}),
-    T(3, {0,0,0}, {0,16,16}, {0,16,0}),
-    T(5, {0,0,0}, {0,16,0}, {16,16,0}),
+    T(1, MB64_FACESHAPE_EMPTY_2, {16,16,0}, {0,16,16}, {0,0,0}),
+    T(0, MB64_FACESHAPE_TOPTRI, {0,16,16}, {16,16,0}, {0,16,0}),
+    T(3, MB64_FACESHAPE_DOWNTRI_2, {0,0,0}, {0,16,16}, {0,16,0}),
+    T(5, MB64_FACESHAPE_DOWNTRI_1, {0,0,0}, {0,16,0}, {16,16,0}),
 };
 
 static const mb64_shape_face_t s_shape_iscorner[] = {
-    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
-    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
-    Q(3, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
-    T(0, {0,16,16}, {16,16,0}, {0,16,0}),
-    T(0, {0,16,16}, {16,0,16}, {16,16,0}),
-    T(2, {16,0,0}, {16,16,0}, {16,0,16}),
-    T(4, {0,16,16}, {0,0,16}, {16,0,16}),
+    Q(1, MB64_FACESHAPE_FULL, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    Q(5, MB64_FACESHAPE_FULL, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(3, MB64_FACESHAPE_FULL, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
+    T(0, MB64_FACESHAPE_TOPTRI, {0,16,16}, {16,16,0}, {0,16,0}),
+    T(0, MB64_FACESHAPE_EMPTY_2, {0,16,16}, {16,0,16}, {16,16,0}),
+    T(2, MB64_FACESHAPE_TRI_1, {16,0,0}, {16,16,0}, {16,0,16}),
+    T(4, MB64_FACESHAPE_TRI_2, {0,16,16}, {0,0,16}, {16,0,16}),
 };
 
 static const mb64_shape_face_t s_shape_discorner[] = {
-    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
-    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
-    Q(3, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
-    T(2, {16,0,0}, {16,16,0}, {16,16,16}),
-    T(4, {0,16,16}, {0,0,16}, {16,16,16}),
-    T(1, {16,0,0}, {0,0,16}, {0,0,0}),
-    T(1, {0,0,16}, {16,0,0}, {16,16,16}),
+    Q(0, MB64_FACESHAPE_FULL, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    Q(5, MB64_FACESHAPE_FULL, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(3, MB64_FACESHAPE_FULL, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
+    T(2, MB64_FACESHAPE_DOWNTRI_1, {16,0,0}, {16,16,0}, {16,16,16}),
+    T(4, MB64_FACESHAPE_DOWNTRI_2, {0,16,16}, {0,0,16}, {16,16,16}),
+    T(1, MB64_FACESHAPE_TOPTRI, {16,0,0}, {0,0,16}, {0,0,0}),
+    T(1, MB64_FACESHAPE_EMPTY_2, {0,0,16}, {16,0,0}, {16,16,16}),
 };
 
 static const mb64_shape_face_t s_shape_ugentle[] = {
-    Q(0, {16,8,16}, {16,16,0}, {0,8,16}, {0,16,0}),
-    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
-    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
-    Q(4, {0,8,16}, {0,0,16}, {16,8,16}, {16,0,16}),
-    Q(2, {16,8,16}, {16,0,16}, {16,8,0}, {16,0,0}),
-    Q(3, {0,8,0}, {0,0,0}, {0,8,16}, {0,0,16}),
-    T(2, {16,8,0}, {16,16,0}, {16,8,16}),
-    T(3, {0,16,0}, {0,8,0}, {0,8,16}),
+    Q(0, MB64_FACESHAPE_EMPTY_2, {16,8,16}, {16,16,0}, {0,8,16}, {0,16,0}),
+    Q(1, MB64_FACESHAPE_FULL, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    Q(5, MB64_FACESHAPE_FULL, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(4, MB64_FACESHAPE_BOTTOMSLAB, {0,8,16}, {0,0,16}, {16,8,16}, {16,0,16}),
+    Q(2, MB64_FACESHAPE_BOTTOMSLAB, {16,8,16}, {16,0,16}, {16,8,0}, {16,0,0}),
+    Q(3, MB64_FACESHAPE_BOTTOMSLAB, {0,8,0}, {0,0,0}, {0,8,16}, {0,0,16}),
+    T(2, MB64_FACESHAPE_UPPERGENTLE_1, {16,8,0}, {16,16,0}, {16,8,16}),
+    T(3, MB64_FACESHAPE_UPPERGENTLE_2, {0,16,0}, {0,8,0}, {0,8,16}),
 };
 
 static const mb64_shape_face_t s_shape_dugentle[] = {
-    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
-    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
-    Q(1, {16,0,0}, {16,8,16}, {0,0,0}, {0,8,16}),
-    Q(4, {0,16,16}, {0,8,16}, {16,16,16}, {16,8,16}),
-    Q(2, {16,16,16}, {16,8,16}, {16,16,0}, {16,8,0}),
-    Q(3, {0,16,0}, {0,8,0}, {0,16,16}, {0,8,16}),
-    T(2, {16,0,0}, {16,8,0}, {16,8,16}),
-    T(3, {0,8,0}, {0,0,0}, {0,8,16}),
+    Q(0, MB64_FACESHAPE_FULL, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    Q(5, MB64_FACESHAPE_FULL, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(1, MB64_FACESHAPE_EMPTY_2, {16,0,0}, {16,8,16}, {0,0,0}, {0,8,16}),
+    Q(4, MB64_FACESHAPE_TOPSLAB, {0,16,16}, {0,8,16}, {16,16,16}, {16,8,16}),
+    Q(2, MB64_FACESHAPE_TOPSLAB, {16,16,16}, {16,8,16}, {16,16,0}, {16,8,0}),
+    Q(3, MB64_FACESHAPE_TOPSLAB, {0,16,0}, {0,8,0}, {0,16,16}, {0,8,16}),
+    T(2, MB64_FACESHAPE_DOWNUPPERGENTLE_1, {16,0,0}, {16,8,0}, {16,8,16}),
+    T(3, MB64_FACESHAPE_DOWNUPPERGENTLE_2, {0,8,0}, {0,0,0}, {0,8,16}),
 };
 
 static const mb64_shape_face_t s_shape_lgentle[] = {
-    Q(0, {16,0,16}, {16,8,0}, {0,0,16}, {0,8,0}),
-    Q(1, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
-    Q(5, {16,8,0}, {16,0,0}, {0,8,0}, {0,0,0}),
-    T(2, {16,0,0}, {16,8,0}, {16,0,16}),
-    T(3, {0,8,0}, {0,0,0}, {0,0,16}),
+    Q(0, MB64_FACESHAPE_EMPTY_2, {16,0,16}, {16,8,0}, {0,0,16}, {0,8,0}),
+    Q(1, MB64_FACESHAPE_FULL, {16,0,16}, {0,0,16}, {16,0,0}, {0,0,0}),
+    Q(5, MB64_FACESHAPE_BOTTOMSLAB, {16,8,0}, {16,0,0}, {0,8,0}, {0,0,0}),
+    T(2, MB64_FACESHAPE_LOWERGENTLE_1, {16,0,0}, {16,8,0}, {16,0,16}),
+    T(3, MB64_FACESHAPE_LOWERGENTLE_2, {0,8,0}, {0,0,0}, {0,0,16}),
 };
 
 static const mb64_shape_face_t s_shape_dlgentle[] = {
-    Q(0, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
-    Q(5, {16,16,0}, {16,8,0}, {0,16,0}, {0,8,0}),
-    Q(1, {16,8,0}, {16,16,16}, {0,8,0}, {0,16,16}),
-    T(2, {16,8,0}, {16,16,0}, {16,16,16}),
-    T(3, {0,16,0}, {0,8,0}, {0,16,16}),
+    Q(0, MB64_FACESHAPE_FULL, {16,16,16}, {16,16,0}, {0,16,16}, {0,16,0}),
+    Q(5, MB64_FACESHAPE_TOPSLAB, {16,16,0}, {16,8,0}, {0,16,0}, {0,8,0}),
+    Q(1, MB64_FACESHAPE_EMPTY_2, {16,8,0}, {16,16,16}, {0,8,0}, {0,16,16}),
+    T(2, MB64_FACESHAPE_DOWNLOWERGENTLE_1, {16,8,0}, {16,16,0}, {16,16,16}),
+    T(3, MB64_FACESHAPE_DOWNLOWERGENTLE_2, {0,16,0}, {0,8,0}, {0,16,16}),
 };
 
 static const mb64_shape_face_t s_shape_vslab[] = {
-    Q(0, {16,16,8}, {16,16,0}, {0,16,8}, {0,16,0}),
-    Q(1, {16,0,8}, {0,0,8}, {16,0,0}, {0,0,0}),
-    Q(2, {16,16,8}, {16,0,8}, {16,16,0}, {16,0,0}),
-    Q(3, {0,16,0}, {0,0,0}, {0,16,8}, {0,0,8}),
-    Q(4, {0,16,8}, {0,0,8}, {16,16,8}, {16,0,8}),
-    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(0, MB64_FACESHAPE_TOPHALF, {16,16,8}, {16,16,0}, {0,16,8}, {0,16,0}),
+    Q(1, MB64_FACESHAPE_TOPHALF, {16,0,8}, {0,0,8}, {16,0,0}, {0,0,0}),
+    Q(2, MB64_FACESHAPE_HALFSIDE_1, {16,16,8}, {16,0,8}, {16,16,0}, {16,0,0}),
+    Q(3, MB64_FACESHAPE_HALFSIDE_2, {0,16,0}, {0,0,0}, {0,16,8}, {0,0,8}),
+    Q(4, MB64_FACESHAPE_EMPTY, {0,16,8}, {0,0,8}, {16,16,8}, {16,0,8}),
+    Q(5, MB64_FACESHAPE_FULL, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
 };
 
 static const mb64_shape_face_t s_shape_sslope[] = {
-    Q(5, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
-    Q(3, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
-    Q(4, {16,16,0}, {0,16,16}, {16,0,0}, {0,0,16}),
-    T(0, {0,16,16}, {16,16,0}, {0,16,0}),
-    T(1, {16,0,0}, {0,0,16}, {0,0,0}),
+    Q(5, MB64_FACESHAPE_FULL, {16,16,0}, {16,0,0}, {0,16,0}, {0,0,0}),
+    Q(3, MB64_FACESHAPE_FULL, {0,16,0}, {0,0,0}, {0,16,16}, {0,0,16}),
+    Q(4, MB64_FACESHAPE_EMPTY, {16,16,0}, {0,16,16}, {16,0,0}, {0,0,16}),
+    T(0, MB64_FACESHAPE_TOPTRI, {0,16,16}, {16,16,0}, {0,16,0}),
+    T(1, MB64_FACESHAPE_TOPTRI, {16,0,0}, {0,0,16}, {0,0,0}),
 };
 
 static const mb64_shape_face_t s_shape_fence[] = {
-    Q(5, {0,8,0}, {0,0,0}, {16,8,0}, {16,0,0}),
-    Q(4, {16,8,0}, {16,0,0}, {0,8,0}, {0,0,0}),
+    Q(5, MB64_FACESHAPE_EMPTY, {0,8,0}, {0,0,0}, {16,8,0}, {16,0,0}),
+    Q(4, MB64_FACESHAPE_BOTTOMSLAB, {16,8,0}, {16,0,0}, {0,8,0}, {0,0,0}),
 };
 
 static const mb64_shape_face_t s_shape_pole[] = {
-    Q(5, {8,16,9}, {8,0,9}, {9,16,8}, {9,0,8}),
-    Q(3, {9,16,8}, {9,0,8}, {8,16,7}, {8,0,7}),
-    Q(4, {8,16,7}, {8,0,7}, {7,16,8}, {7,0,8}),
-    Q(2, {7,16,8}, {7,0,8}, {8,16,9}, {8,0,9}),
-    Q(0, {8,16,9}, {9,16,8}, {7,16,8}, {8,16,7}),
-    Q(1, {8,0,9}, {7,0,8}, {9,0,8}, {8,0,7}),
+    Q(5, MB64_FACESHAPE_EMPTY, {8,16,9}, {8,0,9}, {9,16,8}, {9,0,8}),
+    Q(3, MB64_FACESHAPE_EMPTY, {9,16,8}, {9,0,8}, {8,16,7}, {8,0,7}),
+    Q(4, MB64_FACESHAPE_EMPTY, {8,16,7}, {8,0,7}, {7,16,8}, {7,0,8}),
+    Q(2, MB64_FACESHAPE_EMPTY, {7,16,8}, {7,0,8}, {8,16,9}, {8,0,9}),
+    Q(0, MB64_FACESHAPE_POLETOP, {8,16,9}, {9,16,8}, {7,16,8}, {8,16,7}),
+    Q(1, MB64_FACESHAPE_POLETOP, {8,0,9}, {7,0,8}, {9,0,8}, {8,0,7}),
 };
 
 static const mb64_shape_face_t s_shape_bars[] = {
-    Q(5, {9,16,9}, {7,16,9}, {9,0,9}, {7,0,9}),
-    Q(4, {7,16,7}, {9,16,7}, {7,0,7}, {9,0,7}),
-    Q(2, {7,16,9}, {7,0,9}, {7,16,7}, {7,0,7}),
-    Q(3, {9,16,7}, {9,0,7}, {9,16,9}, {9,0,9}),
-    Q(0, {7,16,9}, {9,16,9}, {7,16,7}, {9,16,7}),
-    Q(1, {9,0,9}, {7,0,9}, {9,0,7}, {7,0,7}),
+    Q(5, MB64_FACESHAPE_EMPTY, {9,16,9}, {7,16,9}, {9,0,9}, {7,0,9}),
+    Q(4, MB64_FACESHAPE_EMPTY, {7,16,7}, {9,16,7}, {7,0,7}, {9,0,7}),
+    Q(2, MB64_FACESHAPE_EMPTY, {7,16,9}, {7,0,9}, {7,16,7}, {7,0,7}),
+    Q(3, MB64_FACESHAPE_EMPTY, {9,16,7}, {9,0,7}, {9,16,9}, {9,0,9}),
+    Q(0, MB64_FACESHAPE_EMPTY, {7,16,9}, {9,16,9}, {7,16,7}, {9,16,7}),
+    Q(1, MB64_FACESHAPE_EMPTY, {9,0,9}, {7,0,9}, {9,0,7}, {7,0,7}),
 };
 
 static const mb64_shape_t s_shapes[32] = {
@@ -673,11 +707,11 @@ static uint8_t rotate_direction(uint8_t direction, uint8_t rot) {
 
 static uint8_t face_uv_axes(uint8_t direction, uint8_t *u_axis, uint8_t *v_axis) {
     switch (direction) {
-        case 3: /* MB64_DIRECTION_NEG_X */
+        case MB64_MESH_FACE_NEG_X:
             *u_axis = 2;
             *v_axis = 1;
             return 1;
-        case 2: /* MB64_DIRECTION_POS_X */
+        case MB64_MESH_FACE_POS_X:
             *u_axis = 2;
             *v_axis = 1;
             return 0;
@@ -686,11 +720,11 @@ static uint8_t face_uv_axes(uint8_t direction, uint8_t *u_axis, uint8_t *v_axis)
             *u_axis = 2;
             *v_axis = 0;
             return 0;
-        case 5: /* MB64_DIRECTION_NEG_Z */
+        case MB64_MESH_FACE_NEG_Z:
             *u_axis = 0;
             *v_axis = 1;
             return 0;
-        case 4: /* MB64_DIRECTION_POS_Z */
+        case MB64_MESH_FACE_POS_Z:
         default:
             *u_axis = 0;
             *v_axis = 1;
@@ -762,27 +796,33 @@ static void assign_tile_texture_coordinates(mb64_mesh_face_t *face,
     face->use_tc = 1;
 }
 
-static int shape_face_is_occluded(const mb64_tile_t *t, uint8_t direction) {
-    switch (t->type) {
-        case TILE_TYPE_SCORNER:
-        case TILE_TYPE_DSCORNER:
-        case TILE_TYPE_ISCORNER:
-        case TILE_TYPE_DISCORNER:
-        case TILE_TYPE_UGENTLE:
-        case TILE_TYPE_DUGENTLE:
-        case TILE_TYPE_LGENTLE:
-        case TILE_TYPE_DLGENTLE:
-        case TILE_TYPE_SSLAB:
-            /*
-             * MB64's renderer culls shaped tiles by face shape, not just by
-             * occupied neighbor cells. These partial/diagonal faces are the
-             * cases where cell-only culling drops visible surfaces and exposes
-             * interiors through angled blocks. Keep the exact shaped faces
-             * emitted here until libmb64 exports the full MB64 faceshape culler.
-             */
-            return 0;
+static const mb64_tile_t *tile_at(int x, int y, int z) {
+    if (x < 0 || y < 0 || z < 0 ||
+        x >= MB64_GRID_SIZE || y >= MB64_GRID_SIZE || z >= MB64_GRID_SIZE) {
+        return NULL;
     }
+    return s_tile_grid[z][y][x];
+}
 
+static uint8_t faceshape_at(int x, int y, int z, uint8_t direction) {
+    const mb64_tile_t *tile = tile_at(x, y, z);
+    const mb64_shape_t *shape = shape_for_tile(tile);
+    if (shape == NULL) {
+        return MB64_FACESHAPE_EMPTY;
+    }
+    uint8_t local_dir = (uint8_t)(rotate_direction(direction, (uint8_t)((4 - (tile->rot & 3)) & 3)) ^ 1);
+    for (uint8_t i = 0; i < shape->face_count; i++) {
+        if (shape->faces[i].direction == local_dir) {
+            return shape->faces[i].faceshape;
+        }
+    }
+    return MB64_FACESHAPE_EMPTY;
+}
+
+static int shape_face_is_occluded(const mb64_tile_t *t, uint8_t direction, uint8_t faceshape) {
+    if ((faceshape & MB64_FACESHAPE_EMPTY) != 0) {
+        return 0;
+    }
     int dx = 0;
     int dy = 0;
     int dz = 0;
@@ -793,22 +833,56 @@ static int shape_face_is_occluded(const mb64_tile_t *t, uint8_t direction) {
         case MB64_MESH_FACE_BOTTOM:
             dy = -1;
             break;
-        case 2: /* MB64_DIRECTION_POS_X */
+        case MB64_MESH_FACE_POS_X:
             dx = 1;
             break;
-        case 3: /* MB64_DIRECTION_NEG_X */
+        case MB64_MESH_FACE_NEG_X:
             dx = -1;
             break;
-        case 4: /* MB64_DIRECTION_POS_Z */
+        case MB64_MESH_FACE_POS_Z:
             dz = 1;
             break;
-        case 5: /* MB64_DIRECTION_NEG_Z */
+        case MB64_MESH_FACE_NEG_Z:
             dz = -1;
             break;
         default:
             return 0;
     }
-    return solid_at((int)t->x + dx, (int)t->y + dy, (int)t->z + dz);
+    int ax = (int)t->x + dx;
+    int ay = (int)t->y + dy;
+    int az = (int)t->z + dz;
+    if (!solid_at(ax, ay, az)) {
+        return 0;
+    }
+    uint8_t other = faceshape_at(ax, ay, az, direction);
+    if ((other & MB64_FACESHAPE_EMPTY) != 0) {
+        return 0;
+    }
+    if (other == MB64_FACESHAPE_FULL) {
+        return 1;
+    }
+    if (faceshape == MB64_FACESHAPE_FULL) {
+        return 0;
+    }
+    if (faceshape == MB64_FACESHAPE_TOPTRI || faceshape == MB64_FACESHAPE_TOPHALF) {
+        const mb64_tile_t *adj = tile_at(ax, ay, az);
+        return other == faceshape && adj != NULL && ((adj->rot & 3) == (t->rot & 3));
+    }
+    if (faceshape == MB64_FACESHAPE_BOTTOMSLAB ||
+        faceshape == MB64_FACESHAPE_TOPSLAB ||
+        faceshape == MB64_FACESHAPE_POLETOP) {
+        if (other == faceshape) {
+            return 1;
+        }
+    }
+    if (faceshape == (uint8_t)(other ^ 1)) {
+        return 1;
+    }
+    if (((faceshape & 0x10) && (other & 0x10)) ||
+        ((faceshape & 0x20) && (other & 0x20))) {
+        return faceshape > other;
+    }
+    return 0;
 }
 
 static void rotate_vertex(uint8_t rot, const int8_t in[3], int16_t out[3]) {
@@ -868,7 +942,7 @@ static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     }
 
     uint8_t direction = rotate_direction(src->direction, t->rot);
-    if (shape_face_is_occluded(t, direction)) {
+    if (shape_face_is_occluded(t, direction, src->faceshape)) {
         return;
     }
     mb64_mesh_face_t *face = &mesh->faces[(*idx)++];
@@ -895,11 +969,13 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
 
     memset(s_solid_grid, 0, sizeof(s_solid_grid));
     memset(s_water_grid, 0, sizeof(s_water_grid));
+    memset(s_tile_grid, 0, sizeof(s_tile_grid));
 
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
         if (tile_is_solid(t)) {
             s_solid_grid[t->z][t->y][t->x] = 1;
+            s_tile_grid[t->z][t->y][t->x] = t;
             mesh->solid_tile_count++;
         } else if (tile_is_water(t)) {
             s_water_grid[t->z][t->y][t->x] = 1;

@@ -5,6 +5,11 @@
 
 #include "structs.h"
 
+#define MB64_FORMAT_U8 u8
+#define MB64_FORMAT_S8 s8
+#define MB64_FORMAT_U16 u16
+#define MB64_FORMAT_U64 u64
+
 #define MB64_VERSION 1
 #define MAX_FILE_NAME_SIZE 41
 #define MAX_FILE_NAME_INPUT (MAX_FILE_NAME_SIZE - 6)
@@ -13,6 +18,8 @@
 
 #define MB64_MAX_TRAJECTORIES 20
 #define MB64_TRAJECTORY_LENGTH 50
+
+#include "../../libmb64/mb64_save_format.h"
 
 #define MAX_FILES 251
 extern u8 mb64_level_entry_version[MAX_FILES];
@@ -34,53 +41,3 @@ void save_level(void);
 void load_level(void);
 
 
-
-struct mb64_custom_theme {
-    u8 mats[NUM_MATERIALS_PER_THEME];
-    u8 topmats[NUM_MATERIALS_PER_THEME];
-    u8 topmatsEnabled[NUM_MATERIALS_PER_THEME];
-    u8 fence;
-    u8 pole;
-    u8 bars;
-    u8 water;
-};
-
-//compressed trajectories
-struct mb64_comptraj {
-    s8 t;
-    u8 x;
-    u8 y;
-    u8 z;
-};
-
-struct mb64_level_save_header {
-    char file_header[10];
-    u8 version;
-    char author[MAX_USERNAME_SIZE];
-    u16 piktcher[64][64];
-
-    // Level options
-    u8 costume;
-    u8 seq[5];
-    u8 envfx;
-    u8 theme;
-    u8 bg;
-    u8 boundary_mat;
-    u8 boundary;
-    u8 boundary_height;
-    u8 coinstar;
-    u8 size;
-    u8 waterlevel;
-    u8 secret;
-    u8 game;
-
-    u8 toolbar[9];
-    u8 toolbar_params[9];
-    u16 tile_count;
-    u16 object_count;
-
-    struct mb64_custom_theme custom_theme;
-    struct mb64_comptraj trajectories[MB64_MAX_TRAJECTORIES][MB64_TRAJECTORY_LENGTH];
-
-    u64 pad;
-};

@@ -33,30 +33,30 @@
 #define MB64_LOG_RENDER      "MB64_RENDER"
 #define MB64_LOG_INTEGRATION "MB64_INTEGRATION"
 
-static FILE *_mb64_log_file = NULL;
+static FILE *mb64_log_file = NULL;
 
 /* Open the log file for dual-sink output. Call once at startup.
  * Opens in write mode ("w") so each run produces a fresh log that
  * exactly matches stdout - required by the dual-sink equality test. */
 static inline int mb64_log_init(const char *path) {
-    _mb64_log_file = fopen(path, "w");
-    return (_mb64_log_file != NULL) ? 0 : -1;
+    mb64_log_file = fopen(path, "w");
+    return (mb64_log_file != NULL) ? 0 : -1;
 }
 
 /* Close the log file. */
 static inline void mb64_log_close(void) {
-    if (_mb64_log_file) { fclose(_mb64_log_file); _mb64_log_file = NULL; }
+    if (mb64_log_file) { fclose(mb64_log_file); mb64_log_file = NULL; }
 }
 
 /* Internal: emit one formatted log line to stdout + file. */
-static inline void _mb64_log_emit(const char *prefix, const char *fmt, va_list ap) {
+static inline void mb64_log_emit(const char *prefix, const char *fmt, va_list ap) {
     char buf[1024];
     vsnprintf(buf, sizeof(buf), fmt, ap);
     printf("[%s] %s\n", prefix, buf);
     fflush(stdout);
-    if (_mb64_log_file) {
-        fprintf(_mb64_log_file, "[%s] %s\n", prefix, buf);
-        fflush(_mb64_log_file);
+    if (mb64_log_file) {
+        fprintf(mb64_log_file, "[%s] %s\n", prefix, buf);
+        fflush(mb64_log_file);
     }
 }
 
@@ -64,7 +64,7 @@ static inline void _mb64_log_emit(const char *prefix, const char *fmt, va_list a
 static inline void mb64_log(const char *prefix, const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    _mb64_log_emit(prefix, fmt, ap);
+    mb64_log_emit(prefix, fmt, ap);
     va_end(ap);
 }
 

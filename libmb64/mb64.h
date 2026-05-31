@@ -23,21 +23,14 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "mb64_save_format.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /** Total trajectory waypoints stored per level (20 paths x 50 points). */
-#define MB64_TRAJ_COUNT 1000
-
-/** Pixel count for the level thumbnail texture (64x64 RGB5A1 pixels). */
-#define MB64_PIKTCHER_SIZE 4096
-
-/* Trajectory waypoint matching the MB64 path waypoint bytes. */
-typedef struct {
-    int8_t  t;   /* waypoint type/direction; <= 0 typically marks unused slot */
-    uint8_t x, y, z;
-} mb64_traj_t;
+#define MB64_TRAJ_COUNT (MB64_MAX_TRAJECTORIES * MB64_TRAJECTORY_LENGTH)
 
 /* Custom theme */
 typedef struct {
@@ -98,7 +91,7 @@ typedef struct {
     mb64_header_t  header;                         /* metadata; theme at header.theme */
     mb64_tile_t   *tiles;                          /* header.tile_count entries, heap-alloc */
     mb64_obj_t    *objects;                        /* header.object_count entries, heap-alloc */
-    mb64_traj_t    trajectories[MB64_TRAJ_COUNT];  /* 1000 waypoints, always present */
+    struct mb64_comptraj trajectories[MB64_MAX_TRAJECTORIES][MB64_TRAJECTORY_LENGTH];
 } mb64_level_t;
 
 typedef enum {
@@ -142,143 +135,6 @@ typedef struct {
 #define MB64_RENDER_MATERIAL_BARS_TOP 242
 #define MB64_RENDER_MATERIAL_TTC_GRATE_TOP 243
 
-#define MB64_OBJECT_FLAG_BILLBOARD (1u << 0)
-#define MB64_OBJECT_FLAG_TRAJECTORY (1u << 1)
-#define MB64_OBJECT_FLAG_STAR (1u << 2)
-#define MB64_OBJECT_FLAG_HAS_DIALOG (1u << 3)
-#define MB64_OBJECT_FLAG_IMBUABLE (1u << 4)
-#define MB64_OBJECT_FLAG_IMBUABLE_COINS (1u << 5)
-#define MB64_OBJECT_FLAG_IMBUABLE_TRIGGER (1u << 6)
-
-#define MB64_OBJECT_OCCUPY_OUTER (1u << 0)
-#define MB64_OBJECT_OCCUPY_INNER (1u << 1)
-#define MB64_OBJECT_OCCUPY_FULL (MB64_OBJECT_OCCUPY_OUTER | MB64_OBJECT_OCCUPY_INNER)
-
-typedef enum {
-    MB64_OBJECT_TYPE_SETTINGS = 0,
-    MB64_OBJECT_TYPE_1,
-    MB64_OBJECT_TYPE_STAR,
-    MB64_OBJECT_TYPE_RED_COIN_STAR,
-    MB64_OBJECT_TYPE_GOOMBA,
-    MB64_OBJECT_TYPE_BIG_GOOMBA,
-    MB64_OBJECT_TYPE_TINY_GOOMBA,
-    MB64_OBJECT_TYPE_PIRANHA_PLANT,
-    MB64_OBJECT_TYPE_BIG_PIRANHA_PLANT,
-    MB64_OBJECT_TYPE_TINY_PIRANHA_PLANT,
-    MB64_OBJECT_TYPE_KOOPA,
-    MB64_OBJECT_TYPE_COIN,
-    MB64_OBJECT_TYPE_GREEN_COIN,
-    MB64_OBJECT_TYPE_RED_COIN,
-    MB64_OBJECT_TYPE_BLUE_COIN,
-    MB64_OBJECT_TYPE_BLUE_COIN_SWITCH,
-    MB64_OBJECT_TYPE_NOTEBLOCK,
-    MB64_OBJECT_TYPE_BOBOMB,
-    MB64_OBJECT_TYPE_CHUCKYA,
-    MB64_OBJECT_TYPE_BULLY,
-    MB64_OBJECT_TYPE_CHILL_BULLY,
-    MB64_OBJECT_TYPE_BULLET_BILL,
-    MB64_OBJECT_TYPE_HEAVE_HO,
-    MB64_OBJECT_TYPE_MOTOS,
-    MB64_OBJECT_TYPE_TREE,
-    MB64_OBJECT_TYPE_EXCL_BOX,
-    MB64_OBJECT_TYPE_MARIO_SPAWN,
-    MB64_OBJECT_TYPE_REX,
-    MB64_OBJECT_TYPE_PODOBOO,
-    MB64_OBJECT_TYPE_CRABLET,
-    MB64_OBJECT_TYPE_HAMMER_BRO,
-    MB64_OBJECT_TYPE_FIRE_BRO,
-    MB64_OBJECT_TYPE_CHICKEN,
-    MB64_OBJECT_TYPE_PHANTASM,
-    MB64_OBJECT_TYPE_WARP_PIPE,
-    MB64_OBJECT_TYPE_BADGE,
-    MB64_OBJECT_TYPE_KING_BOBOMB,
-    MB64_OBJECT_TYPE_KING_WHOMP,
-    MB64_OBJECT_TYPE_BIG_BOO,
-    MB64_OBJECT_TYPE_BIG_BULLY,
-    MB64_OBJECT_TYPE_BIG_CHILL_BULLY,
-    MB64_OBJECT_TYPE_WIGGLER,
-    MB64_OBJECT_TYPE_BOWSER,
-    MB64_OBJECT_TYPE_PLATFORM_TRACK,
-    MB64_OBJECT_TYPE_PLATFORM_LOOPING,
-    MB64_OBJECT_TYPE_BOWLING_BALL,
-    MB64_OBJECT_TYPE_KOOPA_THE_QUICK,
-    MB64_OBJECT_TYPE_PURPLE_SWITCH,
-    MB64_OBJECT_TYPE_TIMED_BOX,
-    MB64_OBJECT_TYPE_RECOVERY_HEART,
-    MB64_OBJECT_TYPE_TEST_MARIO,
-    MB64_OBJECT_TYPE_THWOMP,
-    MB64_OBJECT_TYPE_WHOMP,
-    MB64_OBJECT_TYPE_GRINDEL,
-    MB64_OBJECT_TYPE_LAKITU,
-    MB64_OBJECT_TYPE_FLY_GUY,
-    MB64_OBJECT_TYPE_SNUFIT,
-    MB64_OBJECT_TYPE_AMP,
-    MB64_OBJECT_TYPE_BOO,
-    MB64_OBJECT_TYPE_MR_I,
-    MB64_OBJECT_TYPE_SCUTTLEBUG,
-    MB64_OBJECT_TYPE_BOWSER_BOMB,
-    MB64_OBJECT_TYPE_FIRE_SPINNER,
-    MB64_OBJECT_TYPE_COIN_FORMATION,
-    MB64_OBJECT_TYPE_RED_FLAME,
-    MB64_OBJECT_TYPE_BLUE_FLAME,
-    MB64_OBJECT_TYPE_FIRE_SPITTER,
-    MB64_OBJECT_TYPE_FLAMETHROWER,
-    MB64_OBJECT_TYPE_SPINDRIFT,
-    MB64_OBJECT_TYPE_MR_BLIZZARD,
-    MB64_OBJECT_TYPE_MONEYBAG,
-    MB64_OBJECT_TYPE_SKEETER,
-    MB64_OBJECT_TYPE_POKEY,
-    MB64_OBJECT_TYPE_BBOX_SMALL,
-    MB64_OBJECT_TYPE_BBOX_NORMAL,
-    MB64_OBJECT_TYPE_BBOX_CRAZY,
-    MB64_OBJECT_TYPE_DIAMOND,
-    MB64_OBJECT_TYPE_SIGN,
-    MB64_OBJECT_TYPE_BUDDY,
-    MB64_OBJECT_TYPE_BUTTON,
-    MB64_OBJECT_TYPE_ON_OFF_BLOCK,
-    MB64_OBJECT_TYPE_WOODPLAT,
-    MB64_OBJECT_TYPE_RFBOX,
-    MB64_OBJECT_TYPE_CULL_PREVIEW,
-    MB64_OBJECT_TYPE_SHOWRUNNER,
-    MB64_OBJECT_TYPE_CROWBAR,
-    MB64_OBJECT_TYPE_MASK,
-    MB64_OBJECT_TYPE_TOAD,
-    MB64_OBJECT_TYPE_TUXIE,
-    MB64_OBJECT_TYPE_UKIKI,
-    MB64_OBJECT_TYPE_MOLEMAN,
-    MB64_OBJECT_TYPE_COBIE,
-    MB64_OBJECT_TYPE_CONVEYOR,
-    MB64_OBJECT_TYPE_TIMEDBLOCK,
-    MB64_OBJECT_TYPE_TRIGGER,
-    MB64_OBJECT_TYPE_TRIGGER_STAR,
-    MB64_OBJECT_TYPE_COUNT,
-} mb64_object_type_t;
-
-#define MB64_OBJECT_TYPE_SPAWN MB64_OBJECT_TYPE_MARIO_SPAWN
-#define MB64_OBJECT_TYPE_TIMED_BLOCK MB64_OBJECT_TYPE_TIMEDBLOCK
-
-typedef struct {
-    uint8_t type;
-    const char *type_token;
-    const char *name;
-    const char *model_token;
-    const char *behavior_token;
-    const char *display_func_token;
-    int16_t y_offset;
-    uint8_t flags;
-    uint8_t occupy;
-    uint8_t num_coins;
-    uint8_t num_extra_objects;
-    float scale;
-    const char *sound_token;
-} mb64_object_spec_t;
-
-/*
- * Object metadata is an exported, tokenized view of src/mb64/data.c's
- * mb64_object_type_list table. Keep enum order and flags aligned with
- * src/mb64/data.h and src/mb64/main.h when adding or removing objects.
- */
-
 /**
  * mb64_load() - Parse an .mb64 file.
  *
@@ -312,8 +168,6 @@ int16_t mb64_surface_for_material(uint8_t material);
 int16_t mb64_surface_for_tile(const mb64_level_t *level, const mb64_tile_t *tile);
 mb64_material_texture_animation_t mb64_texture_animation_for_material(uint8_t material);
 mb64_material_texture_animation_t mb64_texture_animation_for_water(const mb64_level_t *level);
-const mb64_object_spec_t *mb64_object_spec_for_type(uint8_t type);
-size_t mb64_object_spec_count(void);
 
 #ifdef __cplusplus
 }

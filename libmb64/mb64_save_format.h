@@ -21,6 +21,18 @@
 #define MB64_TRAJECTORY_LENGTH 50
 #endif
 
+#ifndef MB64_PIKTCHER_WIDTH
+#define MB64_PIKTCHER_WIDTH 64
+#endif
+
+#ifndef MB64_PIKTCHER_HEIGHT
+#define MB64_PIKTCHER_HEIGHT 64
+#endif
+
+#ifndef MB64_PIKTCHER_SIZE
+#define MB64_PIKTCHER_SIZE (MB64_PIKTCHER_WIDTH * MB64_PIKTCHER_HEIGHT)
+#endif
+
 struct mb64_custom_theme {
     MB64_FORMAT_U8 mats[NUM_MATERIALS_PER_THEME];
     MB64_FORMAT_U8 topmats[NUM_MATERIALS_PER_THEME];
@@ -42,7 +54,7 @@ struct mb64_level_save_header {
     char file_header[10];
     MB64_FORMAT_U8 version;
     char author[31];
-    MB64_FORMAT_U16 piktcher[64][64];
+    MB64_FORMAT_U16 piktcher[MB64_PIKTCHER_HEIGHT][MB64_PIKTCHER_WIDTH];
 
     MB64_FORMAT_U8 costume;
     MB64_FORMAT_U8 seq[5];

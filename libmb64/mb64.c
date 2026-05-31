@@ -2,41 +2,8 @@
  * mb64.c - libmb64 implementation.
  *
  * Parses Mario Builder 64 (.mb64) binary files. The on-disk layout mirrors
- * the save structs used by the in-game MB64 code in src/mb64/structs.h and
- * src/mb64/data.h. Multi-byte scalar fields are stored big-endian.
- *
- * Byte offsets:
- *
- *   Offset  Size   Field
- *   ------  ----   -----
- *        0    10   file_header (ASCII)
- *       10     1   version (u1)
- *       11    31   author (ASCII)
- *       42  8192   piktcher (64*64 u2, stored in header.piktcher[MB64_PIKTCHER_SIZE])
- *     8234     1   costume
- *     8235     5   seq[5]
- *     8240     1   envfx
- *     8241     1   theme
- *     8242     1   bg
- *     8243     1   boundary_mat
- *     8244     1   boundary
- *     8245     1   boundary_height
- *     8246     1   coinstar
- *     8247     1   size
- *     8248     1   waterlevel
- *     8249     1   secret
- *     8250     1   game
- *     8251     9   toolbar[9]
- *     8260     9   toolbar_params[9]
- *     8269     1   magic_byte
- *     8270     2   tile_count (u2 BE)
- *     8272     2   object_count (u2 BE)
- *     8274    34   custom_theme (10+10+10+1+1+1+1)
- *     8308  4000   trajectories (20*50 * 4 bytes each)
- *    12308     8   pad (u8)
- *    12316     4   magic_bytes (u4)
- *    12320     -   tiles (tile_count * 4 bytes each)
- *    12320+T   -   objects (object_count * 8 bytes each)
+ * the save structs used by the in-game MB64 code in src/mb64/file.h.
+ * Multi-byte scalar fields are stored big-endian.
  */
 
 #include "mb64.h"
@@ -54,7 +21,6 @@
 
 #define TILE_SIZE  4   /* u32 packed */
 #define OBJ_SIZE   8   /* bparam,x,y,z,type,rot,imbue,pad */
-#define TRAJ_COUNT (20 * 50)
 
 _Static_assert(offsetof(struct mb64_level_save_header, version) == 10,
                "MB64 disk header version offset changed");
@@ -155,9 +121,9 @@ mb64_level_t *mb64_load(const char *path) {
     }
 
     /* piktcher: 64x64 RGB5A1 thumbnail, big-endian u16 array */
-    for (int y = 0; y < 64; y++) {
-        for (int x = 0; x < 64; x++) {
-            hdr->piktcher[y * 64 + x] =
+    for (int y = 0; y < MB64_PIKTCHER_HEIGHT; y++) {
+        for (int x = 0; x < MB64_PIKTCHER_WIDTH; x++) {
+            hdr->piktcher[y * MB64_PIKTCHER_WIDTH + x] =
                 u16be((const uint8_t *)&disk->piktcher[y][x]);
         }
     }
@@ -190,15 +156,7 @@ mb64_level_t *mb64_load(const char *path) {
     hdr->custom_theme.bars  = disk->custom_theme.bars;
     hdr->custom_theme.water = disk->custom_theme.water;
 
-    /* trajectories: TRAJ_COUNT waypoints (t:s1, x:u1, y:u1, z:u1)
-     * Stored in lvl->trajectories (first-class field, not inside header). */
-    for (int i = 0; i < TRAJ_COUNT; i++) {
-        const struct mb64_comptraj *tp = &disk->trajectories[i / 50][i % 50];
-        lvl->trajectories[i].t = tp->t;
-        lvl->trajectories[i].x = tp->x;
-        lvl->trajectories[i].y = tp->y;
-        lvl->trajectories[i].z = tp->z;
-    }
+    memcpy(lvl->trajectories, disk->trajectories, sizeof(lvl->trajectories));
 
     MB64_LOG("MB64_PARSE",
              "magic=%.10s version=%u author=%s tile_count=%u object_count=%u "
@@ -247,10 +205,6 @@ mb64_level_t *mb64_load(const char *path) {
             t->mat        = (uint8_t)((raw >>  5) & 0x0F);
             t->rot        = (uint8_t)((raw >>  3) & 0x03);
             t->waterlogged= (uint8_t)((raw >>  2) & 0x01);
-
-            if (hdr->version < 1 && t->type >= 12) {
-                t->type = (uint8_t)(t->type + 2);
-            }
 
             if (t->type < 32) type_hist[t->type]++;
             if (t->waterlogged) wl_count++;

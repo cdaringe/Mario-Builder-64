@@ -46,41 +46,82 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <stddef.h>
 
-/* Byte offsets */
+/*
+ * Disk layout mirror of src/mb64/file.h:struct mb64_level_save_header.
+ *
+ * The in-game reader in src/mb64/file.c reads this header, then the packed
+ * tile array, then the object array. Keep this mirror in lockstep with that
+ * internal struct until the game and libmb64 share one import-safe header.
+ */
+typedef struct {
+    uint8_t mats[10];
+    uint8_t topmats[10];
+    uint8_t topmats_enabled[10];
+    uint8_t fence;
+    uint8_t pole;
+    uint8_t bars;
+    uint8_t water;
+} mb64_disk_custom_theme_t;
 
-#define OFF_FILE_HEADER    0
-#define OFF_VERSION       10
-#define OFF_AUTHOR        11
-#define OFF_PIKTCHER      42
-#define OFF_COSTUME     8234
-#define OFF_SEQ         8235
-#define OFF_ENVFX       8240
-#define OFF_THEME       8241
-#define OFF_BG          8242
-#define OFF_BOUNDARY_MAT 8243
-#define OFF_BOUNDARY    8244
-#define OFF_BOUNDARY_H  8245
-#define OFF_COINSTAR    8246
-#define OFF_LEVEL_SIZE  8247
-#define OFF_WATERLEVEL  8248
-#define OFF_SECRET      8249
-#define OFF_GAME        8250
-#define OFF_TOOLBAR     8251
-#define OFF_TOOLBAR_PARAMS 8260
-#define OFF_MAGIC_BYTE  8269
-#define OFF_TILE_COUNT  8270
-#define OFF_OBJECT_COUNT 8272
-#define OFF_CUSTOM_THEME 8274
-#define OFF_TRAJECTORIES 8308
-#define OFF_PAD         12308
-#define OFF_MAGIC_BYTES 12316
-#define OFF_TILES       12320
+typedef struct {
+    int8_t t;
+    uint8_t x;
+    uint8_t y;
+    uint8_t z;
+} mb64_disk_comptraj_t;
+
+typedef struct {
+    char file_header[10];
+    uint8_t version;
+    char author[31];
+    uint16_t piktcher[64][64];
+    uint8_t costume;
+    uint8_t seq[5];
+    uint8_t envfx;
+    uint8_t theme;
+    uint8_t bg;
+    uint8_t boundary_mat;
+    uint8_t boundary;
+    uint8_t boundary_height;
+    uint8_t coinstar;
+    uint8_t size;
+    uint8_t waterlevel;
+    uint8_t secret;
+    uint8_t game;
+    uint8_t toolbar[9];
+    uint8_t toolbar_params[9];
+    uint8_t align_tile_count;
+    uint8_t tile_count_be[2];
+    uint8_t object_count_be[2];
+    mb64_disk_custom_theme_t custom_theme;
+    mb64_disk_comptraj_t trajectories[20][50];
+    uint8_t pad[12];
+} mb64_disk_level_save_header_t;
+
+#define MB64_DISK_HEADER_SIZE sizeof(mb64_disk_level_save_header_t)
 
 #define TILE_SIZE  4   /* u32 packed */
 #define OBJ_SIZE   8   /* bparam,x,y,z,type,rot,imbue,pad */
-#define TRAJ_SIZE  4   /* t,x,y,z */
 #define TRAJ_COUNT (20 * 50)
+
+_Static_assert(offsetof(mb64_disk_level_save_header_t, version) == 10,
+               "MB64 disk header version offset changed");
+_Static_assert(offsetof(mb64_disk_level_save_header_t, author) == 11,
+               "MB64 disk header author offset changed");
+_Static_assert(offsetof(mb64_disk_level_save_header_t, piktcher) == 42,
+               "MB64 disk header piktcher offset changed");
+_Static_assert(offsetof(mb64_disk_level_save_header_t, tile_count_be) == 8270,
+               "MB64 disk header tile_count offset changed");
+_Static_assert(offsetof(mb64_disk_level_save_header_t, object_count_be) == 8272,
+               "MB64 disk header object_count offset changed");
+_Static_assert(offsetof(mb64_disk_level_save_header_t, custom_theme) == 8274,
+               "MB64 disk header custom_theme offset changed");
+_Static_assert(offsetof(mb64_disk_level_save_header_t, trajectories) == 8308,
+               "MB64 disk header trajectories offset changed");
+_Static_assert(MB64_DISK_HEADER_SIZE == 12320,
+               "MB64 disk header size changed");
 
 /* Big-endian read helpers */
 
@@ -132,9 +173,9 @@ mb64_level_t *mb64_load(const char *path) {
     MB64_LOG("MB64_PARSE", "stage=file_read file_size=%zu", file_size);
 
     /* Validate minimum size */
-    if (file_size < (size_t)(OFF_TILES + TILE_SIZE)) {
+    if (file_size < (size_t)(MB64_DISK_HEADER_SIZE + TILE_SIZE)) {
         MB64_LOG("MB64_PARSE", "error=file_too_small file_size=%zu min=%d",
-                 file_size, OFF_TILES + TILE_SIZE);
+                 file_size, (int)(MB64_DISK_HEADER_SIZE + TILE_SIZE));
         free(data);
         return NULL;
     }
@@ -149,12 +190,14 @@ mb64_level_t *mb64_load(const char *path) {
 
     /* Parse header */
     mb64_header_t *hdr = &lvl->header;
+    const mb64_disk_level_save_header_t *disk =
+        (const mb64_disk_level_save_header_t *)data;
 
-    memcpy(hdr->file_header, data + OFF_FILE_HEADER, 10);
+    memcpy(hdr->file_header, disk->file_header, 10);
     hdr->file_header[10] = '\0';
-    hdr->version = data[OFF_VERSION];
+    hdr->version = disk->version;
 
-    memcpy(hdr->author, data + OFF_AUTHOR, 31);
+    memcpy(hdr->author, disk->author, 31);
     hdr->author[31] = '\0';
     /* Trim embedded NULs in author string */
     for (int i = 0; i < 31; i++) {
@@ -162,53 +205,49 @@ mb64_level_t *mb64_load(const char *path) {
     }
 
     /* piktcher: 64x64 RGB5A1 thumbnail, big-endian u16 array */
-    {
-        const uint8_t *pp = data + OFF_PIKTCHER;
-        for (int i = 0; i < MB64_PIKTCHER_SIZE; i++) {
-            hdr->piktcher[i] = u16be(pp + i * 2);
+    for (int y = 0; y < 64; y++) {
+        for (int x = 0; x < 64; x++) {
+            hdr->piktcher[y * 64 + x] =
+                u16be((const uint8_t *)&disk->piktcher[y][x]);
         }
     }
 
-    hdr->costume       = data[OFF_COSTUME];
-    memcpy(hdr->seq,    data + OFF_SEQ, 5);
-    hdr->envfx         = data[OFF_ENVFX];
-    hdr->theme         = data[OFF_THEME];
-    hdr->bg            = data[OFF_BG];
-    hdr->boundary_mat  = data[OFF_BOUNDARY_MAT];
-    hdr->boundary      = data[OFF_BOUNDARY];
-    hdr->boundary_height = data[OFF_BOUNDARY_H];
-    hdr->coinstar      = data[OFF_COINSTAR];
-    hdr->level_size    = data[OFF_LEVEL_SIZE];
-    hdr->waterlevel    = data[OFF_WATERLEVEL];
-    hdr->secret        = data[OFF_SECRET];
-    hdr->game          = data[OFF_GAME];
-    memcpy(hdr->toolbar,        data + OFF_TOOLBAR,        9);
-    memcpy(hdr->toolbar_params, data + OFF_TOOLBAR_PARAMS, 9);
-    hdr->tile_count   = u16be(data + OFF_TILE_COUNT);
-    hdr->object_count = u16be(data + OFF_OBJECT_COUNT);
+    hdr->costume       = disk->costume;
+    memcpy(hdr->seq, disk->seq, 5);
+    hdr->envfx         = disk->envfx;
+    hdr->theme         = disk->theme;
+    hdr->bg            = disk->bg;
+    hdr->boundary_mat  = disk->boundary_mat;
+    hdr->boundary      = disk->boundary;
+    hdr->boundary_height = disk->boundary_height;
+    hdr->coinstar      = disk->coinstar;
+    hdr->level_size    = disk->size;
+    hdr->waterlevel    = disk->waterlevel;
+    hdr->secret        = disk->secret;
+    hdr->game          = disk->game;
+    memcpy(hdr->toolbar, disk->toolbar, 9);
+    memcpy(hdr->toolbar_params, disk->toolbar_params, 9);
+    hdr->tile_count   = u16be(disk->tile_count_be);
+    hdr->object_count = u16be(disk->object_count_be);
 
     /* custom_theme: mats(10) topmats(10) topmats_enabled(10) fence pole bars water */
-    {
-        const uint8_t *ct = data + OFF_CUSTOM_THEME;
-        memcpy(hdr->custom_theme.mats,            ct,      10);
-        memcpy(hdr->custom_theme.topmats,         ct + 10, 10);
-        memcpy(hdr->custom_theme.topmats_enabled, ct + 20, 10);
-        hdr->custom_theme.fence = ct[30];
-        hdr->custom_theme.pole  = ct[31];
-        hdr->custom_theme.bars  = ct[32];
-        hdr->custom_theme.water = ct[33];
-    }
+    memcpy(hdr->custom_theme.mats, disk->custom_theme.mats, 10);
+    memcpy(hdr->custom_theme.topmats, disk->custom_theme.topmats, 10);
+    memcpy(hdr->custom_theme.topmats_enabled,
+           disk->custom_theme.topmats_enabled, 10);
+    hdr->custom_theme.fence = disk->custom_theme.fence;
+    hdr->custom_theme.pole  = disk->custom_theme.pole;
+    hdr->custom_theme.bars  = disk->custom_theme.bars;
+    hdr->custom_theme.water = disk->custom_theme.water;
 
-    /* trajectories: TRAJ_COUNT * 4 bytes (t:s1, x:u1, y:u1, z:u1)
+    /* trajectories: TRAJ_COUNT waypoints (t:s1, x:u1, y:u1, z:u1)
      * Stored in lvl->trajectories (first-class field, not inside header). */
-    {
-        const uint8_t *tp = data + OFF_TRAJECTORIES;
-        for (int i = 0; i < TRAJ_COUNT; i++, tp += TRAJ_SIZE) {
-            lvl->trajectories[i].t = (int8_t)tp[0];
-            lvl->trajectories[i].x = tp[1];
-            lvl->trajectories[i].y = tp[2];
-            lvl->trajectories[i].z = tp[3];
-        }
+    for (int i = 0; i < TRAJ_COUNT; i++) {
+        const mb64_disk_comptraj_t *tp = &disk->trajectories[i / 50][i % 50];
+        lvl->trajectories[i].t = tp->t;
+        lvl->trajectories[i].x = tp->x;
+        lvl->trajectories[i].y = tp->y;
+        lvl->trajectories[i].z = tp->z;
     }
 
     MB64_LOG("MB64_PARSE",
@@ -224,7 +263,7 @@ mb64_level_t *mb64_load(const char *path) {
     size_t objects_file  = (size_t)hdr->object_count * OBJ_SIZE;
     size_t tiles_bytes   = (size_t)hdr->tile_count   * sizeof(mb64_tile_t);
     size_t objects_bytes = (size_t)hdr->object_count * sizeof(mb64_obj_t);
-    size_t expected      = (size_t)OFF_TILES + tiles_file + objects_file;
+    size_t expected      = (size_t)MB64_DISK_HEADER_SIZE + tiles_file + objects_file;
     if (file_size < expected) {
         MB64_LOG("MB64_PARSE", "error=truncated expected=%zu actual=%zu",
                  expected, file_size);
@@ -246,7 +285,7 @@ mb64_level_t *mb64_load(const char *path) {
             return NULL;
         }
 
-        const uint8_t *tb = data + OFF_TILES;
+        const uint8_t *tb = data + MB64_DISK_HEADER_SIZE;
         for (uint16_t i = 0; i < hdr->tile_count; i++) {
             uint32_t raw = u32be(tb + (size_t)i * TILE_SIZE);
             mb64_tile_t *t = &lvl->tiles[i];
@@ -285,7 +324,7 @@ mb64_level_t *mb64_load(const char *path) {
             return NULL;
         }
 
-        const uint8_t *ob = data + OFF_TILES + tiles_file;
+        const uint8_t *ob = data + MB64_DISK_HEADER_SIZE + tiles_file;
         for (uint16_t i = 0; i < hdr->object_count; i++) {
             const uint8_t *o = ob + (size_t)i * OBJ_SIZE;
             mb64_obj_t *obj = &lvl->objects[i];

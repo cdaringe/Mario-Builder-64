@@ -45,6 +45,7 @@
 # Text editor remnants
 *.swp
 .vscode/*
+CLAUDE.md
 
 # General project-specific ignores
 doxygen/doxygen/*

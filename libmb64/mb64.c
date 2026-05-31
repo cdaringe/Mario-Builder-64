@@ -1,10 +1,11 @@
 /**
- * mb64.c — libmb64 implementation.
+ * mb64.c - libmb64 implementation.
  *
- * Parses Mario Builder 64 (.mb64) binary files (big-endian) per the format
- * described in assets/kaitai_mb64.yaml.
+ * Parses Mario Builder 64 (.mb64) binary files. The on-disk layout mirrors
+ * the save structs used by the in-game MB64 code in src/mb64/structs.h and
+ * src/mb64/data.h. Multi-byte scalar fields are stored big-endian.
  *
- * Byte offsets (derived from kaitai spec, all fields big-endian):
+ * Byte offsets:
  *
  *   Offset  Size   Field
  *   ------  ----   -----
@@ -46,7 +47,7 @@
 #include <string.h>
 #include <errno.h>
 
-/* ── Byte offsets ─────────────────────────────────────────────────── */
+/* Byte offsets */
 
 #define OFF_FILE_HEADER    0
 #define OFF_VERSION       10
@@ -81,7 +82,7 @@
 #define TRAJ_SIZE  4   /* t,x,y,z */
 #define TRAJ_COUNT (20 * 50)
 
-/* ── Big-endian read helpers ──────────────────────────────────────── */
+/* Big-endian read helpers */
 
 static inline uint16_t u16be(const uint8_t *p) {
     return (uint16_t)((p[0] << 8) | p[1]);
@@ -92,9 +93,9 @@ static inline uint32_t u32be(const uint8_t *p) {
            ((uint32_t)p[2] <<  8) |  (uint32_t)p[3];
 }
 
-/* ── File I/O ─────────────────────────────────────────────────────── */
+/* File I/O */
 
-static uint8_t *slurp(const char *path, size_t *out_size) {
+static uint8_t *read_entire_file(const char *path, size_t *out_size) {
     FILE *f = fopen(path, "rb");
     if (!f) return NULL;
     fseek(f, 0, SEEK_END);
@@ -111,7 +112,7 @@ static uint8_t *slurp(const char *path, size_t *out_size) {
     return buf;
 }
 
-/* ── Public API ───────────────────────────────────────────────────── */
+/* Public API */
 
 mb64_level_t *mb64_load(const char *path) {
     if (!path) {
@@ -121,16 +122,16 @@ mb64_level_t *mb64_load(const char *path) {
 
     MB64_LOG("MB64_PARSE", "stage=start path=%s", path);
 
-    /* ── Read file ─────────────────────────────────────────────── */
+    /* Read file */
     size_t file_size = 0;
-    uint8_t *data = slurp(path, &file_size);
+    uint8_t *data = read_entire_file(path, &file_size);
     if (!data) {
         MB64_LOG("MB64_PARSE", "error=cannot_read path=%s errno=%s", path, strerror(errno));
         return NULL;
     }
     MB64_LOG("MB64_PARSE", "stage=file_read file_size=%zu", file_size);
 
-    /* ── Validate minimum size ─────────────────────────────────── */
+    /* Validate minimum size */
     if (file_size < (size_t)(OFF_TILES + TILE_SIZE)) {
         MB64_LOG("MB64_PARSE", "error=file_too_small file_size=%zu min=%d",
                  file_size, OFF_TILES + TILE_SIZE);
@@ -138,7 +139,7 @@ mb64_level_t *mb64_load(const char *path) {
         return NULL;
     }
 
-    /* ── Allocate output struct ────────────────────────────────── */
+    /* Allocate output struct */
     mb64_level_t *lvl = calloc(1, sizeof(mb64_level_t));
     if (!lvl) {
         MB64_LOG("MB64_PARSE", "error=oom");
@@ -146,7 +147,7 @@ mb64_level_t *mb64_load(const char *path) {
         return NULL;
     }
 
-    /* ── Parse header ──────────────────────────────────────────── */
+    /* Parse header */
     mb64_header_t *hdr = &lvl->header;
 
     memcpy(hdr->file_header, data + OFF_FILE_HEADER, 10);
@@ -160,7 +161,7 @@ mb64_level_t *mb64_load(const char *path) {
         if (hdr->author[i] == '\0') break;
     }
 
-    /* piktcher: 64×64 RGB5A1 thumbnail, big-endian u16 array */
+    /* piktcher: 64x64 RGB5A1 thumbnail, big-endian u16 array */
     {
         const uint8_t *pp = data + OFF_PIKTCHER;
         for (int i = 0; i < MB64_PIKTCHER_SIZE; i++) {
@@ -217,7 +218,7 @@ mb64_level_t *mb64_load(const char *path) {
              hdr->tile_count, hdr->object_count,
              hdr->theme, hdr->boundary, hdr->boundary_height, file_size);
 
-    /* ── Validate declared sizes fit in file ───────────────────── */
+    /* Validate declared sizes fit in file */
     /* File sizes use the packed on-disk sizes; struct sizes for malloc. */
     size_t tiles_file    = (size_t)hdr->tile_count   * TILE_SIZE;
     size_t objects_file  = (size_t)hdr->object_count * OBJ_SIZE;
@@ -232,7 +233,7 @@ mb64_level_t *mb64_load(const char *path) {
         return NULL;
     }
 
-    /* ── Decode tiles (GEOM_GEN stage) ────────────────────────── */
+    /* Decode tiles (GEOM_GEN stage) */
     uint32_t type_hist[32]  = {0};
     uint32_t wl_count       = 0;
     uint32_t unique_types   = 0;
@@ -272,7 +273,7 @@ mb64_level_t *mb64_load(const char *path) {
              "tiles_decoded=%u unique_types=%u waterlogged=%u",
              hdr->tile_count, unique_types, wl_count);
 
-    /* ── Decode objects (OBJ_SPAWN stage) ─────────────────────── */
+    /* Decode objects (OBJ_SPAWN stage) */
     uint32_t obj_type_hist[256] = {0};
     uint32_t obj_unique         = 0;
 
@@ -306,7 +307,7 @@ mb64_level_t *mb64_load(const char *path) {
              "objects_decoded=%u unique_types=%u",
              hdr->object_count, obj_unique);
 
-    /* ── Collision summary ─────────────────────────────────────── */
+    /* Collision summary */
     uint32_t solid_tiles = (hdr->tile_count > 0)
                            ? hdr->tile_count - type_hist[0]
                            : 0;

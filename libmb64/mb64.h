@@ -1,18 +1,19 @@
 /**
- * mb64.h — Public API for libmb64.
+ * mb64.h - Public API for libmb64.
  *
- * Parses Mario Builder 64 (.mb64) level files (big-endian format per
- * assets/kaitai_mb64.yaml) and returns structured C data.
+ * Parses Mario Builder 64 (.mb64) level files and returns structured C data.
+ * Public enum values mirror src/mb64/data.h and packed field shapes mirror
+ * src/mb64/structs.h so external consumers use the same IDs as the game.
  *
  * Usage:
  *   mb64_level_t *lvl = mb64_load("level.mb64");
  *   if (!lvl) { ... error ... }
  *   // Access all five named fields:
- *   //   lvl->header       — file metadata (author, version, counts, etc.)
- *   //   lvl->tiles        — lvl->header.tile_count decoded tiles
- *   //   lvl->objects      — lvl->header.object_count decoded objects
- *   //   lvl->trajectories — MB64_TRAJ_COUNT waypoints (20 paths × 50 points)
- *   //   lvl->header.theme — theme index (also lvl->header.custom_theme)
+ *   //   lvl->header       - file metadata (author, version, counts, etc.)
+ *   //   lvl->tiles        - lvl->header.tile_count decoded tiles
+ *   //   lvl->objects      - lvl->header.object_count decoded objects
+ *   //   lvl->trajectories - MB64_TRAJ_COUNT waypoints (20 paths x 50 points)
+ *   //   lvl->header.theme - theme index (also lvl->header.custom_theme)
  *   mb64_free(lvl);
  */
 
@@ -26,19 +27,19 @@
 extern "C" {
 #endif
 
-/** Total trajectory waypoints stored per level (20 paths × 50 points). */
+/** Total trajectory waypoints stored per level (20 paths x 50 points). */
 #define MB64_TRAJ_COUNT 1000
 
-/** Pixel count for the level thumbnail texture (64×64 RGB5A1 pixels). */
+/** Pixel count for the level thumbnail texture (64x64 RGB5A1 pixels). */
 #define MB64_PIKTCHER_SIZE 4096
 
-/* ── Trajectory waypoint (comptraj in kaitai) ─────────────────────── */
+/* Trajectory waypoint matching the MB64 path waypoint bytes. */
 typedef struct {
-    int8_t  t;   /* waypoint type/direction; ≤0 typically marks unused slot */
+    int8_t  t;   /* waypoint type/direction; <= 0 typically marks unused slot */
     uint8_t x, y, z;
 } mb64_traj_t;
 
-/* ── Custom theme ─────────────────────────────────────────────────── */
+/* Custom theme */
 typedef struct {
     uint8_t mats[10];
     uint8_t topmats[10];
@@ -46,12 +47,12 @@ typedef struct {
     uint8_t fence, pole, bars, water;
 } mb64_custom_theme_t;
 
-/* ── Level header (level_save_header in kaitai) ──────────────────── */
+/* Level header */
 typedef struct {
     char     file_header[11];              /* 10-byte ASCII magic + NUL terminator */
     uint8_t  version;
     char     author[32];                   /* 31-byte ASCII + NUL terminator */
-    uint16_t piktcher[MB64_PIKTCHER_SIZE]; /* 64×64 RGB5A1 thumbnail (offset 42, 8192 bytes) */
+    uint16_t piktcher[MB64_PIKTCHER_SIZE]; /* 64x64 RGB5A1 thumbnail (offset 42, 8192 bytes) */
     uint8_t costume;
     uint8_t seq[5];
     uint8_t envfx;
@@ -61,7 +62,7 @@ typedef struct {
     uint8_t boundary;
     uint8_t boundary_height;
     uint8_t coinstar;
-    uint8_t level_size;        /* 'size' field in kaitai */
+    uint8_t level_size;        /* MB64 size field */
     uint8_t waterlevel;
     uint8_t secret;
     uint8_t game;
@@ -72,7 +73,7 @@ typedef struct {
     mb64_custom_theme_t custom_theme;
 } mb64_header_t;
 
-/* ── Tile (decoded from packed u32) ───────────────────────────────── */
+/* Tile decoded from the packed u32 layout in src/mb64/structs.h. */
 typedef struct {
     uint32_t raw;         /* original big-endian word */
     uint8_t  x, y, z;    /* grid coordinates (0-63) */
@@ -82,7 +83,7 @@ typedef struct {
     uint8_t  waterlogged; /* 1 if waterlogged, 0 otherwise */
 } mb64_tile_t;
 
-/* ── Object ───────────────────────────────────────────────────────── */
+/* Object */
 typedef struct {
     uint8_t bparam;
     uint8_t x, y, z;
@@ -92,7 +93,7 @@ typedef struct {
     /* pad byte skipped */
 } mb64_obj_t;
 
-/* ── Parsed level — five first-class fields per scenario 7 ───────── */
+/* Parsed level - five first-class fields per scenario 7. */
 typedef struct {
     mb64_header_t  header;                         /* metadata; theme at header.theme */
     mb64_tile_t   *tiles;                          /* header.tile_count entries, heap-alloc */
@@ -272,8 +273,14 @@ typedef struct {
     const char *sound_token;
 } mb64_object_spec_t;
 
+/*
+ * Object metadata is an exported, tokenized view of src/mb64/data.c's
+ * mb64_object_type_list table. Keep enum order and flags aligned with
+ * src/mb64/data.h and src/mb64/main.h when adding or removing objects.
+ */
+
 /**
- * mb64_load() — Parse an .mb64 file.
+ * mb64_load() - Parse an .mb64 file.
  *
  * Reads the file at @path, validates the binary structure, and returns a
  * heap-allocated mb64_level_t with fully decoded header, tiles, and objects.
@@ -289,7 +296,7 @@ typedef struct {
 mb64_level_t *mb64_load(const char *path);
 
 /**
- * mb64_free() — Release all memory owned by a parsed level.
+ * mb64_free() - Release all memory owned by a parsed level.
  *
  * Safe to call with NULL.
  */

@@ -1,19 +1,25 @@
 #include "mb64.h"
 
+/*
+ * Tokenized MB64 object metadata for tools that cannot include the game
+ * headers. The source of truth is src/mb64/data.c:mb64_object_type_list,
+ * with enum order from src/mb64/data.h and flags from src/mb64/main.h.
+ */
+
 #define TILE_SIZE 256
 #define MODEL_NONE 0
 
-#define OBJ_TYPE_BILLBOARD (1u << 0)
-#define OBJ_TYPE_TRAJECTORY (1u << 1)
-#define OBJ_TYPE_STAR (1u << 2)
-#define OBJ_TYPE_HAS_DIALOG (1u << 3)
-#define OBJ_TYPE_IMBUABLE (1u << 4)
-#define OBJ_TYPE_IMBUABLE_COINS (1u << 5)
-#define OBJ_TYPE_IMBUABLE_TRIGGER (1u << 6)
+#define OBJ_TYPE_BILLBOARD MB64_OBJECT_FLAG_BILLBOARD
+#define OBJ_TYPE_TRAJECTORY MB64_OBJECT_FLAG_TRAJECTORY
+#define OBJ_TYPE_STAR MB64_OBJECT_FLAG_STAR
+#define OBJ_TYPE_HAS_DIALOG MB64_OBJECT_FLAG_HAS_DIALOG
+#define OBJ_TYPE_IMBUABLE MB64_OBJECT_FLAG_IMBUABLE
+#define OBJ_TYPE_IMBUABLE_COINS MB64_OBJECT_FLAG_IMBUABLE_COINS
+#define OBJ_TYPE_IMBUABLE_TRIGGER MB64_OBJECT_FLAG_IMBUABLE_TRIGGER
 
-#define OBJ_OCCUPY_OUTER (1u << 0)
-#define OBJ_OCCUPY_INNER (1u << 1)
-#define OBJ_OCCUPY_FULL (OBJ_OCCUPY_OUTER | OBJ_OCCUPY_INNER)
+#define OBJ_OCCUPY_OUTER MB64_OBJECT_OCCUPY_OUTER
+#define OBJ_OCCUPY_INNER MB64_OBJECT_OCCUPY_INNER
+#define OBJ_OCCUPY_FULL MB64_OBJECT_OCCUPY_FULL
 
 static const mb64_object_spec_t s_object_specs[] = {
     [MB64_OBJECT_TYPE_SETTINGS] = {
@@ -1458,6 +1464,11 @@ static const mb64_object_spec_t s_object_specs[] = {
     },
 };
 
+/**
+ * Look up exported MB64 object metadata by OBJECT_TYPE_* ID.
+ *
+ * Returns NULL for unknown IDs or intentionally empty table slots.
+ */
 const mb64_object_spec_t *mb64_object_spec_for_type(uint8_t type) {
     if (type >= (uint8_t)(sizeof(s_object_specs) / sizeof(s_object_specs[0]))) {
         return NULL;
@@ -1468,6 +1479,7 @@ const mb64_object_spec_t *mb64_object_spec_for_type(uint8_t type) {
     return &s_object_specs[type];
 }
 
+/** Return the number of addressable slots in the exported object table. */
 size_t mb64_object_spec_count(void) {
     return sizeof(s_object_specs) / sizeof(s_object_specs[0]);
 }

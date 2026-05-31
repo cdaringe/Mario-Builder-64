@@ -1,7 +1,6 @@
 #include <ultra64.h>
 
 #include "sm64.h"
-#include "dialog_ids.h"
 #include "game_init.h"
 #include "memory.h"
 #include "ingame_menu.h"
@@ -64,6 +63,8 @@ extern void *sand_effect_dl;
  * Initialize snow particles by allocating a buffer for storing their state
  * and setting a start amount.
  */
+
+ u32 envfx_init_lava_bubble();
 s32 envfx_init_snow(s32 mode) {
     switch (mode) {
         case ENVFX_UNINITIALIZED:
@@ -119,9 +120,9 @@ s32 envfx_init_snow(s32 mode) {
  * For water snow, this is dependent on how deep underwater you are.
  * Blizzard snows starts at the maximum amount and doesn't change.
  */
-void envfx_update_snowflake_count(s32 mode, Vec3s marioPos) {
+void envfx_update_snowflake_count(s32 mode, UNUSED Vec3s marioPos) {
     s32 globalTimer = gGlobalTimer;
-    f32 waterLevel;
+    // f32 waterLevel;
 
     switch (mode) {
         case ENVFX_ASHES:
@@ -546,10 +547,6 @@ Gfx *envfx_update_snow(s32 snowMode, Vec3s marioPos, Vec3s camFrom, Vec3s camTo)
  */
 Gfx *envfx_update_particles(s32 mode, Vec3s marioPos, Vec3s camTo, Vec3s camFrom) {
     Gfx *gfx;
-
-    if (get_dialog_id() != DIALOG_NONE) {
-        return NULL;
-    }
 
     // if (gCurrLevelNum==LEVEL_LLL) {
     //     if ((gCurrActNum!=5)||(gMarioState->NewTimerMode==0)) {

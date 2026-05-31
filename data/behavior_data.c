@@ -32,7 +32,7 @@
 #define BC_HH(a, b) (_SHIFTL(a, 16, 16) | _SHIFTL(b, 0, 16))
 #define BC_W(a) ((uintptr_t)(u32)(a))
 #define BC_PTR(a) ((uintptr_t)(a))
-#define BC_BPTR(a, ptr) (_SHIFTL(a, 24, 8)) + ((uintptr_t)(ptr) - 0x80000000)
+#define BC_BPTR(a, b) (_SHIFTL(a, 24, 8) + OS_K0_TO_PHYSICAL(b))
 
 enum BehaviorCommands {
     /*0x00*/ BHV_CMD_BEGIN,
@@ -357,8 +357,7 @@ enum BehaviorCommands {
 
 // Spawns a water droplet with the given parameters.
 #define SPAWN_WATER_DROPLET(dropletParams) \
-    BC_B(BHV_CMD_SPAWN_WATER_DROPLET), \
-    BC_PTR(dropletParams)
+    BC_BPTR(BHV_CMD_SPAWN_WATER_DROPLET, dropletParams)
 
 // const BehaviorScript bhvVRset[] = {
 //     BEGIN(OBJ_LIST_SURFACE),
@@ -6239,7 +6238,7 @@ const BehaviorScript bhvTinyGoomba[] = {
 
 const BehaviorScript bhvScaredKoopa[] = {
     BEGIN(OBJ_LIST_PUSHABLE),
-    SET_INT(oBehParams, 0x00000100),
+    OR_LONG(oBehParams, 0x00000100),
     GOTO(bhvKoopa + 2),
 };
 
@@ -6977,7 +6976,6 @@ const BehaviorScript bhvFirePiranhaPlant[] = {
 const BehaviorScript bhvFirePiranhaPlantBig[] = {
     BEGIN(OBJ_LIST_GENACTOR),
     OR_LONG(oFlags, (OBJ_FLAG_ACTIVATES_FLOOR_SWITCH | OBJ_FLAG_COMPUTE_ANGLE_TO_MARIO | OBJ_FLAG_COMPUTE_DIST_TO_MARIO | OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE)),
-    SET_INT(oBehParams, 0x00010000),
     GOTO(bhvFirePiranhaPlant + 1 + 1),
 };
 

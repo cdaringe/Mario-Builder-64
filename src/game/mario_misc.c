@@ -6,7 +6,6 @@
 #include "behavior_actions.h"
 #include "behavior_data.h"
 #include "camera.h"
-#include "dialog_ids.h"
 #include "engine/behavior_script.h"
 #include "engine/graph_node.h"
 #include "engine/math_util.h"
@@ -26,7 +25,6 @@
 #include "sound_init.h"
 #include "puppycam2.h"
 #include "puppycamold.h"
-#include "game/rovent.h"
 #include "ingame_menu.h"
 #include "src/engine/surface_load.h"
 #include "spawn_sound.h"
@@ -232,86 +230,85 @@ Gfx *geo_draw_mario_head_goddard(s32 callContext, struct GraphNode *node, UNUSED
 //         }
 //     }
 
-static void toad_message_faded(void) {
-    if (o->oDistanceToMario > 700.0f) {
-        o->oToadMessageRecentlyTalked = FALSE;
-    }
-    if (!o->oToadMessageRecentlyTalked && o->oDistanceToMario < 600.0f) {
-        o->oToadMessageState = TOAD_MESSAGE_OPACIFYING;
-    }
-}
+// static void toad_message_faded(void) {
+//     if (o->oDistanceToMario > 700.0f) {
+//         o->oToadMessageRecentlyTalked = FALSE;
+//     }
+//     if (!o->oToadMessageRecentlyTalked && o->oDistanceToMario < 600.0f) {
+//         o->oToadMessageState = TOAD_MESSAGE_OPACIFYING;
+//     }
+// }
 
-static void toad_message_opaque(void) {
-    if (o->oDistanceToMario > 700.0f) {
-        o->oToadMessageState = TOAD_MESSAGE_FADING;
-    } else if (!o->oToadMessageRecentlyTalked) {
-        o->oInteractionSubtype = INT_SUBTYPE_NPC;
-        if (o->oInteractStatus & INT_STATUS_INTERACTED) {
-            o->oInteractStatus = INT_STATUS_NONE;
-            o->oToadMessageState = TOAD_MESSAGE_TALKING;
-            play_toads_jingle();
-        }
-    }
-}
+// static void toad_message_opaque(void) {
+//     if (o->oDistanceToMario > 700.0f) {
+//         o->oToadMessageState = TOAD_MESSAGE_FADING;
+//     } else if (!o->oToadMessageRecentlyTalked) {
+//         o->oInteractionSubtype = INT_SUBTYPE_NPC;
+//         if (o->oInteractStatus & INT_STATUS_INTERACTED) {
+//             o->oInteractStatus = INT_STATUS_NONE;
+//             o->oToadMessageState = TOAD_MESSAGE_TALKING;
+//             play_toads_jingle();
+//         }
+//     }
+// }
 
-static void toad_message_talking(void) {
-    //
-    if (cur_obj_update_dialog_with_cutscene(MARIO_DIALOG_LOOK_DOWN,
-        DIALOG_FLAG_TURN_TO_MARIO, CUTSCENE_DIALOG, o->oToadMessageDialogId)) {
-        o->oToadMessageRecentlyTalked = TRUE;
-        o->oToadMessageState = TOAD_MESSAGE_FADING;
-        switch (o->oToadMessageDialogId) {
-            case TOAD_STAR_1_DIALOG:
-                o->oToadMessageDialogId = TOAD_STAR_1_DIALOG_AFTER;
-                bhv_spawn_star_no_level_exit(STAR_BP_ACT_1);
-                break;
-            case TOAD_STAR_2_DIALOG:
-                o->oToadMessageDialogId = TOAD_STAR_2_DIALOG_AFTER;
-                bhv_spawn_star_no_level_exit(STAR_BP_ACT_2);
-                break;
-            case TOAD_STAR_3_DIALOG:
-                o->oToadMessageDialogId = TOAD_STAR_3_DIALOG_AFTER;
-                bhv_spawn_star_no_level_exit(STAR_BP_ACT_3);
-                break;
-        }
-    }
-}
+// static void toad_message_talking(void) {
+//     if (cur_obj_update_dialog_with_cutscene(MARIO_DIALOG_LOOK_DOWN,
+//         DIALOG_FLAG_TURN_TO_MARIO, CUTSCENE_DIALOG, o->oToadMessageDialogId)) {
+//         o->oToadMessageRecentlyTalked = TRUE;
+//         o->oToadMessageState = TOAD_MESSAGE_FADING;
+//         switch (o->oToadMessageDialogId) {
+//             case TOAD_STAR_1_DIALOG:
+//                 o->oToadMessageDialogId = TOAD_STAR_1_DIALOG_AFTER;
+//                 bhv_spawn_star_no_level_exit(STAR_BP_ACT_1);
+//                 break;
+//             case TOAD_STAR_2_DIALOG:
+//                 o->oToadMessageDialogId = TOAD_STAR_2_DIALOG_AFTER;
+//                 bhv_spawn_star_no_level_exit(STAR_BP_ACT_2);
+//                 break;
+//             case TOAD_STAR_3_DIALOG:
+//                 o->oToadMessageDialogId = TOAD_STAR_3_DIALOG_AFTER;
+//                 bhv_spawn_star_no_level_exit(STAR_BP_ACT_3);
+//                 break;
+//         }
+//     }
+// }
 
-static void toad_message_opacifying(void) {
-    if ((o->oOpacity += 6) == 255) {
-        o->oToadMessageState = TOAD_MESSAGE_OPAQUE;
-    }
-}
+// static void toad_message_opacifying(void) {
+//     if ((o->oOpacity += 6) == 255) {
+//         o->oToadMessageState = TOAD_MESSAGE_OPAQUE;
+//     }
+// }
 
-static void toad_message_fading(void) {
-    if ((o->oOpacity -= 6) == 81) {
-        o->oToadMessageState = TOAD_MESSAGE_FADED;
-    }
-}
+// static void toad_message_fading(void) {
+//     if ((o->oOpacity -= 6) == 81) {
+//         o->oToadMessageState = TOAD_MESSAGE_FADED;
+//     }
+// }
 
-void bhv_toad_message_loop(void) {
+// void bhv_toad_message_loop(void) {
 
-    if (o->header.gfx.node.flags & GRAPH_RENDER_ACTIVE) {
-        o->oInteractionSubtype = INT_STATUS_NONE;
-        switch (o->oToadMessageState) {
-            case TOAD_MESSAGE_FADED:
-                toad_message_faded();
-                break;
-            case TOAD_MESSAGE_OPAQUE:
-                toad_message_opaque();
-                break;
-            case TOAD_MESSAGE_OPACIFYING:
-                toad_message_opacifying();
-                break;
-            case TOAD_MESSAGE_FADING:
-                toad_message_fading();
-                break;
-            case TOAD_MESSAGE_TALKING:
-                toad_message_talking();
-                break;
-        }
-    }
-}
+//     if (o->header.gfx.node.flags & GRAPH_RENDER_ACTIVE) {
+//         o->oInteractionSubtype = INT_STATUS_NONE;
+//         switch (o->oToadMessageState) {
+//             case TOAD_MESSAGE_FADED:
+//                 toad_message_faded();
+//                 break;
+//             case TOAD_MESSAGE_OPAQUE:
+//                 toad_message_opaque();
+//                 break;
+//             case TOAD_MESSAGE_OPACIFYING:
+//                 toad_message_opacifying();
+//                 break;
+//             case TOAD_MESSAGE_FADING:
+//                 toad_message_fading();
+//                 break;
+//             case TOAD_MESSAGE_TALKING:
+//                 toad_message_talking();
+//                 break;
+//         }
+//     }
+// }
 
 // void mirror_room_change(void) {
 
@@ -512,7 +509,7 @@ static Gfx *make_gfx_mario_alpha(struct GraphNodeGenerated *node, s16 alpha) {
             gDPSetAlphaCompare(gfx++, G_AC_NONE);
         }
     }
-    alphaBias = min(alpha, 255);
+    alphaBias = MIN(alpha, 255);
     gDPSetEnvColor(gfx++, 255, 255, 255, alphaBias);
     gSPEndDisplayList(gfx);
     return gfxHead;
@@ -637,21 +634,12 @@ Gfx *geo_mario_head_rotation(s32 callContext, struct GraphNode *node, Mat4 *mtx)
             vec3_zero(rotNode->rotation);
         }
 
-
-        if (revent_head_move) {
-            vec3s_set(bodyState->headAngle, 0, 0, 0);
-            vec3s_set(rotNode->rotation, 0, 0, 0);
-            rotNode->rotation[0] = revent_headangle[0];
-            rotNode->rotation[1] = revent_headangle[1];
-            rotNode->rotation[2] = revent_headangle[2];
-        }
-
         //get_pos_from_transform_mtx(gMarioState->HeadPosition, *curTransform, gCurGraphNodeCamera->matrixPtr);
 
         if (gCurGraphNodeObject == &gMarioObject->header.gfx) {
             struct Object *crab = gMarioState->faceCrablet;
             if (crab) {
-                mtxf_copy(crab->transform,mtx);
+                mtxf_copy(crab->transform,*mtx);
                 crab->header.gfx.throwMatrix = &crab->transform;
 
                 Vec3f crabDisplacement, crabNewDisplacement;
@@ -659,9 +647,9 @@ Gfx *geo_mario_head_rotation(s32 callContext, struct GraphNode *node, Mat4 *mtx)
                 linear_mtxf_mul_vec3f(crab->transform, crabNewDisplacement, crabDisplacement); // rotate it with mario's head
                 vec3f_add(crab->transform[3], crabNewDisplacement); // add position
 
-                vec3_mul_val(crab->transform[0], 3.5f);
-                vec3_mul_val(crab->transform[1], 3.5f);
-                vec3_mul_val(crab->transform[2], 3.5f);
+                vec3_scale(crab->transform[0], 3.5f);
+                vec3_scale(crab->transform[1], 3.5f);
+                vec3_scale(crab->transform[2], 3.5f);
 
                 crab->header.gfx.node.flags &= ~GRAPH_RENDER_INVISIBLE;
             }
@@ -706,10 +694,6 @@ Gfx *geo_switch_mario_hand(s32 callContext, struct GraphNode *node, UNUSED Mat4 
         }
         if ((mb64_lopt_game == MB64_GAME_BTCM)&&(gMarioState->flags & MARIO_WING_CAP)) {
             switchCase->selectedCase = MARIO_HAND_RIGHT_WING;
-        }
-
-        if (revent_active) {
-            //switchCase->selectedCase = revent_handstate;
         }
     }
 
@@ -775,7 +759,7 @@ Gfx *geo_switch_mario_cap_effect(s32 callContext, struct GraphNode *node, UNUSED
             }
         }
 
-        int isPreviewMario = obj_has_behavior(gCurGraphNodeObject,bhvCurrPreviewObject) && (mb64_place_mode == MB64_PM_ACTION && mb64_id_selection == OBJECT_TYPE_TEST_MARIO);
+        int isPreviewMario = obj_has_behavior((struct Object *)gCurGraphNodeObject,bhvCurrPreviewObject) && (mb64_place_mode == MB64_PM_ACTION && mb64_id_selection == OBJECT_TYPE_TEST_MARIO);
         if (isPreviewMario) {
             switchCase->selectedCase = bodyState->modelState >> 8;
         }
@@ -816,7 +800,7 @@ Gfx *geo_switch_mario_cap_on_off(s32 callContext, struct GraphNode *node, UNUSED
             }
             next = next->next;
         }
-        if (obj_has_behavior(gCurGraphNodeObject,bhvCurrPreviewObject) && (mb64_place_mode == MB64_PM_ACTION && mb64_id_selection == OBJECT_TYPE_TEST_MARIO)) {
+        if (obj_has_behavior((struct Object *)gCurGraphNodeObject,bhvCurrPreviewObject) && (mb64_place_mode == MB64_PM_ACTION && mb64_id_selection == OBJECT_TYPE_TEST_MARIO)) {
             switchCase->selectedCase = 0;
         } else if ((gCurGraphNodeObject != &gMarioObject->header.gfx)) {
             switchCase->selectedCase = 0;

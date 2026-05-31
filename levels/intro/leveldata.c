@@ -3319,23 +3319,23 @@ const Gfx intro_seg7_dl_main_logo[] = {
 };
 
 // 0x0700B460 - 0x0700B4A0
-static const Vtx intro_seg7_vertex_trademark[] = {
-#ifdef INTRO_CREDIT
-    {{{   268,    192,     -1}, 0, {     0,      0}, {0x00, 0xff, 0xf7, 0xff}}}, // 0
-    {{{   284,    192,     -1}, 0, { 64<<5,      0}, {0x00, 0xff, 0xf7, 0xff}}}, // 1
+// static const Vtx intro_seg7_vertex_trademark[] = {
+// #ifdef INTRO_CREDIT
+//     {{{   268,    192,     -1}, 0, {     0,      0}, {0x00, 0xff, 0xf7, 0xff}}}, // 0
+//     {{{   284,    192,     -1}, 0, { 64<<5,      0}, {0x00, 0xff, 0xf7, 0xff}}}, // 1
 
-    {{{   268,    184,     -1}, 0, {     0,  32<<5}, {0x00, 0xff, 0xff, 0xff}}}, // 2
-    {{{   284,    184,     -1}, 0, { 64<<5,  32<<5}, {0x00, 0xff, 0xff, 0xff}}}, // 3
+//     {{{   268,    184,     -1}, 0, {     0,  32<<5}, {0x00, 0xff, 0xff, 0xff}}}, // 2
+//     {{{   284,    184,     -1}, 0, { 64<<5,  32<<5}, {0x00, 0xff, 0xff, 0xff}}}, // 3
 
-    {{{   268,    176,     -1}, 0, {     0,  64<<5}, {0x00, 0x7f, 0xff, 0xff}}}, // 4
-    {{{   284,    176,     -1}, 0, { 64<<5,  64<<5}, {0x00, 0x7f, 0xff, 0xff}}}, // 5
-#else
-    {{{   268,    196,     -1}, 0, {     0,      0}, {0xff, 0xff, 0xff, 0xff}}}, // 0
-    {{{   284,    196,     -1}, 0, {   544,      0}, {0xff, 0xff, 0xff, 0xff}}}, // 1
-    {{{   268,    180,     -1}, 0, {     0,    512}, {0xff, 0xff, 0xff, 0xff}}}, // 2
-    {{{   284,    180,     -1}, 0, {   544,    512}, {0xff, 0xff, 0xff, 0xff}}}, // 3
-#endif
-};
+//     {{{   268,    176,     -1}, 0, {     0,  64<<5}, {0x00, 0x7f, 0xff, 0xff}}}, // 4
+//     {{{   284,    176,     -1}, 0, { 64<<5,  64<<5}, {0x00, 0x7f, 0xff, 0xff}}}, // 5
+// #else
+//     {{{   268,    196,     -1}, 0, {     0,      0}, {0xff, 0xff, 0xff, 0xff}}}, // 0
+//     {{{   284,    196,     -1}, 0, {   544,      0}, {0xff, 0xff, 0xff, 0xff}}}, // 1
+//     {{{   268,    180,     -1}, 0, {     0,    512}, {0xff, 0xff, 0xff, 0xff}}}, // 2
+//     {{{   284,    180,     -1}, 0, {   544,    512}, {0xff, 0xff, 0xff, 0xff}}}, // 3
+// #endif
+// };
 
 // 0x0700C790
 const f32 intro_seg7_table_scale_1[] = {
@@ -7461,7 +7461,6 @@ Gfx mirror_co_mirror_001_mesh[] = {
 	gsSPEndDisplayList(),
 };
 
-#include "levels/menu/rovert_logo/model.inc.c"
 #include "levels/intro/ts1/model.inc.c"
 #include "levels/intro/ts2/model.inc.c"
 #include "levels/intro/ts3/model.inc.c"

@@ -1,4 +1,5 @@
 #include "main.h"
+#include "gfx.h"
 #include "data.h"
 #include "display_funcs.h"
 
@@ -25,7 +26,7 @@ void* mb64_theme_segments[][4] = {
     {_group17_yay0SegmentRomStart, _group17_yay0SegmentRomEnd, _group17_geoSegmentRomStart, _group17_geoSegmentRomEnd}, //MB64_GAME_VANILLA
     {_group14_yay0SegmentRomStart, _group14_yay0SegmentRomEnd, _group14_geoSegmentRomStart, _group14_geoSegmentRomEnd}, //MB64_GAME_BTCM
 };
-LevelScript * mb64_theme_model_scripts[] = {
+const LevelScript *mb64_theme_model_scripts[] = {
     script_func_mb64_theme_vanilla,
     script_func_mb64_theme_btcm,
 };
@@ -832,6 +833,28 @@ Gfx *mb64_water_texs[] = {
     mat_maker_MakerMCWater,
 };
 
+struct mb64_topmaterial mb64_topmat_table[19] = {
+    {MB64_MAT_GRASS,         mat_maker_MakerGrassSide},
+    {MB64_MAT_SAND,          mat_maker_MakerSandSide},
+    {MB64_MAT_SNOW,          mat_maker_MakerSnowSide},
+    {MB64_MAT_TILES,         mat_maker_MakerTileEdge},
+    {MB64_MAT_C_STONETOP,    mat_maker_MakerCastleHexRim},
+    {MB64_MAT_HMC_GRASS,     mat_maker_MakerHGrassSide},
+    {MB64_MAT_BBH_METAL,     mat_maker_MakerBBHMetalSide},
+    {MB64_MAT_BBH_STONE,     mat_maker_MakerBBHMetalSide},
+    {MB64_MAT_JRB_TILETOP,   mat_maker_MakerJRBTileRim},
+    {MB64_MAT_SNOW_TILES,    mat_maker_MakerSnowTileRim},
+    {MB64_MAT_FLOWERS,       mat_maker_MakerFlowerEdge},
+    {MB64_MAT_RETRO_TREETOP, mat_maker_MakerRetroTreeSide},
+    {MB64_MAT_MC_GRASS,      mat_maker_MakerMCGrassEdge},
+    {MB64_MAT_LAVA_ROCKS,    mat_maker_MakerLavaRockEdge},
+    {MB64_MAT_DARK_GRASS,    mat_maker_MakerDarkGrassSide},
+    {MB64_MAT_CARTOON_GRASS, mat_maker_MakerCartoonGrassSide},
+    {MB64_MAT_ORANGE_GRASS,  mat_maker_MakerOrangeGrassSide},
+    {MB64_MAT_RED_GRASS,     mat_maker_MakerRedGrassSide},
+    {MB64_MAT_PURPLE_GRASS,  mat_maker_MakerPurpleGrassSide},
+};
+
 struct mb64_theme mb64_theme_table[] = {
     // GENERIC
     {
@@ -1080,8 +1103,8 @@ struct ExclamationBoxContents sExclamationBoxContents_vanilla[] = {
 
 /*  Object Type                  Name                       Button GFX              Behavior           Y Offset     Model                      Flags                                  Coins/Objs/Scale  Anims   Display Func    Sound*/
 struct mb64_object_info mb64_object_type_list[] = {
-/* OBJECT_TYPE_SETTINGS */      {"Level Settings",          mat_b_btn_settings},
-/* OBJECT_TYPE_1 */             {" ",                       mat_b_btn_settings}, // previously screenshot
+/* OBJECT_TYPE_SETTINGS */      {"Level Settings",          mat_b_btn_settings,     NULL,              0,           MODEL_NONE,                0,                       0,                0, 0, 0.0f, NULL,  NULL, 0},
+/* OBJECT_TYPE_1 */             {" ",                       mat_b_btn_settings,     NULL,              0,           MODEL_NONE,                0,                       0,                0, 0, 0.0f, NULL,  NULL, 0}, // previously screenshot
 /* OBJECT_TYPE_STAR */          {"Normal",                  mat_b_btn_star,         bhvStar,           TILE_SIZE/2, MODEL_STAR,                OBJ_TYPE_STAR,           OBJ_OCCUPY_INNER, 0, 0, 1.0f, NULL, df_star, SOUND_MENU_STAR_SOUND | SOUND_VIBRATO},
 /* OBJECT_TYPE_RED_COIN_STAR */ {"Red Coins",               mat_b_btn_rcs,          bhvHiddenRedCoinStar, TILE_SIZE/2, MODEL_TRANSPARENT_STAR, OBJ_TYPE_STAR,           OBJ_OCCUPY_INNER, 0, 1, 1.0f, NULL, df_reds_marker, SOUND_MENU_STAR_SOUND | SOUND_VIBRATO},
 /* OBJECT_TYPE_GOOMBA */        {"Normal",                  mat_b_btn_goomba,       bhvGoomba,         0,           MODEL_GOOMBA,              OBJ_TYPE_IMBUABLE,       OBJ_OCCUPY_INNER, 1, 0, 1.5f, goomba_seg8_anims_0801DA4C, NULL, SOUND_OBJ_GOOMBA_PREVIEW},
@@ -1130,7 +1153,7 @@ struct mb64_object_info mb64_object_type_list[] = {
 /* OBJECT_TYPE_PURPLE_SWITCH */ {"Purple Switch",           mat_b_btn_purpleswitch, bhvFloorSwitchHiddenObjects, 0, MODEL_PURPLE_SWITCH,       0,                       OBJ_OCCUPY_INNER, 0, 0, 1.28f,NULL, NULL, SOUND_GENERAL2_PURPLE_SWITCH},
 /* OBJECT_TYPE_TIMED_BOX */     {"Breakable",               mat_b_btn_tbox,         bhvHiddenObject,   0,           MODEL_BREAKABLE_BOX,       0,                       OBJ_OCCUPY_OUTER, 0, 0, 1.0f, NULL, df_timedbox, SOUND_GENERAL2_SWITCH_TICK_FAST},
 /* OBJECT_TYPE_RECOVERY_HEART */ {"Recovery Heart",         mat_b_btn_heart,        bhvRecoveryHeart,  TILE_SIZE/2, MODEL_HEART,               0,                       OBJ_OCCUPY_INNER, 0, 0, 1.0f, NULL, df_heart, SOUND_GENERAL_HEART_SPIN},
-/* OBJECT_TYPE_TEST_MARIO */    {"Save & Test",             mat_b_btn_check,        NULL,              0,           MODEL_MARIO,               0,                       OBJ_OCCUPY_FULL,  0, 0, 1.0f, &evil_mario_anims[11], NULL, 0},
+/* OBJECT_TYPE_TEST_MARIO */    {"Save & Test",             mat_b_btn_check,        NULL,              0,           MODEL_MARIO,               0,                       OBJ_OCCUPY_FULL,  0, 0, 1.0f, mario_btcm_anims, NULL, 0},
 /* OBJECT_TYPE_THWOMP */        {"Thwomp",                  mat_b_btn_thwomp,       bhvThwomp,         0,           MODEL_THWOMP_MAKER,        0,                       OBJ_OCCUPY_FULL,  0, 2, 1.5f, NULL, NULL, SOUND_OBJ_THWOMP},
 /* OBJECT_TYPE_WHOMP */         {"Whomp",                   mat_b_btn_whomp,        bhvSmallWhomp,     0,           MODEL_WHOMP_MAKER,         OBJ_TYPE_IMBUABLE,       OBJ_OCCUPY_FULL, 10, 1, 1.0f, whomp_seg6_anims_06020A04, NULL, SOUND_OBJ_WHOMP},
 /* OBJECT_TYPE_GRINDEL */       {"Grindel",                 mat_b_btn_grindel,      bhvGrindel,        0,           MODEL_MAKER_GRINDEL,       0,                       OBJ_OCCUPY_FULL,  0, 2, 1.0f, NULL, df_grindel, SOUND_OBJ_KING_BOBOMB_JUMP},
@@ -1293,9 +1316,9 @@ struct mb64_ui_button_type mb64_ui_buttons[] = {
 /* MB64_BUTTON_TERRAIN */  {MB64_PM_TILE, FALSE, 0, TILE_TYPE_BLOCK,         NULL},
 /* MB64_BUTTON_SLOPE */    {MB64_PM_TILE, FALSE, 0, TILE_TYPE_SLOPE,         NULL},
 /* MB64_BUTTON_TROLL */    {MB64_PM_TILE, FALSE, 0, TILE_TYPE_TROLL,         NULL},
-/* MB64_BUTTON_STAR */     {MB64_PM_OBJ,  TRUE,  3, mb64_star_idlist,        "Power Star"},
-/* MB64_BUTTON_GOOMBA */   {MB64_PM_OBJ,  TRUE,  3, mb64_goomba_idlist,      "Goomba"},
-/* MB64_BUTTON_PIRANHA */  {MB64_PM_OBJ,  TRUE,  3, mb64_piranha_idlist,     "Piranha Plant"},
+/* MB64_BUTTON_STAR */     {MB64_PM_OBJ,  TRUE,  3, (u32)mb64_star_idlist,        "Power Star"},
+/* MB64_BUTTON_GOOMBA */   {MB64_PM_OBJ,  TRUE,  3, (u32)mb64_goomba_idlist,      "Goomba"},
+/* MB64_BUTTON_PIRANHA */  {MB64_PM_OBJ,  TRUE,  3, (u32)mb64_piranha_idlist,     "Piranha Plant"},
 /* MB64_BUTTON_KOOPA */    {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_KOOPA,       NULL},
 /* MB64_BUTTON_COIN */     {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_COIN,        NULL},
 /* MB64_BUTTON_BLANK */    {MB64_PM_TILE, FALSE, 0, TILE_TYPE_BLOCK,         NULL},
@@ -1303,54 +1326,54 @@ struct mb64_ui_button_type mb64_ui_buttons[] = {
 /* MB64_BUTTON_CORNER */   {MB64_PM_TILE, FALSE, 0, TILE_TYPE_CORNER,        NULL},
 /* MB64_BUTTON_ICORNER */  {MB64_PM_TILE, FALSE, 0, TILE_TYPE_ICORNER,       NULL},
 /* MB64_BUTTON_RCOIN */    {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_RED_COIN,    NULL},
-/* MB64_BUTTON_BCOIN */    {MB64_PM_OBJ,  TRUE,  2, mb64_bluecoin_idlist,    "Blue Coins"},
+/* MB64_BUTTON_BCOIN */    {MB64_PM_OBJ,  TRUE,  2, (u32)mb64_bluecoin_idlist,    "Blue Coins"},
 /* MB64_BUTTON_NOTEBLOCK */{MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_NOTEBLOCK,   NULL},
 /* MB64_BUTTON_CULL */     {MB64_PM_TILE, FALSE, 0, TILE_TYPE_CULL,          NULL},
 /* MB64_BUTTON_BOBOMB */   {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_BOBOMB,      NULL},
 /* MB64_BUTTON_CHUCKYA */  {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_CHUCKYA,     NULL},
-/* MB64_BUTTON_BULLY */    {MB64_PM_OBJ,  TRUE,  4, mb64_bully_idlist,       "Bully"},
+/* MB64_BUTTON_BULLY */    {MB64_PM_OBJ,  TRUE,  4, (u32)mb64_bully_idlist,       "Bully"},
 /* MB64_BUTTON_BULLET */   {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_BULLET_BILL, NULL},
 /* MB64_BUTTON_HEAVEHO */  {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_HEAVE_HO,    NULL},
 /* MB64_BUTTON_MOTOS */    {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_MOTOS,       NULL},
-/* MB64_BUTTON_TREE */     {MB64_PM_OBJ,  FALSE, 6, OBJECT_TYPE_TREE,        txt_bp_tree},
-/* MB64_BUTTON_EXCLA */    {MB64_PM_OBJ,  FALSE, 7, OBJECT_TYPE_EXCL_BOX,    txt_bp_box},
+/* MB64_BUTTON_TREE */     {MB64_PM_OBJ,  FALSE, 6, OBJECT_TYPE_TREE,        (char *)txt_bp_tree},
+/* MB64_BUTTON_EXCLA */    {MB64_PM_OBJ,  FALSE, 7, OBJECT_TYPE_EXCL_BOX,    (char *)txt_bp_box},
 /* MB64_BUTTON_SPAWN */    {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_MARIO_SPAWN, NULL},
 /* MB64_BUTTON_REX */      {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_REX,         NULL},
 /* MB64_BUTTON_PODOBOO */  {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_PODOBOO,     NULL},
 /* MB64_BUTTON_CRABLET */  {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_CRABLET,     NULL},
-/* MB64_BUTTON_HAMMER_BRO */{MB64_PM_OBJ, TRUE,  2, mb64_hammer_idlist,      "Hammer Bro"},
+/* MB64_BUTTON_HAMMER_BRO */{MB64_PM_OBJ, TRUE,  2, (u32)mb64_hammer_idlist,      "Hammer Bro"},
 /* MB64_BUTTON_CHICKEN */  {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_CHICKEN,     NULL},
 /* MB64_BUTTON_PHANTASM */ {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_PHANTASM,    NULL},
 /* MB64_BUTTON_PIPE */     {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_WARP_PIPE,   NULL},
-/* MB64_BUTTON_BADGE */    {MB64_PM_OBJ,  FALSE, 22, OBJECT_TYPE_BADGE,      txt_badges},
+/* MB64_BUTTON_BADGE */    {MB64_PM_OBJ,  FALSE, 22, OBJECT_TYPE_BADGE,      (char *)txt_badges},
 /* MB64_BUTTON_WATER */    {MB64_PM_TILE,FALSE, 0, TILE_TYPE_WATER,         NULL},
 /* MB64_BUTTON_FENCE */    {MB64_PM_TILE, FALSE, 0, TILE_TYPE_FENCE,         NULL},
 /* MB64_BUTTON_KING_BOBOMB */ {MB64_PM_OBJ, FALSE, 0, OBJECT_TYPE_KING_BOBOMB, NULL},
 /* MB64_BUTTON_WIGGLER */  {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_WIGGLER,     NULL},
 /* MB64_BUTTON_BOWSER */   {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_BOWSER,      NULL},
-/* MB64_BUTTON_MPLAT */    {MB64_PM_OBJ,  TRUE,  2, mb64_plat_idlist,        "Moving Platform"},
+/* MB64_BUTTON_MPLAT */    {MB64_PM_OBJ,  TRUE,  2, (u32)mb64_plat_idlist,        "Moving Platform"},
 /* MB64_BUTTON_BBALL */    {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_BOWLING_BALL, NULL},
 /* MB64_BUTTON_KTQ */      {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_KOOPA_THE_QUICK, NULL},
 /* MB64_BUTTON_SSLOPE */   {MB64_PM_TILE, FALSE, 0, TILE_TYPE_SSLOPE,        NULL},
 /* MB64_BUTTON_SLAB */     {MB64_PM_TILE, FALSE, 0, TILE_TYPE_SLAB,          NULL},
 /* MB64_BUTTON_PURPLE_SWITCH */{MB64_PM_OBJ, FALSE, 0, OBJECT_TYPE_PURPLE_SWITCH, NULL},
-/* MB64_BUTTON_TIMED_BOX */ {MB64_PM_OBJ,  TRUE, 2, mb64_timedbox_idlist,   "Timed Box"},
+/* MB64_BUTTON_TIMED_BOX */ {MB64_PM_OBJ,  TRUE, 2, (u32)mb64_timedbox_idlist,   "Timed Box"},
 /* MB64_BUTTON_HEART */    {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_RECOVERY_HEART, NULL},
-/* MB64_BUTTON_FORMATION */{MB64_PM_OBJ,  FALSE, 5, OBJECT_TYPE_COIN_FORMATION, txt_coin_formation},
+/* MB64_BUTTON_FORMATION */{MB64_PM_OBJ,  FALSE, 5, OBJECT_TYPE_COIN_FORMATION, (char *)txt_coin_formation},
 /* MB64_BUTTON_VSLAB */    {MB64_PM_TILE, FALSE, 0, TILE_TYPE_SSLAB,         NULL},
 /* MB64_BUTTON_SCORNER */  {MB64_PM_TILE, FALSE, 0, TILE_TYPE_SCORNER,       NULL},
 /* MB64_BUTTON_UGENTLE */  {MB64_PM_TILE, FALSE, 0, TILE_TYPE_UGENTLE,       NULL},
 /* MB64_BUTTON_LGENTLE */  {MB64_PM_TILE, FALSE, 0, TILE_TYPE_LGENTLE,       NULL},
 /* MB64_BUTTON_BARS */     {MB64_PM_TILE, FALSE, 0, TILE_TYPE_BARS,          NULL},
-/* MB64_BUTTON_THWOMP */   {MB64_PM_OBJ,  TRUE,  2, mb64_thwomp_idlist,      "Thwomp"},
-/* MB64_BUTTON_WHOMP */    {MB64_PM_OBJ,  TRUE,  2, mb64_whomp_idlist,       "Whomp"},
+/* MB64_BUTTON_THWOMP */   {MB64_PM_OBJ,  TRUE,  2, (u32)mb64_thwomp_idlist,      "Thwomp"},
+/* MB64_BUTTON_WHOMP */    {MB64_PM_OBJ,  TRUE,  2, (u32)mb64_whomp_idlist,       "Whomp"},
 /* MB64_BUTTON_POLE */     {MB64_PM_TILE, FALSE, 0, TILE_TYPE_POLE,          NULL},
-/* MB64_BUTTON_VEXCLA */   {MB64_PM_OBJ,  FALSE, 7, OBJECT_TYPE_EXCL_BOX,    txt_bp_vbox},
+/* MB64_BUTTON_VEXCLA */   {MB64_PM_OBJ,  FALSE, 7, OBJECT_TYPE_EXCL_BOX,    (char *)txt_bp_vbox},
 /* MB64_BUTTON_LAKITU */   {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_LAKITU,      NULL},
 /* MB64_BUTTON_FLYGUY */   {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_FLY_GUY,     NULL},
 /* MB64_BUTTON_SNUFIT */   {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_SNUFIT,      NULL},
 /* MB64_BUTTON_AMP */      {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_AMP,         NULL},
-/* MB64_BUTTON_BOO */      {MB64_PM_OBJ,  TRUE,  2, mb64_boo_idlist,         "Boo"},
+/* MB64_BUTTON_BOO */      {MB64_PM_OBJ,  TRUE,  2, (u32)mb64_boo_idlist,         "Boo"},
 /* MB64_BUTTON_MR_I */     {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_MR_I,        NULL},
 /* MB64_BUTTON_SCUTTLEBUG */{MB64_PM_OBJ, FALSE, 0, OBJECT_TYPE_SCUTTLEBUG,  NULL},
 /* MB64_BUTTON_SPINDRIFT */{MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_SPINDRIFT,   NULL},
@@ -1359,22 +1382,22 @@ struct mb64_ui_button_type mb64_ui_buttons[] = {
 /* MB64_BUTTON_SKEETER */  {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_SKEETER,     NULL},
 /* MB64_BUTTON_POKEY */    {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_POKEY,       NULL},
 /* MB64_BUTTON_MINE */     {MB64_PM_OBJ,  FALSE, 0, OBJECT_TYPE_BOWSER_BOMB, NULL},
-/* MB64_BUTTON_FIRE */     {MB64_PM_OBJ,  TRUE,  2, mb64_flame_idlist,       "Flame"},
+/* MB64_BUTTON_FIRE */     {MB64_PM_OBJ,  TRUE,  2, (u32)mb64_flame_idlist,       "Flame"},
 /* MB64_BUTTON_FLAMETHROWER */{MB64_PM_OBJ, FALSE, 0, OBJECT_TYPE_FLAMETHROWER, NULL},
 /* MB64_BUTTON_FIRE_SPITTER */{MB64_PM_OBJ, FALSE, 0, OBJECT_TYPE_FIRE_SPITTER, NULL},
-/* MB64_BUTTON_FIRE_SPINNER */{MB64_PM_OBJ, FALSE, 5, OBJECT_TYPE_FIRE_SPINNER, txt_fire_spinner},
+/* MB64_BUTTON_FIRE_SPINNER */{MB64_PM_OBJ, FALSE, 5, OBJECT_TYPE_FIRE_SPINNER, (char *)txt_fire_spinner},
 /* MB64_BUTTON_BREAKABLE */{MB64_PM_OBJ, FALSE, 0, OBJECT_TYPE_BBOX_NORMAL, NULL},
-/* MB64_BUTTON_SMALL_BOX */{MB64_PM_OBJ, TRUE, 2, mb64_smallbox_idlist, "Boxes"},
+/* MB64_BUTTON_SMALL_BOX */{MB64_PM_OBJ, TRUE, 2, (u32)mb64_smallbox_idlist, "Boxes"},
 /* MB64_BUTTON_DIAMOND */  {MB64_PM_OBJ, FALSE, 0, OBJECT_TYPE_DIAMOND, NULL},
-/* MB64_BUTTON_NPC */      {MB64_PM_OBJ, TRUE, 5, mb64_npc_idlist, "NPC"},
-/* MB64_BUTTON_NPCCM */    {MB64_PM_OBJ, TRUE, 4, mb64_npccm_idlist, "NPC"},
-/* MB64_BUTTON_BUTTON */   {MB64_PM_OBJ, FALSE, 2, OBJECT_TYPE_BUTTON, txt_onoff},
-/* MB64_BUTTON_BLOCK */    {MB64_PM_OBJ, FALSE, 2, OBJECT_TYPE_ON_OFF_BLOCK, txt_onoff},
-/* MB64_BUTTON_WOODPLAT */ {MB64_PM_OBJ, FALSE, 2, OBJECT_TYPE_WOODPLAT, txt_woodplat},
+/* MB64_BUTTON_NPC */      {MB64_PM_OBJ, TRUE, 5, (u32)mb64_npc_idlist, "NPC"},
+/* MB64_BUTTON_NPCCM */    {MB64_PM_OBJ, TRUE, 4, (u32)mb64_npccm_idlist, "NPC"},
+/* MB64_BUTTON_BUTTON */   {MB64_PM_OBJ, FALSE, 2, OBJECT_TYPE_BUTTON, (char *)txt_onoff},
+/* MB64_BUTTON_BLOCK */    {MB64_PM_OBJ, FALSE, 2, OBJECT_TYPE_ON_OFF_BLOCK, (char *)txt_onoff},
+/* MB64_BUTTON_WOODPLAT */ {MB64_PM_OBJ, FALSE, 2, OBJECT_TYPE_WOODPLAT, (char *)txt_woodplat},
 /* MB64_BUTTON_RFBOX */    {MB64_PM_OBJ, FALSE, 0, OBJECT_TYPE_RFBOX, NULL},
 /* MB64_BUTTON_SHOWRUN */  {MB64_PM_OBJ, FALSE, 0, OBJECT_TYPE_SHOWRUNNER, NULL},
-/* MB64_BUTTON_POWER */    {MB64_PM_OBJ, TRUE, 2, mb64_power_idlist, "Powerup"},
-/* MB64_BUTTON_CONVEYOR */ {MB64_PM_OBJ, FALSE, 8, OBJECT_TYPE_CONVEYOR, txt_conveyor},
+/* MB64_BUTTON_POWER */    {MB64_PM_OBJ, TRUE, 2, (u32)mb64_power_idlist, "Powerup"},
+/* MB64_BUTTON_CONVEYOR */ {MB64_PM_OBJ, FALSE, 8, OBJECT_TYPE_CONVEYOR, (char *)txt_conveyor},
 /* MB64_BUTTON_ISCORNER */ {MB64_PM_TILE, FALSE, 0, TILE_TYPE_ISCORNER, NULL},
 /* MB64_BUTTON_TRIGGER */  {MB64_PM_OBJ, FALSE, 0, OBJECT_TYPE_TRIGGER, NULL},
 };
@@ -1609,71 +1632,6 @@ u8 mb64_text_colors[][3] = {
     {255, 0, 0},
     {0, 150, 255},
 };
-
-struct mb64_dialog_topic mb64_dialog_topics_greetings[] = {
-    {"Hello",DIALOG_004},
-    {"Going",DIALOG_006},
-    {"Sup",DIALOG_007},
-    {"Howdy",DIALOG_008},
-};
-
-struct mb64_dialog_topic mb64_dialog_topics_trouble[] = {
-    {"King Bob-omb",DIALOG_000},
-    {"King Whomp",DIALOG_001},
-    {"Big Boo",DIALOG_016},
-    {"Big Bully",DIALOG_019},
-    {"Chief Chilly",DIALOG_020},
-    {"Wiggler",DIALOG_021},
-    {"Bowser",DIALOG_022},
-};
-
-struct mb64_dialog_topic mb64_dialog_topics_tricks[] = {
-    {"Triple Jump Kick",DIALOG_002},
-    {"BLJ",DIALOG_003},
-    {"QSLG",DIALOG_018},
-    {"Bomb Clip",DIALOG_051},
-};
-
-struct mb64_dialog_topic mb64_dialog_topics_keys[] = {
-    {"Vanish Cap",DIALOG_030},
-    {"Wing Cap",DIALOG_031},
-    {"Metal Cap",DIALOG_032},
-    {"Koopa Shell",DIALOG_033},
-    {"Corkbox",DIALOG_034},
-    {"Rocket Boots",DIALOG_035},
-    {"Vanetal",DIALOG_036},
-    {"Pipebar",DIALOG_038},
-    {"B.Bill Mask",DIALOG_037},
-};
-
-struct mb64_dialog_topic mb64_dialog_topics_mystery[] = {
-    {"Hmm",DIALOG_039},
-    {"This",DIALOG_040},
-    {"What",DIALOG_041},
-    {"Peculiar",DIALOG_042},
-    {"Box",DIALOG_043},
-    {"Way",DIALOG_044},
-};
-
-struct mb64_dialog_topic mb64_dialog_topics_warning[] = {
-    {"Pit",DIALOG_045},
-    {"Lava",DIALOG_046},
-    {"Quicksand",DIALOG_047},
-    {"Enemies",DIALOG_048},
-    {"Trolling",DIALOG_049},
-    {"Void",DIALOG_050},
-};
-
-struct mb64_dialog_subject mb64_dialog_subjects[] = {
-    {"Greetings",mb64_dialog_topics_greetings, 4},
-    {"Trouble",mb64_dialog_topics_trouble, 7},
-    {"Warning",mb64_dialog_topics_warning,6},
-    {"Keys",mb64_dialog_topics_keys, 9},
-    {"Mystery",mb64_dialog_topics_mystery, 6},
-    {"Tricks",mb64_dialog_topics_tricks, 4},
-};
-
-#define NUM_DIALOG_SUBJECT_COUNT 6
 
 #define IMBUE_YELLOW 0xFFFF00FF
 #define IMBUE_GREEN 0x00DD00FF

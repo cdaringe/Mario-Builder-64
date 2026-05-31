@@ -4,13 +4,8 @@
 #include "macros.h"
 #include "surface_terrains.h"
 #include "types.h"
-#include "libcart/include/cart.h"
-#include "libcart/ff/ff.h"
 #include "src/game/game_init.h"
 
-#ifdef VERSION_EU
-#include "text_strings.h"
-#endif
 #include "make_const_nonconst.h"
 
 // 0x07000000 - 0x07000018
@@ -452,6 +447,7 @@ const Gfx dl_menu_grabbing_hand[] = {
     gsSPBranchList(dl_menu_hand),
 };
 
+#ifdef VERSION_JP
 // 0x070073D0
 ALIGNED8 static const Texture texture_menu_hud_char_katakana_hu[] = {
 #include "levels/menu/main_menu_seg7.073D0.rgba16.inc.c"
@@ -591,18 +587,7 @@ ALIGNED8 static const Texture texture_menu_hud_char_katakana_n[] = {
 ALIGNED8 static const Texture texture_menu_hud_char_kana_dakuten_do[] = {
 #include "levels/menu/main_menu_seg7.0A9D0.rgba16.inc.c"
 };
-
-// Menu HUD print table, only used in JP
-// 0x0700ABD0
-const Texture *const menu_hud_lut[] = {
-    texture_menu_hud_char_katakana_hu, texture_menu_hud_char_katakana_small_a, texture_menu_hud_char_katakana_i,         texture_menu_hud_char_katakana_ru,
-    texture_menu_hud_char_katakana_se, texture_menu_hud_char_katakana_re,      texture_menu_hud_char_katakana_ku,        texture_menu_hud_char_katakana_to,
-    texture_menu_hud_char_hiragana_wo, texture_menu_hud_char_katakana_ko,      texture_menu_hud_char_kana_handakuten_pi, texture_menu_hud_char_choonpu,
-    texture_menu_hud_char_hiragana_su, texture_menu_hud_char_hiragana_ru,      texture_menu_hud_char_hiragana_ke,        texture_menu_hud_char_katakana_ma,
-    texture_menu_hud_char_katakana_ri, texture_menu_hud_char_katakana_o,       texture_menu_hud_char_katakana_su,        texture_menu_hud_char_katakana_a,
-    texture_menu_hud_char_hiragana_mi, texture_menu_hud_char_hira_dakuten_do,  texture_menu_hud_char_hiragana_no,        texture_menu_hud_char_question,
-    texture_menu_hud_char_katakana_sa, texture_menu_hud_char_katakana_u,       texture_menu_hud_char_katakana_n,         texture_menu_hud_char_kana_dakuten_do,
-};
+#endif
 
 #if defined(VERSION_JP) || defined(VERSION_SH)
 // 0x0700AC48
@@ -1854,18 +1839,9 @@ const Collision main_menu_seg7_collision[] = {
 
 #endif
 
-#include "levels/menu/replaced/model.inc.c"
-
-#include "levels/menu/mm_btn2/model.inc.c"
-#include "levels/menu/mm_btn_sm/model.inc.c"
 #include "levels/menu/mbg/model.inc.c"
-#include "levels/menu/mm_btn_lg/model.inc.c"
-#include "levels/menu/mptng/model.inc.c"
-#include "levels/menu/pl_scard/model.inc.c"
-//#include "levels/menu/rovert_logo/model.inc.c"
 
 #include "levels/menu/bigpainting/model.inc.c"
 
 FILINFO mb64_level_entries[MAX_FILES] = {0};
-
 u16 mb64_level_entry_piktcher[MAX_FILES][64][64] = {0};

@@ -1,7 +1,16 @@
 #pragma once
 
 #include "types.h"
+#include "file.h"
+
 #include "engine/math_util.h"
+#include "audio/external.h"
+#include "game/segment2.h"
+#include "game/game_init.h"
+#include "game/ingame_menu.h"
+#include "game/geo_misc.h"
+
+#include "actors/uiCorner/header.h"
 
 #define MENU_POOL_SIZE 128
 
@@ -48,11 +57,27 @@ typedef struct {
 } MenuState;
 
 typedef struct {
+    u8 textHighlightSelected:1;
     u8 listOffsetSelected:1;
+    u8 textNoShadow:1;
+
+    u8 noClickSounds:1;
+    u8 noMoveSounds:1;
 } MenuStyle;
 
 extern MenuStyle gMenuStyle;
 extern MenuState gMenuState;
+
+ALWAYS_INLINE void menu_play_click_sound(void) {
+    if (!gMenuStyle.noClickSounds) {
+        play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
+    }
+}
+ALWAYS_INLINE void menu_play_move_sound(void) {
+    if (!gMenuStyle.noMoveSounds) {
+        play_sound(SOUND_MENU_MESSAGE_NEXT_PAGE, gGlobalSoundSource);
+    }
+}
 
 #define set_menu_style(style) (gMenuStyle = style)
 
@@ -157,6 +182,14 @@ typedef struct {
 
 typedef struct {
     MenuComponent base;
+    u8 alpha;
+    u8 width;
+    u8 height;
+    u8 corner;
+} BoxComponent;
+
+typedef struct {
+    MenuComponent base;
     s16 rot;
     f32 xScale;
     f32 yScale;
@@ -215,6 +248,7 @@ struct Selector2DComponent {
     u8 columns;
     u8 rows;
     u8 index;
+    u8 count;
 };
 
 typedef struct {
@@ -224,6 +258,14 @@ typedef struct {
     u8 maxLength;
     u8 isRestricted:1; // Filename restrictions
 } KeyboardComponent;
+
+typedef struct {
+    MenuComponent base;
+    s16 *value;
+    s16 max;
+    u8 symbol;
+    u8 align;
+} CounterComponent;
 
 enum MenuComponents {
     MENU_NONE = 0,
@@ -235,11 +277,13 @@ enum MenuComponents {
     MENU_DYNAMIC,
     MENU_ANIMATED,
     MENU_RECT,
+    MENU_BOX,
     MENU_MATRIX,
     MENU_PAGE_HANDLER,
     MENU_PAGE_TITLE,
     MENU_SELECTOR_2D,
     MENU_KEYBOARD,
+    MENU_COUNTER,
 };
 
 union MenuComponentData {
@@ -254,8 +298,10 @@ union MenuComponentData {
     PageTitleComponent pageTitle;
     MatrixComponent matrix;
     RectComponent rect;
+    BoxComponent box;
     Selector2DComponent selector2D;
     KeyboardComponent keyboard;
+    CounterComponent counter;
 };
 
 extern union MenuComponentData menu_pool[MENU_POOL_SIZE];
@@ -277,7 +323,7 @@ ALWAYS_INLINE u8 get_id(void *m) {
 ALWAYS_INLINE void *get_parent(void *m) {
     return get_component(((MenuComponent *)m)->parent);
 }
-ALWAYS_INLINE void *get_first_child(void *parent) {
+ALWAYS_INLINE void *get_child(void *parent) {
     MenuComponent *p = parent;
     return p->child ? get_component(p->child) : NULL;
 }
@@ -288,7 +334,7 @@ ALWAYS_INLINE void render_child(MenuComponent *m, s16 x, s16 y) {
     }
 }
 
-void *get_child(void *parent, u8 type, u8 index);
+void *get_child_of_type(void *parent, u8 type, u8 index);
 
 FrameComponent       *init_frame_component(void *parent);
 FrameComponent       *init_dynamic_component(void *parent, ComponentRenderFunc render);
@@ -298,13 +344,15 @@ TextComponent        *init_text_component(void *parent, s16 x, s16 y, char *text
 TextComponent        *init_text_button(void *parent, s16 x, s16 y, char *text, u8 align, ComponentUpdateFunc onClick, int onClickArg);
 MatrixComponent      *init_matrix_component(void *parent, s16 rot, f32 xScale, f32 yScale);
 RectComponent        *init_rect_component(void *parent, u8 alpha, s16 x, s16 y, u8 width, u8 height);
+BoxComponent         *init_box_component(void *parent, s16 x, s16 y, u8 width, u8 height, u8 corner, u8 alpha);
 PageHandlerComponent *init_page_handler(void *parent, PageCreator pageCreator, u8 count, u16 width);
 PageTitleComponent   *init_page_title_array(void *parent, void *p, s16 x, s16 y, s16 width, char **array);
 PageTitleComponent   *init_page_title_func(void *parent, void *original, s16 x, s16 y, s16 width, SelectorStringFunc func);
 SelectorComponent    *init_array_selector(void *parent, u8 *value, u8 width, u8 count, char **array, ComponentUpdateFunc onChange);
 SelectorComponent    *init_func_selector(void *parent, u8 *value, u8 width, u8 count, SelectorStringFunc func, ComponentUpdateFunc onChange);
-Selector2DComponent  *init_selector_2d_component(void *parent, s16 x, s16 y, u8 columns, u8 rows, Selector2DRenderFunc *render, Selector2DUpdateFunc *update);
+Selector2DComponent  *init_selector_2d_component(void *parent, s16 x, s16 y, u8 columns, u8 count, Selector2DRenderFunc render, Selector2DUpdateFunc update);
 KeyboardComponent    *init_keyboard_component(void *parent, s16 x, s16 y, char *buf, TextComponent *t, u8 maxLength, int isRestricted);
+CounterComponent     *init_counter_component(void *parent, s16 x, s16 y, u8 symbol, s16 *value, s16 max, int align);
 
 ListItemComponent *component_list_append(ListComponent *l, void *m, s16 x, s16 y);
 ListItemComponent *component_list_get(ListComponent *l, u8 index);
@@ -315,6 +363,11 @@ void component_animate_bounce_in(AnimatedComponent *a, f32 offset, f32 accel, f3
 void component_animate_bounce_out(AnimatedComponent *a, f32 accel, f32 initialVel, u8 timer, u8 direction);
 void component_animate_linear(AnimatedComponent *a, f32 offset, f32 target, f32 vel, u8 direction);
 void component_rect_do_fade(RectComponent *rc, u8 targetAlpha, u8 dAlpha, ComponentUpdateFunc onFinish);
+void listitem_render_triangle(MenuComponent *m, s16 x, s16 y);
+
+void page_handler_scroll(PageHandlerComponent *ph, int dir);
+s32 get_input(int inputMethod, int direction);
+void render_4slice_box(int x, int y, int width, int height, int cornerSize);
 
 void reset_menu(void);
 void render_menu(void);

@@ -7,7 +7,6 @@
 #include "behavior_data.h"
 #include "camera.h"
 #include "course_table.h"
-#include "dialog_ids.h"
 #include "engine/math_util.h"
 #include "engine/surface_collision.h"
 #include "game_init.h"
@@ -24,10 +23,10 @@
 #include "sound_init.h"
 #include "rumble_init.h"
 #include "config.h"
-#include "rovent.h"
 #include "src/engine/behavior_script.h"
 #include "ingame_menu.h"
 #include "mb64/main.h"
+#include "mb64/collision.h"
 #include "mario_actions_automatic.h"
 
 u8  sDelayInvincTimer;
@@ -877,30 +876,6 @@ u32 interact_star_or_key(struct MarioState *m, UNUSED u32 interactType, struct O
             }
         }
 
-        //m->numStars = save_file_get_total_golden_star_count(gCurrSaveFileNum - 1, COURSE_MIN - 1, COURSE_MAX - 1);
-        //m->numMetalStars = save_file_get_total_metal_star_count(gCurrSaveFileNum - 1, COURSE_MIN - 1, COURSE_MAX - 1);
-
-        //if (m->numStars > 9) {
-        //    save_file_set_progression(PROG_10_STARS);
-        //}
-        //
-        //if ((m->numStars>29)&&(save_file_check_progression(PROG_DEFEAT_BOWSER_2))) {
-        //    save_file_set_progression(PROG_40_STARS);//actually 30
-        //}
-//
-        //if ((gCurrLevelNum==LEVEL_BITFS)&&(gCurrAreaIndex==2)) {
-        //    save_file_set_progression(PROG_DEFEAT_SHOWRUNNER);
-        //}
-//
-        //if (final_star) {
-        //    save_file_set_progression(PROG_POSTGAME);
-        //    save_file_do_save(gCurrSaveFileNum - 1);
-        //}
-
-        //if ((m->numStars>=80)&&(m->numMetalStars>=40)) {
-        //    save_file_set_progression(PROG_POSTPOST_GAME);
-        //}
-
         if (!noExit) {
             drop_queued_background_music();
             fadeout_level_music(126);
@@ -984,7 +959,7 @@ u32 interact_warp(struct MarioState *m, UNUSED u32 interactType, struct Object *
     return FALSE;
 }
 
-u32 interact_warp_door(struct MarioState *m, UNUSED u32 interactType, struct Object *obj) {
+u32 interact_warp_door(UNUSED struct MarioState *m, UNUSED u32 interactType, UNUSED struct Object *obj) {
 //     u32 doorAction = ACT_UNINITIALIZED;
 // #ifndef UNLOCK_ALL
 //     u32 saveFlags = save_file_get_flags();
@@ -1042,7 +1017,7 @@ u32 interact_warp_door(struct MarioState *m, UNUSED u32 interactType, struct Obj
 }
 
 u32 get_door_save_file_flag(UNUSED struct Object *door) {
-
+    return 0;
 }
 
 u8 starbuf1[4];
@@ -1069,7 +1044,7 @@ u32 interact_door(struct MarioState *m, UNUSED u32 interactType, struct Object *
         if (numStars >= requiredNumStars) {
             u32 actionArg = should_push_or_pull_door(m, o);
             u32 enterDoorAction;
-            u32 doorSaveFileFlag;
+            // u32 doorSaveFileFlag;
 
             if (actionArg & 0x00000001) {
                 enterDoorAction = ACT_PULLING_DOOR;
@@ -1086,12 +1061,6 @@ u32 interact_door(struct MarioState *m, UNUSED u32 interactType, struct Object *
 
             return set_mario_action(m, enterDoorAction, actionArg);
         } else if (!sDisplayingDoorText) {
-
-            int_to_str(requiredNumStars,starbuf1);
-            int_to_str(requiredNumStars-numStars,starbuf2);
-            rtext_insert_pointer[0] = starbuf1;
-            rtext_insert_pointer[1] = starbuf2;
-
             switch(behparam1) {
                 case 0:
                     //run_event(EVENT_STARDOOR);
@@ -1622,7 +1591,7 @@ u32 interact_hoot(struct MarioState *m, UNUSED u32 interactType, struct Object *
 // Called when Mario touches a cap powerup
 u32 interact_cap(struct MarioState *m, UNUSED u32 interactType, struct Object *obj) {
     u32 capFlag = get_mario_cap_flag(obj);
-    u16 capMusic = 0;
+    // u16 capMusic = 0;
     u16 capTime = 0;
 
     if (m->action != ACT_GETTING_BLOWN && capFlag != 0) {
@@ -1773,38 +1742,12 @@ u32 mario_can_talk(struct MarioState *m, u32 arg) {
 }
 
 #define READ_MASK (INPUT_A_PRESSED | INPUT_B_PRESSED)
-#ifdef EASIER_DIALOG_TRIGGER
 #define SIGN_RANGE DEGREES(90)
-#else
-#define SIGN_RANGE DEGREES(45)
-#endif
 
 u32 check_read_sign(struct MarioState *m, struct Object *obj) {
-#ifdef EASIER_DIALOG_TRIGGER
-    s16 facingDYaw = (s16)(obj->oMoveAngleYaw + 0x8000) - m->faceAngle[1];
-    if (
-        mario_can_talk(m, TRUE)
-        && object_facing_mario(m, obj, SIGN_RANGE)
-        && (facingDYaw >= -SIGN_RANGE)
-        && (facingDYaw <=  SIGN_RANGE)
-        && abs_angle_diff(mario_obj_angle_to_object(m, obj), m->faceAngle[1]) <= SIGN_RANGE
-    ) {
-#ifdef DIALOG_INDICATOR
-        struct Object *orangeNumber;
-        if (obj->behavior == segmented_to_virtual(bhvSignOnWall)) {
-            orangeNumber = spawn_object_relative(ORANGE_NUMBER_A, 0, 180, 32, obj, MODEL_NUMBER, bhvOrangeNumber);
-        } else {
-            orangeNumber = spawn_object_relative(ORANGE_NUMBER_A, 0, 160,  8, obj, MODEL_NUMBER, bhvOrangeNumber);
-        }
-        orangeNumber->oHomeX = orangeNumber->oPosX;
-        orangeNumber->oHomeZ = orangeNumber->oPosZ;
-#endif
-        if (m->input & READ_MASK) {
-#else
     if ((m->input & READ_MASK) && mario_can_talk(m, 0) && object_facing_mario(m, obj, SIGN_RANGE)) {
         s16 facingDYaw = (s16)(obj->oMoveAngleYaw + 0x8000) - m->faceAngle[1];
         if (facingDYaw >= -SIGN_RANGE && facingDYaw <= SIGN_RANGE) {
-#endif
             f32 targetX = obj->oPosX + 105.0f * sins(obj->oMoveAngleYaw);
             f32 targetZ = obj->oPosZ + 105.0f * coss(obj->oMoveAngleYaw);
 

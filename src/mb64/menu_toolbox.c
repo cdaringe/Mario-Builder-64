@@ -1,13 +1,10 @@
 #include "menu_engine.h"
 
-#include "game/ingame_menu.h"
-#include "game/game_init.h"
-#include "game/segment2.h"
-#include "audio/external.h"
 #include "main.h"
+#include "gfx.h"
+#include "menu.h"
 
 #include "actors/b/header.h"
-#include "actors/bg/header.h"
 #include "actors/uibutton/header.h"
 
 AnimatedComponent *gToolbar;
@@ -74,8 +71,8 @@ void component_button_render(MenuComponent *m, s16 x, s16 y) {
 }
 
 void set_toolbar(int index, int id, int param) {
-    ListComponent *toolbar = get_first_child(gToolbar);
-    FrameComponent *button = get_first_child(component_list_get(toolbar, index));
+    ListComponent *toolbar = get_child(gToolbar);
+    FrameComponent *button = get_child(component_list_get(toolbar, index));
     button->buttonID = id;
     button->buttonParam = param;
     mb64_toolbar[index] = id;
@@ -85,8 +82,8 @@ void set_toolbar(int index, int id, int param) {
 // Copy tile type of current cursor position to current toolbar slot
 int sample_block(int index) {
     int isObject = FALSE;
-    int targetId;
-    int targetBparam;
+    u32 targetId;
+    u32 targetBparam;
     // Iterate over objects
     for (int i = 0; i < mb64_object_count; i++) {
         struct mb64_obj *obj = &mb64_object_data[i];
@@ -130,6 +127,8 @@ int sample_block(int index) {
                 }
             }
         } else if (buttonInfo->id == targetId) {
+            // Bugfix: Prevent sample from sampling the BTCM ! box when in vanilla (they share an object ID)
+            if ((i == MB64_BUTTON_EXCLA) && (mb64_lopt_game != MB64_GAME_BTCM)) continue;
             if (!isObject) mb64_mat_selection = targetBparam;
             set_toolbar(index, i, targetBparam);
             return TRUE;
@@ -173,12 +172,11 @@ void component_toolbar_loop(MenuComponent *m, s16 x, s16 y) {
 
     set_menu_style(toolbar_style);
 
-    create_dl_translation_matrix(MENU_MTX_PUSH, x, y - 65, 0);
+    gSPDisplayList(gDisplayListHead++, &dl_ia_text_begin);
     gDPSetEnvColor(gDisplayListHead++, 0, 0, 0, 150);
-    gSPDisplayList(gDisplayListHead++, &bg_back_graund_mesh);
-    gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
+    render_4slice_box(x, y - 65, 155, 72, 11);
 
-    FrameComponent *curButton = get_first_child(component_list_get(toolbar, toolbar->index));
+    FrameComponent *curButton = get_child(component_list_get(toolbar, toolbar->index));
     int id = curButton->buttonID;
     struct mb64_ui_button_type *buttonInfo = &mb64_ui_buttons[id];
 
@@ -208,7 +206,7 @@ void component_toolbar_loop(MenuComponent *m, s16 x, s16 y) {
         if (param != 0 && dir) {
             curButton->buttonParam = (curButton->buttonParam + dir + param) % param;
             mb64_toolbar_params[toolbar->index] = curButton->buttonParam;
-            play_sound(SOUND_MENU_MESSAGE_NEXT_PAGE, gGlobalSoundSource);
+            menu_play_move_sound();
         }
         // Set mb64_id_selection and the string to display
         if (buttonInfo->multiObj) {
@@ -245,7 +243,7 @@ void component_toolbar_loop(MenuComponent *m, s16 x, s16 y) {
             // Material switching
             if (dir) {
                 mb64_mat_selection = (mb64_mat_selection + dir + NUM_MATERIALS_PER_THEME) % NUM_MATERIALS_PER_THEME;
-                play_sound(SOUND_MENU_MESSAGE_NEXT_PAGE, gGlobalSoundSource);
+                menu_play_move_sound();
             }
             yellowStr = TILE_MATDEF(mb64_mat_selection).name;
         }
@@ -280,7 +278,7 @@ void create_toolbar(void) {
 }
 
 void toolbar_set_active(int active) {
-    ListComponent *l = get_first_child(gToolbar);
+    ListComponent *l = get_child(gToolbar);
     l->base.inactive = !active;
 }
 
@@ -336,20 +334,18 @@ AnimatedComponent *gToolbox;
 
 #define TOOLBOX_PAGE_GAP ((9 * 32) + 40)
 void toolbox_render_bg(UNUSED MenuComponent *m, s16 x, s16 y) {
-    create_dl_translation_matrix(MENU_MTX_PUSH, x, y, 0);
     gDPSetEnvColor(gDisplayListHead++, 0, 0, 0, 150);
-    gSPDisplayList(gDisplayListHead++, &bg_back_graund_mesh);
-    create_dl_translation_matrix(MENU_MTX_NOPUSH, TOOLBOX_PAGE_GAP, 0, 0);
-    gSPDisplayList(gDisplayListHead++, &bg_back_graund_mesh);
-    gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
+    render_4slice_box(x,                    y, 155, 72, 11);
+    render_4slice_box(x + TOOLBOX_PAGE_GAP, y, 155, 72, 11);
 }
 
 void close_toolbox(void) {
     dealloc_component(get_id(gToolbox));
     gToolbox = NULL;
     mb64_menu_state = MB64_MAKE_MAIN;
+    show_coord_display();
 
-    ListComponent *bar = get_first_child(gToolbar);
+    ListComponent *bar = get_child(gToolbar);
     component_list_get(bar, 7)->disabled = FALSE;
     component_list_get(bar, 8)->disabled = FALSE;
 }
@@ -359,13 +355,13 @@ void toolbox_loop(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
     if (!a->timer && ACTIVE && gPlayer1Controller->buttonPressed & (B_BUTTON | START_BUTTON)) {
         component_animate_ease_out(a, 4.f, 12, DIR_VERTICAL);
         a->onFinish = close_toolbox;
-        play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
+        menu_play_click_sound();
     }
 }
 
 void toolbox_handle_scroll(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
     AnimatedComponent *a = (AnimatedComponent *)m;
-    Selector2DComponent *box = get_first_child(m);
+    Selector2DComponent *box = get_child(m);
 
     if (a->timer) return;
 
@@ -375,7 +371,7 @@ void toolbox_handle_scroll(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
         } else {
             box->index += 9;
         }
-        play_sound(SOUND_MENU_MESSAGE_NEXT_PAGE, gGlobalSoundSource);
+        menu_play_move_sound();
     }
 
     if (box->index % box->columns >= 9) {
@@ -410,7 +406,7 @@ void toolbox_render_button(Selector2DComponent *s, s16 x, s16 y, u8 column, u8 r
             int maxParam = mb64_ui_buttons[mb64_toolbox[index]].paramCount;
             int dir = get_input(MENU_INPUT_DPAD, DIR_HORIZONTAL);
             mb64_toolbox_params[index] = (mb64_toolbox_params[index] + maxParam + dir) % maxParam;
-            if (dir) play_sound(SOUND_MENU_MESSAGE_NEXT_PAGE, gGlobalSoundSource);
+            if (dir) menu_play_move_sound();
         }
     }
 
@@ -432,11 +428,11 @@ void toolbox_render_button(Selector2DComponent *s, s16 x, s16 y, u8 column, u8 r
     render_button(mb64_toolbox[index], mb64_toolbox_params[index], selected, x, y);
 }
 
-void toolbox_select_button(Selector2DComponent *s, u8 column, u8 row) {
+void toolbox_select_button(Selector2DComponent *s, UNUSED u8 column, UNUSED u8 row) {
     if (mb64_toolbox[s->index] == MB64_BUTTON_BLANK) return;
     play_sound(SOUND_ACTION_BRUSH_HAIR, gGlobalSoundSource);
 
-    ListComponent *toolbar = get_first_child(gToolbar);
+    ListComponent *toolbar = get_child(gToolbar);
     create_animated_button(sSelectedX, sSelectedY + 3, toolbar->index, mb64_toolbox[s->index], mb64_toolbox_params[s->index]);
 }
 
@@ -492,7 +488,7 @@ void create_toolbox(void) {
     AnimatedComponent *scroller = alloc_component(gToolbox, MENU_ANIMATED);
     scroller->base.prerender = toolbox_handle_scroll;
 
-    Selector2DComponent *box = init_selector_2d_component(scroller, 0, 0, 18, 5, toolbox_render_button, toolbox_select_button);
+    Selector2DComponent *box = init_selector_2d_component(scroller, 0, 0, 18, 18*5, toolbox_render_button, toolbox_select_button);
     box->base.prerender = toolbox_render_bg;
 
     box->index = gToolboxIndex;
@@ -503,9 +499,23 @@ void create_toolbox(void) {
 
     init_dynamic_component(box, toolbox_render_text);
 
-    ListComponent *bar = get_first_child(gToolbar);
+    ListComponent *bar = get_child(gToolbar);
     component_list_get(bar, 7)->disabled = TRUE;
     component_list_get(bar, 8)->disabled = TRUE;
+}
+
+void init_toolbox(void) {
+    bzero(&mb64_toolbox_params, sizeof(mb64_toolbox_params));
+    switch(mb64_lopt_game) {
+        case MB64_GAME_BTCM:
+            bcopy(&mb64_toolbox_btcm,&mb64_toolbox,sizeof(mb64_toolbox));
+            mb64_exclamation_box_contents = sExclamationBoxContents_btcm;
+            break;
+        case MB64_GAME_VANILLA:
+            bcopy(&mb64_toolbox_vanilla,&mb64_toolbox,sizeof(mb64_toolbox));
+            mb64_exclamation_box_contents = sExclamationBoxContents_vanilla;
+            break;
+    }
 }
 
 void reset_toolbox_state(void) {

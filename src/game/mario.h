@@ -27,6 +27,7 @@ void play_mario_heavy_landing_sound(struct MarioState *m, u32 soundBits);
 void play_mario_heavy_landing_sound_once(struct MarioState *m, u32 soundBits);
 void play_mario_sound(struct MarioState *m, s32 primarySoundBits, s32 scondarySoundBits);
 void mario_set_forward_vel(struct MarioState *m, f32 speed);
+s32 get_floor_class(TerrainData type);
 s32 mario_get_floor_class(struct MarioState *m);
 u32 get_terrain_sound_addend(TerrainData floorType);
 u32 mario_get_terrain_sound_addend(struct MarioState *m);
@@ -54,7 +55,8 @@ s32 set_water_plunge_action(struct MarioState *m);
 s32 execute_mario_action(UNUSED struct Object *obj);
 void init_mario(void);
 void init_mario_from_save_file(void);
-void clear_costmic_phantasms(void);
+void throw_crowbar(void);
+void mario_remove_powerup(void);
 
 extern u8 near_music_box;
 

@@ -25,6 +25,15 @@ SpatialPartitionCell gStaticSurfacePartition[NUM_CELLS][NUM_CELLS];
 SpatialPartitionCell gDynamicSurfacePartition[NUM_CELLS][NUM_CELLS];
 SpatialPartitionCell gBlockSurfaces;
 
+struct CellCoords {
+    u8 z;
+    u8 x;
+    u8 partition;
+};
+struct CellCoords sCellsUsed[NUM_CELLS];
+u16 sNumCellsUsed;
+u8 sClearAllCells;
+
 /**
  * Pools of data that can contain either surface nodes or surfaces.
  * The static surface pool is resized to be exactly the amount of memory needed for the level geometry.
@@ -41,7 +50,7 @@ struct SurfaceNode *gBlockSurfaceNodePool;
 /**
  * Allocate the part of the surface node pool to contain a surface node.
  */
-static struct SurfaceNode *alloc_surface_node(u32 dynamic) {
+static struct SurfaceNode *alloc_surface_node() {
     struct SurfaceNode *node = &gSurfaceNodePool[*gSurfaceNodesAllocated];
     (*gSurfaceNodesAllocated)++;
 
@@ -54,7 +63,7 @@ static struct SurfaceNode *alloc_surface_node(u32 dynamic) {
  * Allocate the part of the surface pool to contain a surface and
  * initialize the surface.
  */
-struct Surface *alloc_surface(u32 dynamic) {
+struct Surface *alloc_surface() {
     struct Surface *surface = &gSurfacePool[*gSurfacesAllocated];
     (*gSurfacesAllocated)++;
 
@@ -62,21 +71,6 @@ struct Surface *alloc_surface(u32 dynamic) {
     surface->object = NULL;
 
     return surface;
-}
-
-/**
- * Iterates through the entire partition, clearing the surfaces.
- */
-void clear_spatial_partition(SpatialPartitionCell *cells) {
-    register s32 i = sqr(NUM_CELLS);
-
-    while (i--) {
-        (*cells)[SPATIAL_PARTITION_FLOORS] = NULL;
-        (*cells)[SPATIAL_PARTITION_CEILS] = NULL;
-        (*cells)[SPATIAL_PARTITION_WALLS] = NULL;
-
-        cells++;
-    }
 }
 
 /**
@@ -107,11 +101,21 @@ void add_surface_to_cell(s32 type, s32 cellX, s32 cellZ, struct Surface *surface
 
     s32 surfacePriority = surface->upperY * sortDir;
 
-    struct SurfaceNode *newNode = alloc_surface_node(type != 0);
+    struct SurfaceNode *newNode = alloc_surface_node();
     newNode->surface = surface;
 
     if (type == 1) {
         list = &gDynamicSurfacePartition[cellZ][cellX][listIndex];
+        if (sNumCellsUsed >= sizeof(sCellsUsed) / sizeof(struct CellCoords)) {
+            sClearAllCells = TRUE;
+        } else {
+            if (*list == NULL) {
+                sCellsUsed[sNumCellsUsed].z = cellZ;
+                sCellsUsed[sNumCellsUsed].x = cellX;
+                sCellsUsed[sNumCellsUsed].partition = listIndex;
+                sNumCellsUsed++;
+            }
+        }
     } else if (type == 0) {
         list = &gStaticSurfacePartition[cellZ][cellX][listIndex];
     } else {
@@ -122,7 +126,16 @@ void add_surface_to_cell(s32 type, s32 cellX, s32 cellZ, struct Surface *surface
         *list = newNode;
         return;
     }
+
     struct SurfaceNode *curNode = *list;
+
+    // Check if surface should be placed at the beginning of the list.
+    priority = curNode->surface->upperY * sortDir;
+    if (surfacePriority > priority) {
+        *list = newNode;
+        newNode->next = curNode;
+        return;
+    }
 
     // Loop until we find the appropriate place for the surface in the list.
     while (curNode->next != NULL) {
@@ -206,7 +219,7 @@ static struct Surface *read_surface_data(TerrainData *vertexData, TerrainData **
     Vec3t offset;
     s16 min, max;
 
-    vec3_prod_val(offset, (*vertexIndices), 3);
+    vec3_scale_dest(offset, (*vertexIndices), 3);
 
     vec3s_copy(v[0], (vertexData + offset[0]));
     vec3s_copy(v[1], (vertexData + offset[1]));
@@ -223,22 +236,6 @@ static struct Surface *read_surface_data(TerrainData *vertexData, TerrainData **
     surface->upperY = (max + SURFACE_VERTICAL_BUFFER);
 
     return surface;
-}
-
-s32 surf_has_no_cam_collision(s32 surfaceType) {
-    switch (surfaceType) {
-        case SURFACE_NO_CAM_COLLISION:
-        case SURFACE_NO_CAM_COLLISION_77: // Unused
-        case SURFACE_NO_CAM_COL_VERY_SLIPPERY:
-        case SURFACE_SWITCH:
-        case SURFACE_VANISH_CAP_WALLS:
-        case SURFACE_ICE:
-        case SURFACE_CRYSTAL:
-        case SURFACE_HANGABLE_MESH:
-            return TRUE;
-
-    }
-    return FALSE;
 }
 
 /**
@@ -303,26 +300,25 @@ void alloc_surface_pools(void) {
     gSurfaceNodePool = gMainSurfaceNodePool;
     gSurfacesAllocated = &gMainSurfacesAllocated;
     gSurfaceNodesAllocated = &gMainSurfaceNodesAllocated;
-
-    reset_red_coins_collected();
 }
 
 /**
  * Process the level file, loading in vertices, surfaces, some objects, and environmental
  * boxes (water, gas, JRB fog).
  */
-void load_area_terrain(s32 index, TerrainData *data) {
+void load_area_terrain(UNUSED s32 index, TerrainData *data) {
     PUPPYPRINT_GET_SNAPSHOT();
     s32 terrainLoadType;
     TerrainData *vertexData = NULL;
-    u32 surfacePoolData;
+    // u32 surfacePoolData;
 
     // Initialize the data for this.
     gEnvironmentRegions = NULL;
     gMainSurfaceNodesAllocated = 0;
     gMainSurfacesAllocated = 0;
 
-    clear_static_surfaces();
+    // Clear the static (level) surface partitions for new use.
+    bzero(gStaticSurfacePartition, sizeof(gStaticSurfacePartition));
 
     // A while loop iterating through each section of the level data. Sections of data
     // are prefixed by a terrain "type." This type is reused for surfaces as the surface
@@ -363,14 +359,17 @@ void clear_dynamic_surfaces(void) {
 
         gMainSurfacesAllocated = gNumStaticSurfaces;
         gMainSurfaceNodesAllocated = gNumStaticSurfaceNodes;
-        clear_spatial_partition(&gDynamicSurfacePartition[0][0]);
+        if (sClearAllCells) {
+            bzero(gDynamicSurfacePartition, sizeof(gDynamicSurfacePartition));
+        } else {
+            for (u32 i = 0; i < sNumCellsUsed; i++) {
+                gDynamicSurfacePartition[sCellsUsed[i].z][sCellsUsed[i].x][sCellsUsed[i].partition] = NULL;
+            }
+        }
+        sNumCellsUsed = 0;
+        sClearAllCells = FALSE;
     }
     profiler_collision_update(first);
-}
-
-void clear_block_surfaces(void) {
-    gBlockSurfacesAllocated = 0;
-    gBlockSurfaceNodesAllocated = 0;
 }
 
 /**

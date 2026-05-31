@@ -3,7 +3,6 @@
 #include "sm64.h"
 #include "camera.h"
 #include "seq_ids.h"
-#include "dialog_ids.h"
 #include "audio/external.h"
 #include "mario_misc.h"
 #include "game_init.h"
@@ -27,8 +26,8 @@
 #include "level_table.h"
 #include "config.h"
 #include "puppyprint.h"
-#include "rovent.h"
 #include "mb64/main.h"
+#include "mb64/menu.h"
 #include "profiling.h"
 #include "mario_actions_automatic.h"
 
@@ -125,7 +124,6 @@ extern s16 sSelectionFlags;
 extern s16 s2ndRotateFlags;
 extern s16 sCameraSoundFlags;
 extern u16 sCButtonsPressed;
-extern s16 sCutsceneDialogID;
 extern struct LakituState gLakituState;
 extern s16 sAreaYaw;
 extern s16 sAreaYawChange;
@@ -242,10 +240,6 @@ s16 sCameraSoundFlags;
  * Stores what C-Buttons are pressed this frame.
  */
 u16 sCButtonsPressed;
-/**
- * A copy of gDialogID, the dialog displayed during the cutscene.
- */
-s16 sCutsceneDialogID;
 /**
  * The currently playing shot in the cutscene.
  */
@@ -409,7 +403,7 @@ u8 sFramesSinceCutsceneEnded = 0;
  * 2 = No
  * 3 = Dialog doesn't have a response
  */
-u8 sCutsceneDialogResponse = DIALOG_RESPONSE_NONE;
+//u8 sCutsceneDialogResponse = DIALOG_RESPONSE_NONE;
 struct PlayerCameraState *sMarioCamState = &gPlayerCameraState[0];
 // struct PlayerCameraState *sLuigiCamState = &gPlayerCameraState[1];
 Vec3f sFixedModeBasePosition    = { 646.0f, 143.0f, -1513.0f };
@@ -829,7 +823,7 @@ void pan_ahead_of_player(struct Camera *c) {
     vec3f_add(c->focus, pan);
 }
 
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
 s16 find_in_bounds_yaw_wdw_bob_thi(Vec3f pos, Vec3f origin, s16 yaw) {
     switch (gCurrLevelArea) {
         case AREA_WDW_MAIN:
@@ -847,7 +841,7 @@ s16 find_in_bounds_yaw_wdw_bob_thi(Vec3f pos, Vec3f origin, s16 yaw) {
     }
     return yaw;
 }
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
 
 /**
  * Rotates the camera around the area's center point.
@@ -864,9 +858,9 @@ s32 update_radial_camera(struct Camera *c, Vec3f focus, Vec3f pos) {
     sAreaYaw = camYaw - sModeOffsetYaw;
     calc_y_to_curr_floor(&posY, 1.f, 200.f, &focusY, 0.9f, 200.f);
     focus_on_mario(focus, pos, posY + yOff, focusY + yOff, sLakituDist + baseDist, pitch, camYaw);
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
     camYaw = find_in_bounds_yaw_wdw_bob_thi(pos, focus, camYaw);
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
     return camYaw;
 }
 
@@ -885,11 +879,11 @@ s32 update_8_directions_camera(struct Camera *c, Vec3f focus, Vec3f pos) {
     calc_y_to_curr_floor(&posY, 1.f, 200.f, &focusY, 0.9f, 200.f);
     focus_on_mario(focus, pos, posY + yOff, focusY + yOff, sLakituDist + baseDist, pitch, camYaw);
     pan_ahead_of_player(c);
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
     if (gCurrLevelArea == AREA_DDD_SUB) {
         camYaw = clamp_positions_and_find_yaw(pos, focus, 6839.f, 995.f, 5994.f, -3945.f);
     }
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
     return camYaw;
 }
 
@@ -1150,8 +1144,8 @@ void fake_ray(Vec3f start, Vec3f dir, struct Surface ** surf, Vec3f hit, s32 fla
         if (flags & RAYCAST_FIND_WALL) {
             if (find_wall_collisions(&hitbox) != 0) {
                 Vec3f norm;
-                get_surface_normal(&norm,hitbox.walls[0]);
-                f32 dot = vec3f_dot(&dirn,norm);
+                get_surface_normal(norm, hitbox.walls[0]);
+                f32 dot = vec3f_dot(dirn,norm);
                 if (dot <= -0.3f) {
                     *surf = hitbox.walls[0];
                     // Get distance pushed out from the wall
@@ -1168,7 +1162,7 @@ void fake_ray(Vec3f start, Vec3f dir, struct Surface ** surf, Vec3f hit, s32 fla
             f32 ceil_height = find_ceil(ray_pos[0],ray_pos[1] - FAKE_RAY_STEP_LEN,ray_pos[2], &found_ceiling);
             if (found_ceiling) {
                 Vec3f norm;
-                get_surface_normal(&norm,found_ceiling);
+                get_surface_normal(norm, found_ceiling);
 
                 if (ray_pos[1] > ceil_height-FAKE_RAY_STEP_LEN) {
                     *surf = found_ceiling;
@@ -1250,7 +1244,7 @@ void mode_8_directions_camera(struct Camera *c) {
         }
         vec3f_diff(camdir,c->pos,origin);
 
-        fake_ray(origin, camdir, &surf, &hitpos, RAYCAST_FIND_CEIL);
+        fake_ray(origin, camdir, &surf, hitpos, RAYCAST_FIND_CEIL);
 
         if (surf) {
             c->pos[1] = hitpos[1];
@@ -1262,7 +1256,7 @@ void mode_8_directions_camera(struct Camera *c) {
 
         vec3f_diff(camdir,c->pos,origin);
 
-        fake_ray(origin, camdir, &surf, &hitpos, RAYCAST_FIND_WALL);
+        fake_ray(origin, camdir, &surf, hitpos, RAYCAST_FIND_WALL);
 
         if (surf) {
             Vec3f camera_hit_diff;
@@ -1508,7 +1502,7 @@ s32 update_fixed_camera(struct Camera *c, Vec3f focus, UNUSED Vec3f pos) {
     f32 focusFloorOff;
     f32 goalHeight;
     f32 ceilHeight;
-    f32 heightOffset;
+    f32 heightOffset = 0.f;
     f32 distCamToFocus;
     f32 scaleToMario = 0.5f;
     s16 pitch;
@@ -1664,7 +1658,7 @@ s32 update_boss_fight_camera(struct Camera *c, Vec3f focus, Vec3f pos) {
         nz = normal[2];
         oo = normal[3];
         pos[1] = 300.f - (nx * pos[0] + nz * pos[2] + oo) / ny;
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
         switch (gCurrLevelArea) {
             case AREA_BOB:
                 pos[1] += 125.f;
@@ -1673,14 +1667,14 @@ s32 update_boss_fight_camera(struct Camera *c, Vec3f focus, Vec3f pos) {
             case AREA_WF:
                 pos[1] += 125.f;
         }
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
     }
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
     // Prevent the camera from going to the ground in the outside boss fight
     if (gCurrLevelNum == LEVEL_BBH) {
         pos[1] = 2047.f;
     }
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
     // Rotate from C-Button input
     if (sCSideButtonYaw < 0) {
         sModeOffsetYaw += 0x200;
@@ -1765,13 +1759,13 @@ void mode_parallel_tracking_camera(struct Camera *c) {
  * Fixed camera mode, the camera rotates around a point and looks and zooms toward Mario.
  */
 void mode_fixed_camera(struct Camera *c) {
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
     if (gCurrLevelNum == LEVEL_BBH) {
         set_fov_function(CAM_FOV_BBH);
     } else {
         set_fov_function(CAM_FOV_APP_45);
     }
-#else
+#else // ENABLE_VANILLA_CAM_PROCESSING
     set_fov_function(CAM_FOV_APP_45);
 #endif
     c->nextYaw = update_fixed_camera(c, c->focus, c->pos);
@@ -1908,7 +1902,7 @@ s32 update_behind_mario_camera(struct Camera *c, Vec3f focus, Vec3f pos) {
         dist = 300.f;
     }
     vec3f_set_dist_and_angle(focus, pos, dist, pitch, yaw);
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
     if (gCurrLevelArea == AREA_WDW_MAIN) {
         yaw = clamp_positions_and_find_yaw(pos, focus, 4508.f, -3739.f, 4508.f, -3739.f);
     }
@@ -1918,7 +1912,7 @@ s32 update_behind_mario_camera(struct Camera *c, Vec3f focus, Vec3f pos) {
     if (gCurrLevelArea == AREA_THI_TINY) {
         yaw = clamp_positions_and_find_yaw(pos, focus, 2458.f, -2458.f, 2458.f, -2458.f);
     }
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
 
     return yaw;
 }
@@ -1927,8 +1921,8 @@ s32 update_behind_mario_camera(struct Camera *c, Vec3f focus, Vec3f pos) {
  * "Behind Mario" mode: used when Mario is flying, on the water's surface, or shot from a cannon
  */
 s32 mode_behind_mario(struct Camera *c) {
-    struct MarioState *marioState = &gMarioStates[0];
-    struct Surface *floor;
+    // struct MarioState *marioState = &gMarioStates[0];
+    // struct Surface *floor;
     Vec3f newPos;
     f32 waterHeight;
     // f32 floorHeight;
@@ -2097,7 +2091,7 @@ s16 update_default_camera(struct Camera *c) {
     f32 dist;
     f32 zoomDist;
     f32 waterHeight;
-    f32 gasHeight;
+    // f32 gasHeight;
     s16 avoidYaw;
     s16 pitch;
     s16 yaw;
@@ -2250,7 +2244,7 @@ s16 update_default_camera(struct Camera *c) {
         if ((closeToMario & 1) && avoidStatus != AVOID_STATUS_NONE) {
             yawVel = 0;
         }
-        if (yawVel != 0 && get_dialog_id() == DIALOG_NONE) {
+        if (yawVel != 0 && !gCurDialog) {
             camera_approach_s16_symmetric_bool(&yaw, yawGoal, yawVel);
         }
     }
@@ -2335,11 +2329,11 @@ s16 update_default_camera(struct Camera *c) {
     }
     if ((gCameraMovementFlags & CAM_MOVE_ZOOMED_OUT) && (sSelectionFlags & CAM_MODE_MARIO_ACTIVE)) {
         posHeight = 610.f;
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
         if (gCurrLevelArea == AREA_SSL_PYRAMID || gCurrLevelNum == LEVEL_CASTLE) {
             posHeight /= 2;
         }
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
     }
 
     // Make Lakitu fly above the gas
@@ -2397,11 +2391,11 @@ s16 update_default_camera(struct Camera *c) {
             c->pos[1] = ceilHeight;
         }
     }
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
     if (gCurrLevelArea == AREA_WDW_TOWN) {
         yaw = clamp_positions_and_find_yaw(c->pos, c->focus, 2254.f, -3789.f, 3790.f, -2253.f);
     }
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
     return yaw;
 }
 
@@ -3046,12 +3040,7 @@ void update_lakitu(struct Camera *c) {
         if (c->cutscene != 0) {
             vec3f_copy(gLakituState.pos, _2D_Hold_Pos);
             vec3f_copy(gLakituState.focus, _2D_Hold_Foc);    
-            }
         }
-
-    if (revent_camera_on) {
-        vec3f_copy(gLakituState.pos, revent_camera_pos);
-        vec3f_copy(gLakituState.focus, revent_camera_foc);
     }
 
     if (mb64_mode == MB64_MODE_MAKE) {
@@ -3116,11 +3105,9 @@ void update_camera(struct Camera *c) {
     c->nextYaw = gLakituState.nextYaw;
     c->mode = gLakituState.mode;
     c->defMode = gLakituState.defMode;
-#ifdef ENABLE_VANILLA_CAM_PROCESSING
+
     camera_course_processing(c);
-#else
-    if (gCurrDemoInput != NULL) camera_course_processing(c);
-#endif
+
     sCButtonsPressed = find_c_buttons_pressed(sCButtonsPressed, gPlayer1Controller->buttonPressed, gPlayer1Controller->buttonDown);
 
     if (c->cutscene != CUTSCENE_NONE) {
@@ -3231,9 +3218,9 @@ void update_camera(struct Camera *c) {
 #ifdef PUPPYCAM
     if (!gPuppyCam.enabled || c->cutscene != 0 || gCurrentArea->camera->mode == CAMERA_MODE_INSIDE_CANNON) {
 #endif
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
     if (gCurrLevelNum != LEVEL_CASTLE) {
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
         // If fixed camera is selected as the alternate mode, then fix the camera as long as the right
         // trigger is held
         if ((c->cutscene == CUTSCENE_NONE &&
@@ -3263,13 +3250,13 @@ void update_camera(struct Camera *c) {
                 sCameraSoundFlags &= ~CAM_SOUND_FIXED_ACTIVE;
             }
         }
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
     } else {
         if ((gPlayer1Controller->buttonPressed & R_TRIG) && (cam_select_alt_mode(0) == CAM_SELECTION_FIXED)) {
             play_sound_button_change_blocked();
         }
     }
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
 
 
     update_lakitu(c);
@@ -3550,31 +3537,31 @@ void init_camera(struct Camera *c) {
  *      This isolates the lower 16 'area' bits, subtracts 1 because areas are 1-indexed, and effectively
  *      modulo-4's the result, because each 8-bit mask only has 4 area bits for each level
  */
-void zoom_out_if_paused_and_outside(struct GraphNodeCamera *camera) {
-    s16 yaw;
-    s32 areaMaskIndex = gCurrLevelArea / 32;
-    s32 areaBit = 1 << (((gCurrLevelArea & 0x10) / 4) + (((gCurrLevelArea & 0xF) - 1) & 3));
+void zoom_out_if_paused_and_outside(UNUSED struct GraphNodeCamera *camera) {
+    // s16 yaw;
+    // s32 areaMaskIndex = gCurrLevelArea / 32;
+    // s32 areaBit = 1 << (((gCurrLevelArea & 0x10) / 4) + (((gCurrLevelArea & 0xF) - 1) & 3));
 
-    if (areaMaskIndex >= LEVEL_MAX / 2) {
-        areaMaskIndex = 0;
-        areaBit = 0;
-    }
+    // if (areaMaskIndex >= LEVEL_MAX / 2) {
+    //     areaMaskIndex = 0;
+    //     areaBit = 0;
+    // }
     if (gCameraMovementFlags & CAM_MOVE_PAUSE_SCREEN) {
         if (sFramesPaused >= 2) {
-            if (0) { //Remove camera zoom on pause due to ruining moon illusion
-            //if (sZoomOutAreaMasks[areaMaskIndex] & areaBit) {
+            //Remove camera zoom on pause due to ruining moon illusion
+//             if (sZoomOutAreaMasks[areaMaskIndex] & areaBit) {
 
-                camera->focus[0] = gCamera->areaCenX;
-                camera->focus[1] = (sMarioCamState->pos[1] + gCamera->areaCenY) / 2;
-                camera->focus[2] = gCamera->areaCenZ;
-                vec3f_get_yaw(camera->focus, sMarioCamState->pos, &yaw);
-                vec3f_set_dist_and_angle(sMarioCamState->pos, camera->pos, 6000.f, 0x1000, yaw);
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
-                if (gCurrLevelNum != LEVEL_THI) {
-                    find_in_bounds_yaw_wdw_bob_thi(camera->pos, camera->focus, 0);
-                }
-#endif
-            }
+//                 camera->focus[0] = gCamera->areaCenX;
+//                 camera->focus[1] = (sMarioCamState->pos[1] + gCamera->areaCenY) / 2;
+//                 camera->focus[2] = gCamera->areaCenZ;
+//                 vec3f_get_yaw(camera->focus, sMarioCamState->pos, &yaw);
+//                 vec3f_set_dist_and_angle(sMarioCamState->pos, camera->pos, 6000.f, 0x1000, yaw);
+// #ifdef ENABLE_VANILLA_CAM_PROCESSING
+//                 if (gCurrLevelNum != LEVEL_THI) {
+//                     find_in_bounds_yaw_wdw_bob_thi(camera->pos, camera->focus, 0);
+//                 }
+// #endif // ENABLE_VANILLA_CAM_PROCESSING
+//             }
         } else {
             sFramesPaused++;
         }
@@ -3660,7 +3647,7 @@ void evaluate_cubic_spline(f32 u, Vec3f Q, Vec3f spline1, Vec3f spline2, Vec3f s
     register f32 su = sqr(u);
     register f32 hcu = (su * u) / 2.0f;
 
-    B[0] = cube(nu) / 6.0f;
+    B[0] = (nu * nu * nu) / 6.0f;
     B[1] = hcu - su + (2.0f / 3.0f);
     B[2] = -hcu + (su / 2.0f) + (u / 2.0f) + (1.0f / 6.0f);
     B[3] =  hcu / 3.0f;
@@ -4657,7 +4644,7 @@ void shake_camera_roll(s16 *roll) {
  * Add an offset to the camera's yaw, used in levels that are inside a rectangular building, like the
  * pyramid or TTC.
  */
-s32 offset_yaw_outward_radial(struct Camera *c, s16 areaYaw) {
+s32 offset_yaw_outward_radial(UNUSED struct Camera *c, UNUSED s16 areaYaw) {
     s16 yawGoal = DEGREES(60);
     s16 yaw = sModeOffsetYaw;
     // Vec3f areaCenter;
@@ -4779,7 +4766,7 @@ void play_sound_if_cam_switched_to_lakitu_or_mario(void) {
  */
 void radial_camera_input(struct Camera *c) {
 
-    if (revent_camera_on||(mb64_mode == MB64_MODE_MAKE)) {
+    if (mb64_mode == MB64_MODE_MAKE) {
         return; //do not control camera during cutscenes. (goku image)
     }
 
@@ -4891,7 +4878,7 @@ void trigger_cutscene_dialog(s32 trigger) {
 void handle_c_button_movement(struct Camera *c) {
     s16 cSideYaw;
 
-    if (revent_camera_on||(mb64_mode == MB64_MODE_MAKE)) {
+    if (mb64_mode == MB64_MODE_MAKE) {
         return; //do not control camera during cutscenes. (goku image)
     }
 
@@ -5509,26 +5496,23 @@ void parallel_tracking_init(struct Camera *c, struct ParallelTrackingPoint *path
  *      Only block area mode changes if Mario is in a cannon,
  *      or if the camera is in Mario mode and Mario is not swimming or in water with the metal cap
  */
-#ifdef ENABLE_VANILLA_CAM_PROCESSING
 void check_blocking_area_processing(const u8 *mode) {
     if (sMarioCamState->action & ACT_FLAG_METAL_WATER ||
                         *mode == DEEP_WATER_CAMERA_MODE || *mode == WATER_SURFACE_CAMERA_MODE) {
         sStatusFlags |= CAM_FLAG_BLOCK_AREA_PROCESSING;
     }
-
+    
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
     if (gCurrLevelNum == LEVEL_DDD || gCurrLevelNum == LEVEL_WDW || gCurrLevelNum == LEVEL_COTMC) {
         sStatusFlags &= ~CAM_FLAG_BLOCK_AREA_PROCESSING;
     }
+#endif // ENABLE_VANILLA_CAM_PROCESSING
 
     if ((*mode == DEEP_WATER_CAMERA_MODE &&
             !(sMarioCamState->action & (ACT_FLAG_SWIMMING | ACT_FLAG_METAL_WATER))) ||
          *mode == CAMERA_MODE_INSIDE_CANNON) {
         sStatusFlags |= CAM_FLAG_BLOCK_AREA_PROCESSING;
     }
-#else
-void check_blocking_area_processing(UNUSED const u8 *mode) {
-    sStatusFlags |= CAM_FLAG_BLOCK_AREA_PROCESSING;
-#endif
 }
 
 // void cam_rr_exit_building_side(struct Camera *c) {
@@ -6383,7 +6367,7 @@ s16 camera_course_processing(struct Camera *c) {
             b++;
         }
     }
-#if defined(ENABLE_VANILLA_CAM_PROCESSING) && !defined(FORCED_CAMERA_MODE) && !defined(USE_COURSE_DEFAULT_MODE)
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
     // Area-specific camera processing
     if (!(sStatusFlags & CAM_FLAG_BLOCK_AREA_PROCESSING)) {
         switch (gCurrLevelArea) {
@@ -6491,7 +6475,7 @@ s16 camera_course_processing(struct Camera *c) {
                 break;
         }
     }
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
 
     sStatusFlags &= ~CAM_FLAG_BLOCK_AREA_PROCESSING;
     if (oldMode == CAMERA_MODE_C_UP) {
@@ -6690,45 +6674,23 @@ void start_object_cutscene(u8 cutscene, struct Object *obj) {
  */
 void start_object_cutscene_without_focus(u8 cutscene) {
     sObjectCutscene = cutscene;
-    sCutsceneDialogResponse = DIALOG_RESPONSE_NONE;
+    //sCutsceneDialogResponse = DIALOG_RESPONSE_NONE;
 }
 
-UNUSED s32 unused_dialog_cutscene_response(u8 cutscene) {
-    // if not in a cutscene, start this one
-    if ((gCamera->cutscene == 0) && (sObjectCutscene == 0)) {
-        sObjectCutscene = cutscene;
-    }
-
-    // if playing this cutscene and Mario responded, return the response
-    if ((gCamera->cutscene == cutscene) && (sCutsceneDialogResponse)) {
-        return sCutsceneDialogResponse;
-    } else {
-        return 0;
-    }
-}
-
-s16 cutscene_object_with_dialog(u8 cutscene, struct Object *obj, s16 dialogID) {
-    s16 response = DIALOG_RESPONSE_NONE;
-
+s16 cutscene_object_with_dialog(u8 cutscene, struct Object *obj, UNUSED char *dialog) {
     if ((gCamera->cutscene == CUTSCENE_NONE) && (sObjectCutscene == CUTSCENE_NONE)) {
         if (gRecentCutscene != cutscene) {
             start_object_cutscene(cutscene, obj);
-            if (dialogID != DIALOG_NONE) {
-                sCutsceneDialogID = dialogID;
-            } else {
-                sCutsceneDialogID = DIALOG_001;
-            }
-        } else {
-            response = sCutsceneDialogResponse;
+            gDialogResponse = 0;
         }
 
         gRecentCutscene = CUTSCENE_NONE;
     }
-    return response;
+    return gDialogResponse;
 }
 
 s16 cutscene_object_without_dialog(u8 cutscene, struct Object *obj) {
-    return cutscene_object_with_dialog(cutscene, obj, DIALOG_NONE);
+    return cutscene_object_with_dialog(cutscene, obj, NULL);
 }
 
 /**
@@ -6737,7 +6699,7 @@ s16 cutscene_object_without_dialog(u8 cutscene, struct Object *obj) {
 s16 cutscene_object(u8 cutscene, struct Object *obj) {
     s16 status = 0;
 
-    if ((gCamera->cutscene == 0) && (sObjectCutscene == 0) && (!revent_active)) {
+    if ((gCamera->cutscene == 0) && (sObjectCutscene == 0)) {
         if (gRecentCutscene != cutscene) {
             start_object_cutscene(cutscene, obj);
             status = 1;
@@ -7561,7 +7523,7 @@ void star_dance_bound_yaw(struct Camera *c, s16 absYaw, s16 yawMax) {
  * Store the camera's focus in cvar9.
  */
 void cutscene_dance_closeup_start(struct Camera *c) {
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
     if ((gLastCompletedStarNum == 4) && (gCurrCourseNum == COURSE_JRB)) {
         star_dance_bound_yaw(c, 0x0, 0x4000);
     }
@@ -7571,7 +7533,7 @@ void cutscene_dance_closeup_start(struct Camera *c) {
     if ((gLastCompletedStarNum == 5) && (gCurrCourseNum == COURSE_WDW)) {
         star_dance_bound_yaw(c, 0x8000, 0x800);
     }
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
 
     vec3f_copy(sCutsceneVars[9].point, c->focus);
     //! cvar8 is unused in the closeup cutscene
@@ -7596,12 +7558,12 @@ void cutscene_dance_closeup_fly_above(struct Camera *c) {
     s16 pitch, yaw;
     f32 dist;
     s16 goalPitch = 0x1800;
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
     if ((gLastCompletedStarNum == 6 && gCurrCourseNum == COURSE_SL) ||
         (gLastCompletedStarNum == 4 && gCurrCourseNum == COURSE_TTC)) {
         goalPitch = 0x800;
     }
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
     vec3f_get_dist_and_angle(sMarioCamState->pos, c->pos, &dist, &pitch, &yaw);
     approach_f32_asymptotic_bool(&dist, 800.f, 0.05f);
     approach_s16_asymptotic_bool(&pitch, goalPitch, 16);
@@ -7677,7 +7639,7 @@ void cutscene_dance_fly_away_start(struct Camera *c) {
         c->nextYaw = c->yaw;
     }
 
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
     // Restrict the camera yaw in tight spaces
     if ((gLastCompletedStarNum == 6) && (gCurrCourseNum == COURSE_CCM)) {
         star_dance_bound_yaw(c, 0x5600, 0x800);
@@ -7691,7 +7653,7 @@ void cutscene_dance_fly_away_start(struct Camera *c) {
     if ((gLastCompletedStarNum == 3) && (gCurrCourseNum == COURSE_RR)) {
         star_dance_bound_yaw(c, 0x0,    0x800);
     }
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
 }
 
 void cutscene_dance_fly_away_approach_mario(struct Camera *c) {
@@ -8220,12 +8182,12 @@ void cutscene_goto_cvar_pos(struct Camera *c, f32 goalDist, s16 goalPitch, s16 r
         nextPitch = goalPitch;
         vec3f_copy(sCutsceneVars[0].point, sCutsceneVars[3].point);
         sStatusFlags &= ~CAM_FLAG_SMOOTH_MOVEMENT;
-#ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
+#ifdef ENABLE_VANILLA_CAM_PROCESSING
         if (gCurrLevelNum == LEVEL_TTM) {
             nextYaw = atan2s(sCutsceneVars[3].point[2] - c->areaCenZ,
                              sCutsceneVars[3].point[0] - c->areaCenX);
         }
-#endif
+#endif // ENABLE_VANILLA_CAM_PROCESSING
     } else {
         if (c->cutscene == CUTSCENE_PREPARE_CANNON) {
             vec3f_get_dist_and_angle(c->pos, sCutsceneVars[0].point, &curDist, &curPitch, &curYaw);
@@ -8727,15 +8689,9 @@ void cutscene_dialog_move_mario_shoulder(struct Camera *c) {
 /**
  * Create the dialog with sCutsceneDialogID
  */
-void cutscene_dialog_create_dialog_box(struct Camera *c) {
-    if (c->cutscene == CUTSCENE_RACE_DIALOG) {
-        create_dialog_box_with_response(sCutsceneDialogID);
-    } else {
-        create_dialog_box(sCutsceneDialogID);
-    }
-
-    //! Unused. This may have been used before sCutsceneDialogResponse was implemented.
-    sCutsceneVars[8].angle[0] = DIALOG_RESPONSE_NOT_DEFINED;
+void cutscene_dialog_create_dialog_box(UNUSED struct Camera *c) {
+    create_dialog_box("Arthur hasn't done these yet.\nWhat a fucking loser.");
+    sCutsceneVars[8].angle[0] = 1;
 }
 
 /**
@@ -8747,15 +8703,7 @@ void cutscene_dialog(struct Camera *c) {
     cutscene_event(cutscene_dialog_create_dialog_box, c, 10, 10);
     sStatusFlags |= CAM_FLAG_SMOOTH_MOVEMENT;
 
-    if (gDialogResponse != DIALOG_RESPONSE_NONE) {
-        sCutsceneDialogResponse = gDialogResponse;
-    }
-
-    if ((get_dialog_id() == DIALOG_NONE) && (sCutsceneVars[8].angle[0] != 0)) {
-        if (c->cutscene != CUTSCENE_RACE_DIALOG) {
-            sCutsceneDialogResponse = DIALOG_RESPONSE_NOT_DEFINED;
-        }
-
+    if (!gCurDialog && (sCutsceneVars[8].angle[0] != 0)) {
         gCutsceneTimer = CUTSCENE_LOOP;
         retrieve_info_star(c);
         transition_next_state(c, 15);
@@ -8806,10 +8754,10 @@ void cutscene_read_message_start(struct Camera *c) {
 //     offset_rotated_coords(c->focus, sMarioCamState->pos, dir, 0, 70.f, -20.f);
 // }
 
-// void cutscene_nothing(struct Camera *c) {
-//     vec3f_set(c->pos,gMarioObject->oPosX,0,gMarioObject->oPosZ);
-//     vec3f_set(c->focus,gMarioObject->oPosX+(50.0f*sins(gMarioState->faceAngle[1])),5,gMarioObject->oPosZ+(50.0f*coss(gMarioState->faceAngle[1])));
-// }
+void cutscene_nothing(struct Camera *c) {
+    vec3f_set(c->pos,gMarioObject->oPosX,0,gMarioObject->oPosZ);
+    vec3f_set(c->focus,gMarioObject->oPosX+(50.0f*sins(gMarioState->faceAngle[1])),5,gMarioObject->oPosZ+(50.0f*coss(gMarioState->faceAngle[1])));
+}
 
 /**
  * Cutscene that plays when Mario is reading a message (a sign or message on the wall)
@@ -8821,7 +8769,7 @@ void cutscene_read_message(struct Camera *c) {
     switch (sCutsceneVars[0].angle[0]) {
         // Do nothing until message is gone.
         case 0:
-            if (get_dialog_id() != DIALOG_NONE) {
+            if (gCurDialog) {
                 sCutsceneVars[0].angle[0]++;
                 set_time_stop_flags(TIME_STOP_ENABLED | TIME_STOP_DIALOG);
             }
@@ -8833,7 +8781,7 @@ void cutscene_read_message(struct Camera *c) {
 
             // This could cause softlocks. If a message starts one frame after another one closes, the
             // cutscene will never end.
-            if (get_dialog_id() == DIALOG_NONE) {
+            if (!gCurDialog) {
                 gCutsceneTimer = CUTSCENE_LOOP;
                 retrieve_info_star(c);
                 transition_next_state(c, 15);
@@ -10498,9 +10446,9 @@ struct Cutscene sCutsceneReadMessage[] = {
 //     { cutscene_2D, CUTSCENE_LOOP }
 // };
 
-// struct Cutscene sNothing[] = {
-//     { cutscene_nothing, 0 }
-// };
+struct Cutscene sNothing[] = {
+    { cutscene_nothing, 0 }
+};
 
 /* TODO:
  * The next two arrays are both related to levels, and they look generated.
@@ -10921,7 +10869,7 @@ struct Cutscene sCutsceneReadMessage[] = {
  * the duration they want the flag to be active.
  */
 void play_cutscene(struct Camera *c) {
-    s16 cutsceneDuration;
+    s16 cutsceneDuration = 0;
     u8 oldCutscene = c->cutscene;
 
     sStatusFlags &= ~CAM_FLAG_SMOOTH_MOVEMENT;
@@ -10980,7 +10928,7 @@ void play_cutscene(struct Camera *c) {
         // CUTSCENE(CUTSCENE_ENTER_PYRAMID_TOP,    sCutsceneEnterPyramidTop)
         // CUTSCENE(CUTSCENE_SSL_PYRAMID_EXPLODE,  sCutscenePyramidTopExplode)
         // CUTSCENE(CUTSCENE_2D, sCutscene2D)
-        // CUTSCENE(0xFF, sNothing)
+        CUTSCENE(0xFF, sNothing)
     }
 
 #undef CUTSCENE

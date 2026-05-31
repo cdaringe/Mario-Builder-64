@@ -30,6 +30,7 @@
 #include "object_helpers.h"
 #include "object_list_processor.h"
 #include "print.h"
+#include "puppyprint.h"
 #include "save_file.h"
 #include "menu/file_select.h"
 #include "sound_init.h"
@@ -37,7 +38,6 @@
 #include "emutest.h"
 #include "actors/group0.h"
 #include "actors/group14.h"
-#include "rovent.h"
 #include "ingame_menu.h"
 #include "mb64/main.h"
 #include "platform_displacement.h"
@@ -87,16 +87,6 @@ u8* CostumeData[] = {
 };
 
 u16 ColorShift;
-
-void clear_costmic_phantasms(void) {
-    struct Object *phantasm;
-    phantasm = cur_obj_nearest_object_with_behavior(bhvPhantasm);
-    while (phantasm) {
-        //kill phantasms until there are no more left
-        mark_obj_for_deletion(phantasm);
-        phantasm = cur_obj_nearest_object_with_behavior(bhvPhantasm);
-    }
-}
 
 /**************************************************
  *                    ANIMATIONS                  *
@@ -840,6 +830,21 @@ void set_mario_y_vel_based_on_fspeed(struct MarioState *m, f32 initialVelY, f32 
     }
 }
 
+void throw_crowbar(void) {
+    if (gMarioState->powerup & 1) {
+        play_sound(SOUND_ACTION_SIDE_FLIP_UNK, gMarioState->marioObj->header.gfx.cameraToObject);
+        struct Object *crowbar = spawn_object(o, MODEL_MAKER_CROWBAR, bhvCrowbarThrow);
+        crowbar->oForwardVel = 50.0f;
+        crowbar->oPosY += 50.0f;
+        crowbar->oFriction = 1.0f;
+        gMarioState->powerup &= ~1;
+        crowbar->oFaceAnglePitch = 0x4000;
+        if (gMarioState->action == ACT_SIDE_FLIP_LAND || gMarioState->action == ACT_SIDE_FLIP_LAND_STOP) {
+            crowbar->oMoveAngleYaw += 0x8000;
+        }
+    }
+}
+
 /**
  * Transitions for a variety of airborne actions.
  */
@@ -897,6 +902,7 @@ u32 set_mario_action_airborne(struct MarioState *m, u32 action, u32 actionArg) {
 
         case ACT_WALL_KICK_AIR:
             bullet_fuel = 60;
+            //fallthrough
         case ACT_TOP_OF_POLE_JUMP:
             set_mario_y_vel_based_on_fspeed(m, 62.0f, 0.0f);
             if (m->forwardVel < 24.0f) {
@@ -1388,7 +1394,7 @@ void update_mario_joystick_inputs(struct MarioState *m) {
  * Resolves wall collisions, and updates a variety of inputs.
  */
 void update_mario_geometry_inputs(struct MarioState *m) {
-    f32 gasLevel;
+    // f32 gasLevel;
     f32 ceilToFloorDist;
 
     f32_find_wall_collision(&m->pos[0], &m->pos[1], &m->pos[2], 60.0f, 50.0f);
@@ -1459,10 +1465,8 @@ void update_mario_inputs(struct MarioState *m) {
     }
 #endif
 
-    if (!revent_active) {
-        update_mario_button_inputs(m);
-        update_mario_joystick_inputs(m);
-    }
+    update_mario_button_inputs(m);
+    update_mario_joystick_inputs(m);
     update_mario_geometry_inputs(m);
 #ifdef VANILLA_DEBUG
     debug_print_speed_action_normal(m);
@@ -1933,7 +1937,6 @@ void queue_rumble_particles(struct MarioState *m) {
 
 u16 bapple_frame = 0;
 u8 regentime;
-u8 did_started;
 
 //u8 waveamount[] = {5,10,12,15,20,20,20,25,25,30,30};
 
@@ -1945,19 +1948,15 @@ u8 costumechange;
 u8 entry_timer;
 u8 entry_index = 1;
 
-u8 among_init;
-
 Vec3f posRecord[60];
 u16 posRecordIndex;
 
 f32 bad_apple_par = 0.0f;
 
 #include "memory.h"
-#include "libcart/include/cart.h"
-#include "libcart/ff/ff.h"
 #include "game_init.h"
 
-u32 star_radar_objects_to_track[] = {
+const BehaviorScript *star_radar_objects_to_track[] = {
     bhvStar,
     bhvStarSpawnCoordinates,
     bhvKoopa,
@@ -2034,7 +2033,7 @@ void switch_mario_costume(u8 CostumeId) {
     Shoecol[14] = CostumeData[CostumeId][8]/2;
 }
 
-s32 mario_update_star_radar(void) {
+void mario_update_star_radar(void) {
         //this code finds the nearest valid object in array star_radar_objects_to_track[]
     //objects earlier in the list take priority due to the way this is written...
     struct Object *curobj = NULL;
@@ -2089,23 +2088,8 @@ s32 mario_update_star_radar(void) {
     }
 
     if (nearest_star) {
-        vec3f_copy(&gMarioState->StarRadarLocation,&nearest_star->oPosVec);
+        vec3f_copy(gMarioState->StarRadarLocation,&nearest_star->oPosVec);
         gMarioState->StarRadarExist = TRUE;
-    }
-}
-
-void throw_crowbar(void) {
-    if (gMarioState->powerup & 1) {
-        play_sound(SOUND_ACTION_SIDE_FLIP_UNK, gMarioState->marioObj->header.gfx.cameraToObject);
-        struct Object *crowbar = spawn_object(o, MODEL_MAKER_CROWBAR, bhvCrowbarThrow);
-        crowbar->oForwardVel = 50.0f;
-        crowbar->oPosY += 50.0f;
-        crowbar->oFriction = 1.0f;
-        gMarioState->powerup &= ~1;
-        crowbar->oFaceAnglePitch = 0x4000;
-        if (gMarioState->action == ACT_SIDE_FLIP_LAND || gMarioState->action == ACT_SIDE_FLIP_LAND_STOP) {
-            crowbar->oMoveAngleYaw += 0x8000;
-        }
     }
 }
 
@@ -2114,20 +2098,6 @@ s32 execute_mario_action(UNUSED struct Object *obj) {
     s32 inLoop = TRUE;
     struct Object *sp1C;
     struct SpawnParticlesInfo D_8032F270 = { 2, 20, MODEL_MIST, 0, 40, 5, 30, 20, 252, 30, 10.0f, 10.0f };
-    // u16 *walltex = segmented_to_virtual(&ccm_dl_Screen_ia8);
-    u8 timerdelay = 0;
-    u16 i;
-    u8 x, y;
-    // u32 tempAddr = _bad_appleSegmentRomStart;
-    // u8 *sus = segmented_to_virtual(&castle_courtyard_dl_output_0_custom_i8_ia8);
-    u8 coinrepeats = 1;
-    // u16 *walltex2 = segmented_to_virtual(&shrnling1_Static_i8);
-
-    //print_text_fmt_int(110, 36, mb64_username, 0);
-
-    //if (mb64_lopt_game == MB64_GAME_VANILLA) {
-         //gMarioObject->header.gfx.sharedChild = gLoadedGraphNodes[MODEL_MARIO2];
-    //}
 
     if (mb64_lopt_game == MB64_GAME_BTCM) {
         switch_mario_costume(mb64_lopt_costume);
@@ -2167,7 +2137,7 @@ s32 execute_mario_action(UNUSED struct Object *obj) {
     }
 
     //withering badge
-    if ((!revent_active) && (gCamera->cutscene == 0)) {
+    if (gCamera->cutscene == 0) {
         if (save_file_get_badge_equip() & (1<<BADGE_WITHER)) {
             mario_decay++;
             int maxdecay = (save_file_get_badge_equip() & (1<<BADGE_BRITTLE)) ? 225 : 450;
@@ -2299,19 +2269,26 @@ s32 execute_mario_action(UNUSED struct Object *obj) {
     // }
 
     // Updates once per frame:
-    vec3f_get_dist_and_lateral_dist_and_angle(gMarioState->prevPos, gMarioState->pos, &gMarioState->moveSpeed, &gMarioState->lateralSpeed, &gMarioState->movePitch, &gMarioState->moveYaw);
+    vec3f_get_dist_and_angle(gMarioState->prevPos, gMarioState->pos, &gMarioState->moveSpeed, &gMarioState->movePitch, &gMarioState->moveYaw);
+    vec3f_get_lateral_dist(gMarioState->prevPos, gMarioState->pos, &gMarioState->lateralSpeed);
     vec3f_copy(gMarioState->prevPos, gMarioState->pos);
 
     if (gMarioState->action) {
 #ifdef ENABLE_DEBUG_FREE_MOVE
         if (
+#ifdef PUPPYPRINT_DEBUG
+            !sDebugMenu &&
+#endif // PUPPYPRINT_DEBUG
+            (gMarioState->action != ACT_DEBUG_FREE_MOVE) &&
             (gMarioState->controller->buttonDown & U_JPAD) &&
             !(gMarioState->controller->buttonDown & L_TRIG)
         ) {
-            set_camera_mode(gMarioState->area->camera, CAMERA_MODE_8_DIRECTIONS, 1);
+            if (gMarioState->area->camera->mode != CAMERA_MODE_8_DIRECTIONS) {
+                set_camera_mode(gMarioState->area->camera, CAMERA_MODE_8_DIRECTIONS, 1);
+            }
             set_mario_action(gMarioState, ACT_DEBUG_FREE_MOVE, 0);
         }
-#endif
+#endif // ENABLE_DEBUG_FREE_MOVE
 #ifdef ENABLE_CREDITS_BENCHMARK
         static s32 startedBenchmark = FALSE;
         if (!startedBenchmark) {
@@ -2392,13 +2369,11 @@ s32 execute_mario_action(UNUSED struct Object *obj) {
  **************************************************/
 
 void init_mario(void) {
-    s16 currenthp = gMarioState->health > 0 ? gMarioState->health >> 8 : 0;
+    // s16 currenthp = gMarioState->health > 0 ? gMarioState->health >> 8 : 0;
 
-    struct Object *capObject;
+    // struct Object *capObject;
 
-    struct Object *holdTransferObject;
-    did_started = 0;
-    among_init = TRUE;
+    // struct Object *holdTransferObject;
 
     mario_decay = 0;
 
@@ -2409,8 +2384,6 @@ void init_mario(void) {
 
     gMarioState->SpotlightTarget = gMarioObject;
     gMarioState->SpotlightTargetYOffset = 0.0f;
-
-    stop_event();
 
     gMarioState->_2DSecret = FALSE;
     gMarioState->BadAppleActivate = FALSE;

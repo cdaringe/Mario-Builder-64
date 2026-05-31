@@ -16,8 +16,7 @@ struct WarpNode {
 
 struct ObjectWarpNode {
     /*0x00*/ struct WarpNode node;
-    /*0x04*/ struct Object *object;
-    /*0x08*/ struct ObjectWarpNode *next;
+    /*0x04*/ struct ObjectWarpNode *next;
 };
 
 struct InstantWarp {
@@ -68,7 +67,6 @@ struct Area {
     /*0x24*/ struct Camera *camera;
     /*0x28*/ struct UnusedArea28 *unused; // Filled by level script 0x3A, but is unused.
     /*0x2C*/ struct Whirlpool *whirlpools[2];
-    /*0x34*/ u8 dialog[2]; // Level start dialog number (set by level script cmd 0x30)
     /*0x36*/ u16 musicParam;
     /*0x38*/ u16 musicParam2;
     /*0x3A*/ u8 useEchoOverride; // Should area echo be overridden using echoOverride?
@@ -168,7 +166,6 @@ extern s16 gCurrActNum;
 extern s16 gCurrAreaIndex;
 extern s16 gSavedCourseNum;
 extern s16 gMenuOptSelectIndex;
-extern s16 gSaveOptSelectIndex;
 
 extern struct SpawnInfo *gMarioSpawnInfo;
 
@@ -184,6 +181,7 @@ void override_viewport_and_clip(Vp *a, Vp *b, u8 c, u8 d, u8 e);
 void print_intro_text(void);
 u32 get_mario_spawn_type(struct Object *obj);
 struct ObjectWarpNode *area_get_warp_node(u8 id);
+struct Object *get_destination_warp_object(u8 warpDestId);
 void clear_areas(void);
 void clear_area_graph_nodes(void);
 void load_area(s32 index);
@@ -195,6 +193,5 @@ void area_update_objects(void);
 void play_transition(s16 transType, s16 time, u8 red, u8 green, u8 blue);
 void play_transition_after_delay(s16 transType, s16 time, u8 red, u8 green, u8 blue, s16 delay);
 void render_game(void);
-void load_obj_warp_nodes(void);
 
 #endif // AREA_H

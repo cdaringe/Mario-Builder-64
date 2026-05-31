@@ -300,25 +300,6 @@ actors/manta/manta_eye.rgba16.png
 actors/manta/manta_fin_corner.rgba16.png
 actors/manta/manta_fin_edge.rgba16.png
 actors/manta/manta_gills.rgba16.png
-actors/mario/mario_eyes_center.rgba16.png
-actors/mario/mario_eyes_closed.rgba16.png
-actors/mario/mario_eyes_closed_unused_0.rgba16.png
-actors/mario/mario_eyes_closed_unused_1.rgba16.png
-actors/mario/mario_eyes_dead.rgba16.png
-actors/mario/mario_eyes_down_unused.rgba16.png
-actors/mario/mario_eyes_half_closed.rgba16.png
-actors/mario/mario_eyes_left_unused.rgba16.png
-actors/mario/mario_eyes_right_unused.rgba16.png
-actors/mario/mario_eyes_up_unused.rgba16.png
-actors/mario/mario_logo.rgba16.png
-actors/mario2/mario_metal.rgba16.png
-actors/mario/mario_metal_wing_tip_unused.rgba16.png
-actors/mario/mario_metal_wing_unused.rgba16.png
-actors/mario/mario_mustache.rgba16.png
-actors/mario/mario_overalls_button.rgba16.png
-actors/mario/mario_sideburn.rgba16.png
-actors/mario/mario_wing.rgba16.png
-actors/mario/mario_wing_tip.rgba16.png
 actors/mario_cap/mario_cap_logo.rgba16.png
 actors/mario_cap/mario_cap_metal.rgba16.png
 actors/mario_cap/mario_cap_metal_wing_tip_unused.rgba16.png
@@ -928,10 +909,6 @@ levels/wmotr/1.rgba16.png
 levels/wmotr/2.rgba16.png
 levels/wmotr/3.rgba16.png
 levels/wmotr/4.rgba16.png
-sound/samples/bowser_organ/00_organ_1.aiff
-sound/samples/bowser_organ/01_organ_1_lq.aiff
-sound/samples/bowser_organ/02_boys_choir.aiff
-sound/samples/course_start/00_la.aiff
 sound/samples/instruments/00.aiff
 sound/samples/instruments/01_banjo_1.aiff
 sound/samples/instruments/02.aiff
@@ -1008,7 +985,6 @@ sound/samples/instruments/45b_la.aiff
 sound/samples/instruments/46_pizzicato_strings_1.aiff
 sound/samples/instruments/47_pizzicato_strings_2.aiff
 sound/samples/instruments/48_steel_drum.aiff
-sound/samples/piranha_music_box/00_music_box.aiff
 sound/samples/sfx_1/00_twirl.aiff
 sound/samples/sfx_1/01_brushing.aiff
 sound/samples/sfx_1/02_hand_touch.aiff
@@ -1483,3 +1459,7 @@ lib/libs2d_engine.a
 
 # others
 *.lnk
+
+# user-specific config file
+include/config/config_local.h
+.DS_Store

@@ -12,16 +12,16 @@
 // SM64 (US/JP/EU/SH) Segment 02
 #ifdef PUPPYPRINT
 ALIGNED8 static const Texture small_font_default[] = {
-#include "textures/segment2/custom_text.i4.inc.c"
+#include "textures/segment2/custom_text.i4.preswap.inc.c"
 };
 ALIGNED8 static const Texture small_font_outline[] = {
-#include "textures/segment2/custom_text2.ia4.inc.c"
+#include "textures/segment2/custom_text2.ia4.preswap.inc.c"
 };
 ALIGNED8 static const Texture small_font_plain[] = {
-#include "textures/segment2/custom_text3.i4.inc.c"
+#include "textures/segment2/custom_text3.i4.preswap.inc.c"
 };
 ALIGNED8 static const Texture small_font_vanilla[] = {
-#include "textures/segment2/custom_text4.i4.inc.c"
+#include "textures/segment2/custom_text4.i4.preswap.inc.c"
 };
 
 const u8 small_font_kerning_default[] = {
@@ -30,7 +30,7 @@ const u8 small_font_kerning_default[] = {
     /*A*/ 7, /*B*/ 7, /*C*/ 7, /*D*/ 7, /*E*/ 6, /*F*/ 5, /*G*/ 8, /*H*/ 6, /*I*/ 6, /*J*/ 5, /*K*/ 7, /*L*/ 6, /*M*/ 7, /*N*/ 7, /*O*/ 7, /*P*/ 6, 
     /*Q*/ 8, /*R*/ 6, /*S*/ 7, /*T*/ 7, /*U*/ 7, /*V*/ 7, /*W*/ 8, /*X*/ 7, /*Y*/ 7, /*Z*/ 7, /*[*/ 0, /*\\*/ 0, /*]*/ 0, /*^*/ 8, /*_*/ 0, /*`*/ 0, 
     /*a*/ 7, /*b*/ 7, /*c*/ 6, /*d*/ 7, /*e*/ 7, /*f*/ 7, /*g*/ 7, /*h*/ 7, /*i*/ 3, /*j*/ 5, /*k*/ 8, /*l*/ 4, /*m*/ 7, /*n*/ 7, /*o*/ 7, /*p*/ 7, 
-    /*q*/ 7, /*r*/ 6, /*s*/ 6, /*t*/ 6, /*u*/ 6, /*v*/ 7, /*w*/ 8, /*x*/ 6, /*y*/ 8, /*z*/ 7, /*~*/ 8, 
+    /*q*/ 7, /*r*/ 6, /*s*/ 6, /*t*/ 6, /*u*/ 6, /*v*/ 7, /*w*/ 8, /*x*/ 6, /*y*/ 8, /*z*/ 7, /*{*/ 0, /*|*/ 0, /*}*/ 0, /*~*/ 8, 
 };
 
 const u16 small_font_offsets_default[] = {
@@ -49,7 +49,7 @@ static const u8 small_font_kerning_outline[] = {
     /*A*/ 6, /*B*/ 6, /*C*/ 6, /*D*/ 6, /*E*/ 6, /*F*/ 6, /*G*/ 6, /*H*/ 6, /*I*/ 5, /*J*/ 7, /*K*/ 6, /*L*/ 6, /*M*/ 6, /*N*/ 6, /*O*/ 6, /*P*/ 6, 
     /*Q*/ 6, /*R*/ 6, /*S*/ 6, /*T*/ 6, /*U*/ 6, /*V*/ 6, /*W*/ 6, /*X*/ 6, /*Y*/ 6, /*Z*/ 6, /*[*/ 0, /*\\*/ 0, /*]*/ 0, /*^*/ 7, /*_*/ 0, /*`*/ 0,  
     /*a*/ 5, /*b*/ 5, /*c*/ 5, /*d*/ 5, /*e*/ 5, /*f*/ 5, /*g*/ 5, /*h*/ 5, /*i*/ 2, /*j*/ 6, /*k*/ 4, /*l*/ 2, /*m*/ 5, /*n*/ 5, /*o*/ 5, /*p*/ 5, 
-    /*q*/ 5, /*r*/ 5, /*s*/ 5, /*t*/ 5, /*u*/ 5, /*v*/ 5, /*w*/ 5, /*x*/ 5, /*y*/ 5, /*z*/ 5, /*~*/ 6,   
+    /*q*/ 5, /*r*/ 5, /*s*/ 5, /*t*/ 5, /*u*/ 5, /*v*/ 5, /*w*/ 5, /*x*/ 5, /*y*/ 5, /*z*/ 5, /*{*/ 0, /*|*/ 0, /*}*/ 0, /*~*/ 6,   
 };
 
 const u16 small_font_offsets_outline[] = {
@@ -68,7 +68,7 @@ static const u8 small_font_kerning_plain[] = {
     /*A*/ 6, /*B*/ 6, /*C*/ 6, /*D*/ 6, /*E*/ 6, /*F*/ 6, /*G*/ 6, /*H*/ 6, /*I*/ 4, /*J*/ 6, /*K*/ 6, /*L*/ 6, /*M*/ 7, /*N*/ 7, /*O*/ 6, /*P*/ 6, 
     /*Q*/ 6, /*R*/ 6, /*S*/ 6, /*T*/ 6, /*U*/ 6, /*V*/ 6, /*W*/ 7, /*X*/ 6, /*Y*/ 6, /*Z*/ 6, /*[*/ 0, /*\\*/ 0, /*]*/ 0, /*^*/ 7, /*_*/ 0, /*`*/ 0,
     /*a*/ 6, /*b*/ 6, /*c*/ 6, /*d*/ 6, /*e*/ 6, /*f*/ 6, /*g*/ 6, /*h*/ 6, /*i*/ 3, /*j*/ 4, /*k*/ 6, /*l*/ 5, /*m*/ 7, /*n*/ 6, /*o*/ 6, /*p*/ 6, 
-    /*q*/ 6, /*r*/ 6, /*s*/ 6, /*t*/ 6, /*u*/ 6, /*v*/ 6, /*w*/ 7, /*x*/ 6, /*y*/ 6, /*z*/ 6, /*~*/ 7,   
+    /*q*/ 6, /*r*/ 6, /*s*/ 6, /*t*/ 6, /*u*/ 6, /*v*/ 6, /*w*/ 7, /*x*/ 6, /*y*/ 6, /*z*/ 6, /*{*/ 0, /*|*/ 0, /*}*/ 0, /*~*/ 7,   
 };
 
 const u16 small_font_offsets_plain[] = {
@@ -87,7 +87,7 @@ static const u8 small_font_kerning_vanilla[] = {
     /*A*/ 5, /*B*/ 5, /*C*/ 5, /*D*/ 5, /*E*/ 5, /*F*/ 5, /*G*/ 5, /*H*/ 5, /*I*/ 3, /*J*/ 5, /*K*/ 5, /*L*/ 5, /*M*/ 7, /*N*/ 7, /*O*/ 6, /*P*/ 5, 
     /*Q*/ 6, /*R*/ 5, /*S*/ 5, /*T*/ 5, /*U*/ 5, /*V*/ 5, /*W*/ 7, /*X*/ 6, /*Y*/ 5, /*Z*/ 5, /*[*/ 0, /*\\*/ 0, /*]*/ 0, /*^*/ 7, /*_*/ 0, /*`*/ 0, 
     /*a*/ 5, /*b*/ 4, /*c*/ 4, /*d*/ 4, /*e*/ 4, /*f*/ 5, /*g*/ 5, /*h*/ 4, /*i*/ 3, /*j*/ 4, /*k*/ 3, /*l*/ 2, /*m*/ 6, /*n*/ 4, /*o*/ 4, /*p*/ 4, 
-    /*q*/ 5, /*r*/ 4, /*s*/ 4, /*t*/ 4, /*u*/ 4, /*v*/ 4, /*w*/ 7, /*x*/ 5, /*y*/ 4, /*z*/ 5, /*~*/ 6,   
+    /*q*/ 5, /*r*/ 4, /*s*/ 4, /*t*/ 4, /*u*/ 4, /*v*/ 4, /*w*/ 7, /*x*/ 5, /*y*/ 4, /*z*/ 5, /*{*/ 0, /*|*/ 0, /*}*/ 0, /*~*/ 6,   
 };
 
 const u16 small_font_offsets_vanilla[] = {
@@ -255,7 +255,7 @@ ALIGNED8 static const Texture texture_hud_char_P[] = {
 #include "textures/segment2/segment2.03200.rgba16.inc.c"
 };
 
-ALIGNED8 static const Texture texture_hud_char_Q[] = {
+ALIGNED8 static const Texture texture_hud_char_slash[] = {
 #include "textures/segment2/custom_slash.rgba16.inc.c"
 };
 
@@ -1911,23 +1911,30 @@ ALIGNED8 static const Texture texture_hud_char_arrow_down[] = {
 #include "textures/segment2/segment2.081D0.rgba16.inc.c"
 };
 
-// Main HUD print table 0x02008250-0x02008337
 const Texture *const main_hud_lut[] = {
-    texture_hud_char_0, texture_hud_char_1, texture_hud_char_2, texture_hud_char_3,
-    texture_hud_char_4, texture_hud_char_5, texture_hud_char_6, texture_hud_char_7,
-    texture_hud_char_8, texture_hud_char_9, texture_hud_char_A, texture_hud_char_B,
-    texture_hud_char_C, texture_hud_char_D, texture_hud_char_E, texture_hud_char_F,
-    texture_hud_char_G, texture_hud_char_H, texture_hud_char_I, 0x0,
-    texture_hud_char_K, texture_hud_char_L, texture_hud_char_M, texture_hud_char_N,
-    texture_hud_char_O, texture_hud_char_P, texture_hud_char_Q, texture_hud_char_R,
-    texture_hud_char_S, texture_hud_char_T, texture_hud_char_U, texture_hud_char_V,
-    texture_hud_char_W, texture_hud_char_X, texture_hud_char_Y, texture_hud_char_Z,
-    0x0,                0x0,                0x0,                0x0,
-    0x0,                0x0,                0x0,                0x0,
-    0x0,                0x0,                0x0,                texture_hud_char_minus,
-    texture_hud_char_multiply, texture_hud_char_coin, texture_hud_char_red_coin, 0x0,
-    texture_hud_char_mario_head, texture_hud_char_star, 0x0,    0x0,
-    texture_hud_char_apostrophe, texture_hud_char_double_quote, 0x0,
+    0, /* */                  0, /*!*/                  texture_hud_char_double_quote, /*"*/ texture_hud_char_star, /*#*/
+    texture_hud_char_coin, /*$*/ 0, /*%*/               texture_hud_char_red_coin, /*&*/                  texture_hud_char_apostrophe, /*'*/
+    0, /*(*/                  0, /*)*/                  texture_hud_char_multiply, /***/ 0, /*+*/
+    0, /*,*/                  texture_hud_char_minus, /*-*/ 0, /*.*/              texture_hud_char_slash, /*/*/
+    texture_hud_char_0, /*0*/ texture_hud_char_1, /*1*/ texture_hud_char_2, /*2*/ texture_hud_char_3, /*3*/
+    texture_hud_char_4, /*4*/ texture_hud_char_5, /*5*/ texture_hud_char_6, /*6*/ texture_hud_char_7, /*7*/
+    texture_hud_char_8, /*8*/ texture_hud_char_9, /*9*/ 0, /*:*/ 0, /*;*/
+    0, /*<*/ 0, /*=*/ 0, /*>*/ 0, /*?*/ 
+    texture_hud_char_mario_head, /*@*/ texture_hud_char_A, /*A*/ texture_hud_char_B, /*B*/ texture_hud_char_C, /*C*/
+    texture_hud_char_D, /*D*/ texture_hud_char_E, /*E*/ texture_hud_char_F, /*F*/ texture_hud_char_G, /*G*/
+    texture_hud_char_H, /*H*/ texture_hud_char_I, /*I*/ 0, /*J*/                  texture_hud_char_K, /*K*/
+    texture_hud_char_L, /*L*/ texture_hud_char_M, /*M*/ texture_hud_char_N, /*N*/ texture_hud_char_O, /*O*/
+    texture_hud_char_P, /*P*/ 0, /*Q*/                  texture_hud_char_R, /*R*/ texture_hud_char_S, /*S*/
+    texture_hud_char_T, /*T*/ texture_hud_char_U, /*U*/ texture_hud_char_V, /*V*/ texture_hud_char_W, /*W*/
+    texture_hud_char_X, /*X*/ texture_hud_char_Y, /*Y*/ texture_hud_char_Z, /*Z*/ 0x0, /*[*/
+    0x0, /*\*/ 0x0, /*]*/ 0x0, /*^*/ 0x0, /*_*/
+    0x0, /*`*/ texture_hud_char_A, /*a*/ texture_hud_char_B, /*b*/ texture_hud_char_C, /*c*/
+    texture_hud_char_D, /*d*/ texture_hud_char_E, /*e*/ texture_hud_char_F, /*f*/ texture_hud_char_G, /*g*/
+    texture_hud_char_H, /*h*/ texture_hud_char_I, /*i*/ 0, /*j*/                  texture_hud_char_K, /*k*/
+    texture_hud_char_L, /*l*/ texture_hud_char_M, /*m*/ texture_hud_char_N, /*n*/ texture_hud_char_O, /*o*/
+    texture_hud_char_P, /*p*/ 0, /*q*/                  texture_hud_char_R, /*r*/ texture_hud_char_S, /*s*/
+    texture_hud_char_T, /*t*/ texture_hud_char_U, /*u*/ texture_hud_char_V, /*v*/ texture_hud_char_W, /*w*/
+    texture_hud_char_X, /*x*/ texture_hud_char_Y, /*y*/ texture_hud_char_Z, /*z*/
 };
 
 // Main small font print table 0x02008338-0x02008737
@@ -2152,15 +2159,6 @@ const Texture *const main_hud_camera_lut[] = {
     texture_hud_char_arrow_up, texture_hud_char_arrow_down,
 };
 
-// If you change the language here, the following Makefile rule also needs to
-// change, to generate the right version of define_text.inc.c:
-// $(BUILD_DIR)/bin/segment2.o: $(BUILD_DIR)/text/$(VERSION)/define_text.inc.c
-#if defined(VERSION_JP) || defined(VERSION_SH)
-#include "text/jp/define_text.inc.c"
-#elif defined(VERSION_US)
-#include "text/us/define_text.inc.c"
-#endif
-
 // 0x0200EC60 - 0x0200EC98
 const Gfx dl_hud_img_begin[] = {
     gsDPPipeSync(),
@@ -2227,28 +2225,11 @@ const Gfx dl_rgba16_text_end[] = {
     gsSPEndDisplayList(),
 };
 
-const Gfx dl_shade_screen_begin[] = {
-    gsDPPipeSync(),
-    gsDPSetRenderMode(G_RM_CLD_SURF, G_RM_CLD_SURF2),
-    gsDPSetCycleType(G_CYC_1CYCLE),
-    gsDPSetPrimColor(0, 0, 0, 0, 0, 127),
-    gsDPSetCombineMode(G_CC_PRIMITIVE, G_CC_PRIMITIVE),
-    gsSPEndDisplayList(),
-};
-
-const Gfx dl_shade_screen_end[] = {
-    gsDPPipeSync(),
-    gsDPSetRenderMode(G_RM_AA_ZB_OPA_SURF, G_RM_AA_ZB_OPA_SURF2),
-    gsDPSetPrimColor(0, 0, 255, 255, 255, 255),
-    gsDPSetCombineMode(G_CC_SHADE, G_CC_SHADE),
-    gsSPEndDisplayList(),
-};
-
 // 0x0200EDA8 - 0x0200EDE8
 static const Vtx vertex_text_bg_box[] = {
-    {{{     0,    -80,      0}, 0, {     0,      0}, {0xff, 0xff, 0xff, 0xff}}},
-    {{{   130,    -80,      0}, 0, {     0,      0}, {0xff, 0xff, 0xff, 0xff}}},
-    {{{   130,      0,      0}, 0, {     0,      0}, {0xff, 0xff, 0xff, 0xff}}},
+    {{{     0,    -90,      0}, 0, {     0,      0}, {0xff, 0xff, 0xff, 0xff}}},
+    {{{   180,    -90,      0}, 0, {     0,      0}, {0xff, 0xff, 0xff, 0xff}}},
+    {{{   180,      0,      0}, 0, {     0,      0}, {0xff, 0xff, 0xff, 0xff}}},
     {{{     0,      0,      0}, 0, {     0,      0}, {0xff, 0xff, 0xff, 0xff}}},
 };
 
@@ -2295,9 +2276,9 @@ const Gfx dl_ia_text_begin[] = {
 const Gfx dl_ia_text_tex_settings[] = {
     gsDPSetTile(G_IM_FMT_IA, G_IM_SIZ_16b, 0, 0, G_TX_LOADTILE, 0, G_TX_WRAP | G_TX_NOMIRROR, 3, G_TX_NOLOD, G_TX_WRAP | G_TX_NOMIRROR, 4, G_TX_NOLOD),
     gsDPLoadSync(),
-    gsDPLoadBlock(G_TX_LOADTILE, 0, 0, ((((16 * 8) + G_IM_SIZ_4b_INCR) >> G_IM_SIZ_4b_SHIFT) - 1), CALC_DXT(16, G_IM_SIZ_4b_BYTES)),
+    gsDPLoadBlock(G_TX_LOADTILE, 0, 0, ((16 * 8 + G_IM_SIZ_4b_INCR) >> G_IM_SIZ_4b_SHIFT) - 1, CALC_DXT(16, G_IM_SIZ_4b_BYTES)),
     gsDPSetTile(G_IM_FMT_IA, G_IM_SIZ_4b, 1, 0, G_TX_RENDERTILE, 0, G_TX_WRAP | G_TX_NOMIRROR, 3, G_TX_NOLOD, G_TX_WRAP | G_TX_NOMIRROR, 4, G_TX_NOLOD),
-    gsDPSetTileSize(0, 0, 0, ((16 - 1) << G_TEXTURE_IMAGE_FRAC), ((8 - 1) << G_TEXTURE_IMAGE_FRAC)),
+    gsDPSetTileSize(0, 0, 0, (16 - 1) << G_TEXTURE_IMAGE_FRAC, (8 - 1) << G_TEXTURE_IMAGE_FRAC),
     gsSPVertex(vertex_ia8_char, 4, 0),
     gsSP2Triangles( 0,  1,  2, 0x0, 0,  2,  3, 0x0),
     gsSPEndDisplayList(),
@@ -2373,6 +2354,7 @@ static const Vtx vertex_billboard_num[] = {
 // 0x0200EFF0 - 0x0200F038
 const Gfx dl_billboard_num_begin[] = {
     gsDPPipeSync(),
+    gsDPSetTextureFilter(G_TF_POINT),
     gsDPSetCombineMode(G_CC_DECALRGBA, G_CC_DECALRGBA),
     gsSPClearGeometryMode(G_LIGHTING),
     gsDPSetTextureFilter(G_TF_POINT),

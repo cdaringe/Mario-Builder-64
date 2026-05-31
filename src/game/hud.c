@@ -22,7 +22,6 @@
 #include "actors/group0.h"
 #include "actors/group14.h"
 
-#include "rovent.h"
 #include "mb64/main.h"
 
 #include "config.h"
@@ -108,7 +107,7 @@ u8 MapOn;
 void display_rocket_boot(void) {
     //bubble_seg4_dl_0401DD60
     Mtx *mtx;
-    Mtx *smtx;
+    // Mtx *smtx;
     
     mtx = alloc_display_list(sizeof(*mtx));
 
@@ -260,7 +259,7 @@ void display_air(void) {
 void display_title(void) {
     //bubble_seg4_dl_0401DD60
     Mtx *mtx;
-    Mtx *smtx;
+    // Mtx *smtx;
     
     mtx = alloc_display_list(sizeof(*mtx));
 
@@ -401,29 +400,37 @@ static struct CameraHUD sCameraHUD = { CAM_STATUS_NONE };
  * Renders a rgba16 16x16 glyph texture from a table list.
  */
 void render_hud_tex_lut(s32 x, s32 y, Texture *texture) {
-    gDPPipeSync(gDisplayListHead++);
-    gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, texture);
-    gSPDisplayList(gDisplayListHead++, &dl_hud_img_load_tex_block);
-    gSPTextureRectangle(gDisplayListHead++, x << 2, y << 2, (x + 15) << 2, (y + 15) << 2,
+    Gfx *tempGfxHead = gDisplayListHead;
+
+    gDPPipeSync(tempGfxHead++);
+    gDPSetTextureImage(tempGfxHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, texture);
+    gSPDisplayList(tempGfxHead++, &dl_hud_img_load_tex_block);
+    gSPTextureRectangle(tempGfxHead++, x << 2, y << 2, (x + 15) << 2, (y + 15) << 2,
                         G_TX_RENDERTILE, 0, 0, 4 << 10, 1 << 10);
+
+    gDisplayListHead = tempGfxHead;
 }
 
 /**
  * Renders a rgba16 8x8 glyph texture from a table list.
  */
 void render_hud_small_tex_lut(s32 x, s32 y, Texture *texture) {
-    gDPSetTile(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 0, 0, G_TX_LOADTILE, 0,
+    Gfx *tempGfxHead = gDisplayListHead;
+
+    gDPSetTile(tempGfxHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 0, 0, G_TX_LOADTILE, 0,
                 G_TX_WRAP | G_TX_NOMIRROR, G_TX_NOMASK, G_TX_NOLOD, G_TX_WRAP | G_TX_NOMIRROR, G_TX_NOMASK, G_TX_NOLOD);
-    gDPTileSync(gDisplayListHead++);
-    gDPSetTile(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 2, 0, G_TX_RENDERTILE, 0,
+    gDPTileSync(tempGfxHead++);
+    gDPSetTile(tempGfxHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 2, 0, G_TX_RENDERTILE, 0,
                 G_TX_CLAMP, 3, G_TX_NOLOD, G_TX_CLAMP, 3, G_TX_NOLOD);
-    gDPSetTileSize(gDisplayListHead++, G_TX_RENDERTILE, 0, 0, (8 - 1) << G_TEXTURE_IMAGE_FRAC, (8 - 1) << G_TEXTURE_IMAGE_FRAC);
-    gDPPipeSync(gDisplayListHead++);
-    gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, texture);
-    gDPLoadSync(gDisplayListHead++);
-    gDPLoadBlock(gDisplayListHead++, G_TX_LOADTILE, 0, 0, 8 * 8 - 1, CALC_DXT(8, G_IM_SIZ_16b_BYTES));
-    gSPTextureRectangle(gDisplayListHead++, x << 2, y << 2, (x + 7) << 2, (y + 7) << 2, G_TX_RENDERTILE,
+    gDPSetTileSize(tempGfxHead++, G_TX_RENDERTILE, 0, 0, (8 - 1) << G_TEXTURE_IMAGE_FRAC, (8 - 1) << G_TEXTURE_IMAGE_FRAC);
+    gDPPipeSync(tempGfxHead++);
+    gDPSetTextureImage(tempGfxHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, texture);
+    gDPLoadSync(tempGfxHead++);
+    gDPLoadBlock(tempGfxHead++, G_TX_LOADTILE, 0, 0, 8 * 8 - 1, CALC_DXT(8, G_IM_SIZ_16b_BYTES));
+    gSPTextureRectangle(tempGfxHead++, x << 2, y << 2, (x + 7) << 2, (y + 7) << 2, G_TX_RENDERTILE,
                         0, 0, 4 << 10, 1 << 10);
+
+    gDisplayListHead = tempGfxHead;
 }
 
 /**
@@ -431,14 +438,17 @@ void render_hud_small_tex_lut(s32 x, s32 y, Texture *texture) {
  */
 void render_power_meter_health_segment(s16 numHealthWedges) {
     Texture *(*healthLUT)[] = segmented_to_virtual(&power_meter_health_segments_lut);
+    Gfx *tempGfxHead = gDisplayListHead;
 
-    gDPPipeSync(gDisplayListHead++);
-    gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1,
+    gDPPipeSync(tempGfxHead++);
+    gDPSetTextureImage(tempGfxHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1,
                        (*healthLUT)[numHealthWedges - 1]);
-    gDPLoadSync(gDisplayListHead++);
-    gDPLoadBlock(gDisplayListHead++, G_TX_LOADTILE, 0, 0, 32 * 32 - 1, CALC_DXT(32, G_IM_SIZ_16b_BYTES));
-    gSP1Triangle(gDisplayListHead++, 0, 1, 2, 0);
-    gSP1Triangle(gDisplayListHead++, 0, 2, 3, 0);
+    gDPLoadSync(tempGfxHead++);
+    gDPLoadBlock(tempGfxHead++, G_TX_LOADTILE, 0, 0, 32 * 32 - 1, CALC_DXT(32, G_IM_SIZ_16b_BYTES));
+    gSP1Triangle(tempGfxHead++, 0, 1, 2, 0);
+    gSP1Triangle(tempGfxHead++, 0, 2, 3, 0);
+
+    gDisplayListHead = tempGfxHead;
 }
 
 /**
@@ -452,12 +462,7 @@ void render_dl_power_meter(s16 numHealthWedges) {
         return;
     }
 
-    f32 power_meter_x_offset = 0.0f;
-    if (mb64_sram_configuration.option_flags & (1<<OPT_HUDLAYOUT)) {
-        power_meter_x_offset = 148.0f;
-    }
-
-    guTranslate(mtx, (f32) sPowerMeterHUD.x + power_meter_x_offset, (f32) sPowerMeterHUD.y, 0);
+    guTranslate(mtx, (f32) sPowerMeterHUD.x, (f32) sPowerMeterHUD.y, 0);
 
     gSPMatrix(gDisplayListHead++, VIRTUAL_TO_PHYSICAL(mtx++),
               G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
@@ -624,12 +629,16 @@ void render_hud_power_meter_vanilla(void) {
 void render_breath_meter_segment(s16 numBreathWedges) {
     Texture *(*breathLUT)[];
     breathLUT = segmented_to_virtual(&breath_meter_segments_lut);
-    gDPPipeSync(gDisplayListHead++);
-    gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, (*breathLUT)[numBreathWedges - 1]);
-    gDPLoadSync(gDisplayListHead++);
-    gDPLoadBlock(gDisplayListHead++, G_TX_LOADTILE, 0, 0, 32 * 32 - 1, CALC_DXT(32, G_IM_SIZ_16b_BYTES));
-    gSP1Triangle(gDisplayListHead++, 0, 1, 2, 0);
-    gSP1Triangle(gDisplayListHead++, 0, 2, 3, 0);
+    Gfx *tempGfxHead = gDisplayListHead;
+
+    gDPPipeSync(tempGfxHead++);
+    gDPSetTextureImage(tempGfxHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, (*breathLUT)[numBreathWedges - 1]);
+    gDPLoadSync(tempGfxHead++);
+    gDPLoadBlock(tempGfxHead++, G_TX_LOADTILE, 0, 0, 32 * 32 - 1, CALC_DXT(32, G_IM_SIZ_16b_BYTES));
+    gSP1Triangle(tempGfxHead++, 0, 1, 2, 0);
+    gSP1Triangle(tempGfxHead++, 0, 2, 3, 0);
+
+    gDisplayListHead = tempGfxHead;
 }
 
 /**
@@ -720,12 +729,12 @@ void render_hud_breath_meter(void) {
  * Renders the amount of lives Mario has.
  */
 void render_hud_mario_lives(void) {
-    s8 showX = 0;
-    u8 wideoffet2 = 0;
+    // s8 showX = 0;
+    // u8 wideoffet2 = 0;
 
     if (gMarioState->gCurrMinigame == 0) {
         print_text_fmt_int2(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y, ",%d", gMarioState->numGlobalCoins, gMarioState->numMaxGlobalCoins);
-        }
+    }
 }
 
 #ifdef VANILLA_STYLE_CUSTOM_DEBUG
@@ -744,30 +753,18 @@ void render_debug_mode(void) {
  * Renders the amount of coins collected.
  */
 void render_hud_coins(void) {
-    if (mb64_sram_configuration.option_flags & (1<<OPT_HUDLAYOUT)) {
-        print_text(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y-21, "$"); // 'Coin' glyph
-        print_text(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22)+16, HUD_TOP_Y-21, "*"); // 'X' glyph
-        print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22)+32, HUD_TOP_Y-21, "%d", gHudDisplay.coins);
-
-        if (gRedCoinsCollected > 0) {
-            print_text(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y-42, "@"); // 'Coin' glyph
-            print_text(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22)+16, HUD_TOP_Y-42, "*"); // 'X' glyph
-            print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22)+32, HUD_TOP_Y-42, "%d", gRedCoinsCollected);
-        }
+    print_text(168, HUD_TOP_Y, "$"); // 'Coin' glyph
+    if (gHudDisplay.coins < 1000) {
+        print_text(184, HUD_TOP_Y, "*"); // 'X' glyph
+        print_text_fmt_int(198, HUD_TOP_Y, "%d", gHudDisplay.coins);
     } else {
-        print_text(168, HUD_TOP_Y, "$"); // 'Coin' glyph
-        if (gHudDisplay.coins < 1000) {
-            print_text(184, HUD_TOP_Y, "*"); // 'X' glyph
-            print_text_fmt_int(198, HUD_TOP_Y, "%d", gHudDisplay.coins);
-        } else {
-            print_text_fmt_int(184, HUD_TOP_Y, "%d", gHudDisplay.coins);
-        }
+        print_text_fmt_int(184, HUD_TOP_Y, "%d", gHudDisplay.coins);
+    }
 
-        if (gRedCoinsCollected > 0) {
-            print_text(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y, "@"); // 'Coin' glyph
-            print_text(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22)+16, HUD_TOP_Y, "*"); // 'X' glyph
-            print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22)+16+14, HUD_TOP_Y, "%d", gRedCoinsCollected);
-        }
+    if (gRedCoinsCollected > 0) {
+        print_text(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y, "&"); // 'Coin' glyph
+        print_text(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22)+16, HUD_TOP_Y, "*"); // 'X' glyph
+        print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22)+16+14, HUD_TOP_Y, "%d", gRedCoinsCollected);
     }
 }
 
@@ -778,20 +775,12 @@ void render_hud_coins(void) {
  s8 minuz[] = {45,0};
 void render_hud_stars(void) {
     u8 current_stars = mb64_play_stars;
-    u8 max_stars = mb64_play_stars_max;
-
-    if (gHudFlash == HUD_FLASH_STARS && gGlobalTimer & 0x8) return;
+    // u8 max_stars = mb64_play_stars_max;
     s8 showX = 1;//(gHudDisplay.stars < 100);
 
-    if (mb64_sram_configuration.option_flags & (1<<OPT_HUDLAYOUT)) {
-        print_text(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y, "^"); // 'Star' glyph
-        print_text((GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22) + 16), HUD_TOP_Y, "*"); // 'X' glyph
-        print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22) + 32, HUD_TOP_Y, "%d", current_stars);
-    } else {
-        print_text(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(HUD_STARS_X), HUD_TOP_Y, "^"); // 'Star' glyph
-        if (showX) print_text((GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(HUD_STARS_X) + 16), HUD_TOP_Y, "*"); // 'X' glyph
-        print_text_fmt_int((showX * 14) + GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(HUD_STARS_X - 16), HUD_TOP_Y, "%d", current_stars);
-    }
+    print_text(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(HUD_STARS_X), HUD_TOP_Y, "#"); // 'Star' glyph
+    if (showX) print_text((GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(HUD_STARS_X) + 16), HUD_TOP_Y, "*"); // 'X' glyph
+    print_text_fmt_int((showX * 14) + GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(HUD_STARS_X - 16), HUD_TOP_Y, "%d", current_stars);
 }
 
 /**
@@ -809,7 +798,6 @@ void render_hud_keys(void) {
 /**
  * Renders the timer when Mario start sliding in PSS.
  */
- #define HUD_TIMER_MODERN_OFFSET -100
 void render_hud_timer(void) {
     Texture *(*hudLUT)[58] = segmented_to_virtual(&main_hud_lut);
     u32 timerValFrames = gHudDisplay.timer;
@@ -825,38 +813,17 @@ void render_hud_timer(void) {
     if (timerMins > 9) {
         minxoffset = -12;
     }
-/*
-#if MULTILANG
-    switch (eu_get_language()) {
-        case LANGUAGE_ENGLISH: print_text(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(150), 185,  "TIME"); break;
-        case LANGUAGE_FRENCH:  print_text(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(155), 185, "TEMPS"); break;
-        case LANGUAGE_GERMAN:  print_text(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(150), 185,  "ZEIT"); break;
-    }
-#else
-*/
 
-    if (mb64_sram_configuration.option_flags & (1<<OPT_HUDLAYOUT)) {
-        //modern
-        print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(91)+HUD_TIMER_MODERN_OFFSET+minxoffset, HUD_TOP_Y, "%0d", timerMins);
-        print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(71)+HUD_TIMER_MODERN_OFFSET, HUD_TOP_Y, "%02d", timerSecs);
-        print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(37)+HUD_TIMER_MODERN_OFFSET, HUD_TOP_Y, "%d", timerFracSecs);
+    print_text(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(150)+minxoffset, 185, "TIME");
 
-        gSPDisplayList(gDisplayListHead++, dl_hud_img_begin);
-        render_hud_tex_lut(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(81)+HUD_TIMER_MODERN_OFFSET, 8, (*hudLUT)[GLYPH_APOSTROPHE]);
-        render_hud_tex_lut(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(46)+HUD_TIMER_MODERN_OFFSET, 8, (*hudLUT)[GLYPH_DOUBLE_QUOTE]);
-        gSPDisplayList(gDisplayListHead++, dl_hud_img_end);
-    } else {
-        print_text(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(150)+minxoffset, 185, "TIME");
+    print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(91)+minxoffset, 185, "%0d", timerMins);
+    print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(71), 185, "%02d", timerSecs);
+    print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(37), 185, "%d", timerFracSecs);
 
-        print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(91)+minxoffset, 185, "%0d", timerMins);
-        print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(71), 185, "%02d", timerSecs);
-        print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(37), 185, "%d", timerFracSecs);
-
-        gSPDisplayList(gDisplayListHead++, dl_hud_img_begin);
-        render_hud_tex_lut(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(81), 32, (*hudLUT)[GLYPH_APOSTROPHE]);
-        render_hud_tex_lut(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(46), 32, (*hudLUT)[GLYPH_DOUBLE_QUOTE]);
-        gSPDisplayList(gDisplayListHead++, dl_hud_img_end);
-    }
+    gSPDisplayList(gDisplayListHead++, dl_hud_img_begin);
+    render_hud_tex_lut(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(81), 32, (*hudLUT)['\'' - ' ']);
+    render_hud_tex_lut(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(46), 32, (*hudLUT)['"' - ' ']);
+    gSPDisplayList(gDisplayListHead++, dl_hud_img_end);
 }
 
 /**
@@ -907,11 +874,6 @@ void render_hud_camera_status(void) {
     gSPDisplayList(gDisplayListHead++, dl_hud_img_end);
 }
 
-
-
-
-
-
 u8 lframes = 0;
 u8 lease = 2;
 /**
@@ -919,13 +881,8 @@ u8 lease = 2;
  * excluding the cannon reticle which detects a camera preset for it.
  */
 void render_hud(void) {
-    u8 wideoffet4 = 0;
     //gDPPipelineMode(gDisplayListHead++,G_PM_1PRIMITIVE);
     s16 hudDisplayFlags = gHudDisplay.flags;
-
-    if (0) {
-        wideoffet4 = 22;
-    }
 
     if (hudDisplayFlags == HUD_DISPLAY_NONE) {
         sPowerMeterHUD.animation = POWER_METER_HIDDEN;
@@ -937,119 +894,33 @@ void render_hud(void) {
         sBreathMeterVisibleTimer = 0;
 #endif
     } else {
-#ifdef VERSION_EU
-        // basically create_dl_ortho_matrix but guOrtho screen width is different
-        Mtx *mtx = alloc_display_list(sizeof(*mtx));
-
-        if (mtx == NULL) {
-            return;
-        }
-
-        create_dl_identity_matrix();
-        guOrtho(mtx, -16.0f, SCREEN_WIDTH + 16, 0, SCREEN_HEIGHT, -10.0f, 10.0f, 1.0f);
-        gSPPerspNormalize(gDisplayListHead++, 0xFFFF);
-        gSPMatrix(gDisplayListHead++, VIRTUAL_TO_PHYSICAL(mtx),
-                  G_MTX_PROJECTION | G_MTX_MUL | G_MTX_NOPUSH);
-#else
         create_dl_ortho_matrix();
-#endif
+
+        //gDPSetEnvColor(gDisplayListHead++, 0, 0, 0, 200);
+        //init_4slice();
+        //render_4slice(160,120, 100,50, 10);
+        //render_4slice(250,120, 50,100, 10);
+        //render_4slice(80,200, 70,40,  20);
 
         // if (gCurrentArea != NULL && gCurrentArea->camera->mode == CAMERA_MODE_INSIDE_CANNON) {
         //     render_hud_cannon_reticle();
         // }
 
-    if (gCurrDemoInput != NULL) {
-        display_title();
+        if (gCurrDemoInput != NULL) {
+            display_title();
         }
 
         gMarioState->toggleHud = (mb64_sram_configuration.option_flags & (1<<OPT_HUD));
 
-        if ((mb64_mode == MB64_MODE_PLAY) && (revent_hud) && (gMarioState->toggleHud)&&(gCurrDemoInput == NULL)&&(gMenuMode == -1)&&(gDialogID != 1)) {
-
-#ifndef DISABLE_LIVES
-            if (hudDisplayFlags & HUD_DISPLAY_FLAG_LIVES) {
-                //render_hud_mario_lives();
-            }
-#endif
-
+        if ((mb64_mode == MB64_MODE_PLAY) && (gMarioState->toggleHud)&&(gCurrDemoInput == NULL)&&(sCurrPlayMode != PLAY_MODE_PAUSED)) {
             if (hudDisplayFlags & HUD_DISPLAY_FLAG_COIN_COUNT) {
                 render_hud_coins();
             }
 
-            // //i should have programmed a proper quest system lmfao
-            // if (gMarioState->DeadRexMissionActivate) {
-            //     print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22)-wideoffet4, HUD_TOP_Y-18, "%02dQ10", gMarioState->DeadRexes);
-            //     }
-            // if (gMarioState->DeadCowboyMissionActivate) {
-            //     print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22)-wideoffet4, HUD_TOP_Y-18, "%dQ7", gMarioState->DeadRexes);
-            //     }
-            // if (gMarioState->CheeseMissionActivate) {
-            //     //this hardcoded bullshit is so fucking awful. if i made cursed mirror again i would make a quest SYSTEM! AUTOMATION! WE LIVE
-            //     //IN THE AGE OF FUCKING AUTOMATION. AND MY BITCHASS HARD CODED THESE MISSIONS. stupid bitch, fycj you
-            //     if (gCurrLevelNum == LEVEL_TTC) {
-            //         //highcane mission
-            //         print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22)-wideoffet4, HUD_TOP_Y-18, "%dQ20", gMarioState->CheeseCollection);
-            //     } else {
-            //         print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22)-wideoffet4, HUD_TOP_Y-18, "%dQ5", gMarioState->CheeseCollection);
-            //     }
-            // }
-            // if (gMarioState->SockMissionActivate) {
-            //     print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22)-wideoffet4, HUD_TOP_Y-18, "%dQ7", gMarioState->SockCollection);
-            //     }
-
-            // switch(gMarioState->gCurrMinigame) {
-            //     case 1://arena
-            //         print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y, "ROUND %d", gMarioState->EA_WAVES);
-            //         print_text_fmt_int2(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y-18, "%dQ%d", gMarioState->EA_LEFT, gMarioState->EA_TOTAL);
-            //         if (minigame_real) {
-            //             print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y-36, "HI %d", save_file_get_hiscore(0));
-            //         }
-            //     break;
-            //     case 2://hotrope
-            //         print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y, "SCORE %d", gMarioState->EA_WAVES);
-            //         if (minigame_real) {
-            //             print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y-18, "HI %d", save_file_get_hiscore(1));
-            //         }
-            //     break;
-            //     case 3://hexagonheat
-            //         print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y, "SCORE %d", gMarioState->EA_WAVES);
-            //         if (minigame_real) {
-            //             print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y-18, "HI %d", save_file_get_hiscore(2));
-            //         }
-            //     break;
-            //     case 4://snakio
-            //         print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y, "LENGTH %d", gMarioState->EA_WAVES);
-            //         if (minigame_real) {
-            //             print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y-18, "HI %d", save_file_get_hiscore(3));
-            //         }
-            //     break;
-            //     case 5://edsurv
-            //         print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y, "EDWARDS %d", gMarioState->EA_WAVES);
-            //         if (minigame_real) {
-            //             print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y-18, "HI %d", save_file_get_hiscore(4));
-            //         }
-            //     break;
-            //     case 6://bapple
-            //         print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y, "SCORE %d", gMarioState->EA_WAVES);
-            //         if (minigame_real) {
-            //             print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y-18, "HI %d", save_file_get_hiscore(5));
-            //         }
-            //     break;
-            //     case 7://flappy bird
-            //         print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y, "SCORE %d", gMarioState->EA_WAVES);
-            //         if (minigame_real) {
-            //             print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(22), HUD_TOP_Y-18, "HI %d", save_file_get_hiscore(6));
-            //         }
-            //     break;
-            // }
-
             //Use this later for the star radar badge
-            if (gMarioState->StarRadarExist == TRUE) {
+            if (gMarioState->StarRadarExist) {
                 gMarioState->StarRadarExist = FALSE;
-                print_text_fmt_int(gMarioState->ScreenPosX,gMarioState->ScreenPosY,"^",0);
-
-                //print_text_fmt_int(40,40,"%d",gMarioState->ScreenPosX);
-                //print_text_fmt_int(40,80,"Y %d",gMarioState->ScreenPosY);
+                print_text(gMarioState->ScreenPosX,gMarioState->ScreenPosY,"#");
             }
 
             if (hudDisplayFlags & HUD_DISPLAY_FLAG_STAR_COUNT) {
@@ -1084,34 +955,6 @@ void render_hud(void) {
             if ((hudDisplayFlags & HUD_DISPLAY_FLAG_TIMER)||(mb64_sram_configuration.option_flags & (1<<OPT_SPEEDRUNTIMER))) {
                 render_hud_timer();
             }
-
-            /*
-            if (gMarioState->NewTimer > 0) {
-                if (!(gMarioState->Options & (1<<OPT_MINIMAP))) {
-                    print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(HUD_STARS_X),20, "j %d", gMarioState->NewTimer);
-                    }else{
-                    print_text_fmt_int(GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(HUD_STARS_X),90, "j %d", gMarioState->NewTimer);
-                    }
-                }
-            */
-
-            /*
-            if (gMarioState->Options & (1<<OPT_MINIMAP)) {
-                if (gCurrentArea->index == 1) {
-                    display_minimap();
-
-                    if (MapOn) {
-                        display_arrow();
-                    }
-                }
-            }
-            */
         }
-
-#ifdef VANILLA_STYLE_CUSTOM_DEBUG
-        if (gCustomDebugMode) {
-            render_debug_mode();
-        }
-#endif
     }
 }

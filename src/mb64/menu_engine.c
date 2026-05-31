@@ -1,11 +1,10 @@
+#include <ultra64.h>
+#include <PR/gbi.h>
+#include "actors/uiCorner/model.inc.c"
+
 #include "menu_engine.h"
-
-#include "game/game_init.h"
-#include "audio/external.h"
-#include "game/segment2.h"
-#include "game/ingame_menu.h"
-
-#include "levels/menu/mm_btn_sm/header.h"
+#include <string.h>
+#include "menu.h"
 
 // Global states for the currently processed menu
 MenuStyle gMenuStyle;
@@ -25,7 +24,7 @@ u8 menu_text_colors[][3] = {
 };
 
 void menu_text_display(char *str, s16 x, s16 y, u8 color, u8 align, u8 alpha) {
-    if (gMenuState.selected && !gMenuState.disabled && !(color & 1)) color += 1;
+    if (gMenuState.selected && !gMenuState.disabled && gMenuStyle.textHighlightSelected && !(color & 1)) color += 1;
     if (gMenuState.disabled && !(color & 2)) color += 2;
     if (align) {
         int width = get_string_width_ascii(str);
@@ -33,10 +32,17 @@ void menu_text_display(char *str, s16 x, s16 y, u8 color, u8 align, u8 alpha) {
     }
 
     gSPDisplayList(gDisplayListHead++, dl_ia_text_begin);
-    gDPSetEnvColor(gDisplayListHead++, 0, 0, 0, alpha);
-    print_generic_string_ascii(x-1, y-1, str);
+    if (!gMenuStyle.textNoShadow) {
+        gDPSetEnvColor(gDisplayListHead++, 0, 0, 0, alpha);
+        print_generic_string_ascii(x-1, y-1, str);
+    }
     gDPSetEnvColor(gDisplayListHead++, menu_text_colors[color][0], menu_text_colors[color][1], menu_text_colors[color][2], alpha);
     print_generic_string_ascii(x, y, str);
+}
+
+void menu_hud_text_display(char *str, s16 x, s16 y) {
+    gSPDisplayList(gDisplayListHead++, dl_rgba16_text_begin);
+    print_hud_string_ascii(x, y, str);
 }
 
 enum JoystickState {
@@ -135,7 +141,7 @@ void add_child(void *parent, MenuComponent *child) {
 }
 
 // Gets the index'th child of specified type from the parent component.
-void *get_child(void *parent, u8 type, u8 index) {
+void *get_child_of_type(void *parent, u8 type, u8 index) {
     MenuComponent *p = parent;
     MenuComponent *current = get_component(p->child);
     u8 count = 0;
@@ -216,10 +222,19 @@ void dealloc_component(ComponentID id) {
 s16 gScissorStack[8][4] = {{0, 0, SCREEN_WIDTH, SCREEN_HEIGHT}};
 u8 gScissorStackIndex = 0;
 
+#define SCISSOR_WIDESCREEN(x) ((x - SCREEN_WIDTH/2) * (4.f/3.f) / (16.f/9.f)) + SCREEN_WIDTH/2
+
 void push_scissor(int lx, int ly2, int ux, int uy2) {
     // invert y values
     int ly = SCREEN_HEIGHT - uy2;
     int uy = SCREEN_HEIGHT - ly2;
+
+    // Viewport hack scissor value fix
+    if (gIsWidescreen) {
+        if (lx != 0)            lx = SCISSOR_WIDESCREEN(lx);
+        if (ux != SCREEN_WIDTH) ux = SCISSOR_WIDESCREEN(ux);
+    }
+
     lx = MAX(lx, gScissorStack[gScissorStackIndex][0]);
     ly = MAX(ly, gScissorStack[gScissorStackIndex][1]);
     ux = MIN(ux, gScissorStack[gScissorStackIndex][2]);
@@ -296,7 +311,7 @@ void component_text_render(MenuComponent *m, s16 x, s16 y) {
     if (SELECTED && t->onClick) {
         if (gPlayer1Controller->buttonPressed & (A_BUTTON)) {
             t->onClick(t, t->onClickArg);
-            play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
+            menu_play_click_sound();
         }
     }
 };
@@ -396,7 +411,7 @@ void component_selector_render(MenuComponent *m, s16 x, s16 y) {
     }
             
     if (handle_scroll(&s->scroll, dir, s->value, SELECTOR_ANIM_FRAMES)) {
-        play_sound(SOUND_MENU_MESSAGE_NEXT_PAGE, gGlobalSoundSource);
+        menu_play_move_sound();
         if (s->onChange) {
             s->onChange(s, 0);
         }
@@ -570,12 +585,66 @@ void component_rect_render(MenuComponent *m, s16 x, s16 y) {
         rc->onFinish = NULL;
     }
 
+    int realY = SCREEN_HEIGHT-y;
     gDPPipeSync(gDisplayListHead++);
     gDPSetEnvColor(gDisplayListHead++, rc->color[0], rc->color[1], rc->color[2], rc->curAlpha);
     gDPSetCombineMode(gDisplayListHead++, G_CC_ENVIRONMENT, G_CC_ENVIRONMENT);
     gDPSetRenderMode(gDisplayListHead++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
-    gDPFillRectangle(gDisplayListHead++, x - rc->width, y - rc->height, x + rc->width, y + rc->height);
+    gDPFillRectangle(gDisplayListHead++, x - rc->width, realY - rc->height, x + rc->width, realY + rc->height);
 
+    render_child(m, x, y);
+}
+
+// ================ BOX =================
+
+void render_4slice_box(int x, int y, int width, int height, int cornerSize) {
+    gSPDisplayList(gDisplayListHead++,mat_uiCorner_uiCorner);
+    Vtx * v = alloc_display_list(9 * sizeof(Vtx));
+
+    f32 cornerRatioX = (f32)width/(f32)cornerSize;
+    f32 cornerRatioY = (f32)height/(f32)cornerSize;
+
+    s16 uvX = (32*64)*cornerRatioX;
+    s16 uvY = (32*64)*cornerRatioY;
+
+    make_vertex(v, 0,    x-width, y+height, 0,     0,   0,       255, 255, 255, 255);
+    make_vertex(v, 1,    x,       y+height, 0,     uvX, 0,       255, 255, 255, 255);
+    make_vertex(v, 2,    x+width, y+height, 0,     0,   0,       255, 255, 255, 255);
+
+    make_vertex(v, 3,    x-width, y,        0,     0,   uvY,     255, 255, 255, 255);
+    make_vertex(v, 4,    x,       y,        0,     uvX, uvY,     255, 255, 255, 255);
+    make_vertex(v, 5,    x+width, y,        0,     0,   uvY,     255, 255, 255, 255);
+
+    make_vertex(v, 6,    x-width, y-height, 0,     0,   0,       255, 255, 255, 255);
+    make_vertex(v, 7,    x,       y-height, 0,     uvX, 0,       255, 255, 255, 255);
+    make_vertex(v, 8,    x+width, y-height, 0,     0,   0,       255, 255, 255, 255);
+
+    gSPVertex(gDisplayListHead++,v,9,0);
+
+    gSP2Triangles(gDisplayListHead++, 0, 3, 1, 0, 1, 3, 4, 0);
+    gSP2Triangles(gDisplayListHead++, 2, 1, 4, 0, 4, 5, 2, 0);
+    gSP2Triangles(gDisplayListHead++, 3, 6, 4, 0, 4, 6, 7, 0);
+    gSP2Triangles(gDisplayListHead++, 5, 4, 7, 0, 7, 8, 5, 0);
+}
+
+BoxComponent *init_box_component(void *parent, s16 x, s16 y, u8 width, u8 height, u8 corner, u8 alpha) {
+    BoxComponent *box = alloc_component(parent, MENU_BOX);
+    component_set_pos(box, x, y);
+    box->width = width;
+    box->height = height;
+    box->alpha = alpha;
+    box->corner = corner;
+    return box;
+}
+
+void component_box_render(MenuComponent *m, s16 x, s16 y) {
+    BoxComponent *bc = (BoxComponent *)m;
+    x += m->xpos;
+    y += m->ypos;
+
+    int val = gMenuState.selected ? get_selected_color_value() : 0;
+    gDPSetEnvColor(gDisplayListHead++, val, val, val, bc->alpha);
+    render_4slice_box(x, y, bc->width, bc->height, bc->corner);
     render_child(m, x, y);
 }
 
@@ -598,10 +667,10 @@ void component_matrix_render(MenuComponent *m, s16 x, s16 y) {
     // Construct matrix with rotation, translation and scale
     Mtx temp;
     guRotate(&temp, (mc->rot * 45.f) / 0x2000, 0.f, 0.f, 1.f);
-    guScale(mtx, mc->xScale, mc->yScale, 1.f);
+    guScale((Mtx *)mtx, mc->xScale, mc->yScale, 1.f);
     mtx[12] = x + m->xpos;
     mtx[13] = y + m->ypos;
-    guMtxCatL(&temp, mtx, mtx);
+    guMtxCatL(&temp, (Mtx *)mtx, (Mtx *)mtx);
 
     gSPMatrix(gDisplayListHead++, mtx, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
     render_child(m, 0, 0);
@@ -636,7 +705,7 @@ PageHandlerComponent *init_page_handler(void *parent, PageCreator pageCreator, u
 
 void page_handler_scroll(PageHandlerComponent *ph, int dir) {
     if (handle_scroll(&ph->scroll, dir, &ph->index, ph->frames)) {
-        if (ph->input != MENU_INPUT_NONE) play_sound(SOUND_MENU_MESSAGE_NEXT_PAGE, gGlobalSoundSource);
+        if (ph->input != MENU_INPUT_NONE) menu_play_move_sound();
         ph->oldPage = ph->currentPage;
         ph->currentPage = get_id(page_handler_create_page(ph, ph->index));
     }
@@ -648,7 +717,7 @@ void page_handler_set_page(PageHandlerComponent *ph, int page) {
     if (ph->oldPage) dealloc_component_full(ph->oldPage);
     dealloc_component_full(ph->currentPage);
     ph->currentPage = get_id(page_handler_create_page(ph, page));
-    play_sound(SOUND_MENU_MESSAGE_NEXT_PAGE, gGlobalSoundSource);
+    menu_play_move_sound();
     ph->scroll.offset = 0;
 }
 
@@ -774,6 +843,7 @@ ListComponent *init_sublist(void *parent, ComponentID ph, u8 indexOffset) {
     l->indexOffset = indexOffset;
     l->isSublist = TRUE;
     l->pageHandler = ph;
+    l->input = MENU_INPUT_JOYSTICK;
     return l;
 }
 
@@ -819,7 +889,7 @@ void component_list_render(MenuComponent *m, s16 x, s16 y) {
                     }
                     // If scrolling off the top, look for a sublist in the new page
                     // and set its index to the last item if it exists
-                    ListComponent *sublist = get_child(get_component(ph->currentPage), MENU_LIST, 0);
+                    ListComponent *sublist = get_child_of_type(get_component(ph->currentPage), MENU_LIST, 0);
                     if (dir == -1 && sublist) sublist->index = sublist->count - 1;
                     break;
                 }
@@ -829,7 +899,7 @@ void component_list_render(MenuComponent *m, s16 x, s16 y) {
             }
             item = component_list_get(l, l->index);
         } while (item->disabled);
-        if (dir) play_sound(SOUND_MENU_MESSAGE_NEXT_PAGE, gGlobalSoundSource);
+        if (dir) menu_play_move_sound();
     }
 
     render_child(m, x + m->xpos, y + m->ypos);
@@ -865,14 +935,26 @@ void component_listitem_render(MenuComponent *m, s16 x, s16 y) {
     render_child(m, x + m->xpos, y + m->ypos);
 }
 
+void listitem_render_triangle(MenuComponent *m, s16 x, s16 y) {
+    if (!gMenuState.selected) return;
+    x += m->xpos - 15;
+    y += m->ypos - 1;
+
+    create_dl_translation_matrix(MENU_MTX_PUSH, x, y, 0);
+    gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, 255);
+    gSPDisplayList(gDisplayListHead++, dl_draw_triangle);
+    gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
+}
+
 // ================ 2D SELECTOR ===================
 
-Selector2DComponent *init_selector_2d_component(void *parent, s16 x, s16 y, u8 columns, u8 rows,
-                                Selector2DRenderFunc *render, Selector2DUpdateFunc *update) {
+Selector2DComponent *init_selector_2d_component(void *parent, s16 x, s16 y, u8 columns, u8 count,
+                                Selector2DRenderFunc render, Selector2DUpdateFunc update) {
     Selector2DComponent *s = alloc_component(parent, MENU_SELECTOR_2D);
     component_set_pos(s, x, y);
     s->columns = columns;
-    s->rows = rows;
+    s->rows = (count + columns - 1) / columns;
+    s->count = count;
     s->render = render;
     s->update = update; 
     return s;
@@ -888,15 +970,17 @@ void component_2d_render(MenuComponent *m, s16 x, s16 y) {
         int oldindex = s->index;
         int row = s->index / s->columns;
         int col = s->index % s->columns;
-        col = (col + s->columns + get_input(MENU_INPUT_JOYSTICK, DIR_HORIZONTAL)) % s->columns;
         row = (row + s->rows + get_input(MENU_INPUT_JOYSTICK, DIR_VERTICAL)) % s->rows;
+        int rowLength = (row == s->rows-1 ? (s->count-1) % s->columns + 1 : s->columns);
+        col = (col + rowLength + get_input(MENU_INPUT_JOYSTICK, DIR_HORIZONTAL)) % rowLength;
         s->index = row * s->columns + col;
-        if (s->index != oldindex) play_sound(SOUND_MENU_MESSAGE_NEXT_PAGE, gGlobalSoundSource);
+        if (s->index != oldindex) menu_play_move_sound();
     }
 
     for (int i = 0; i < s->rows; i++) {
         for (int j = 0; j < s->columns; j++) {
             int index = i * s->columns + j;
+            if (index >= s->count) break;
             int selected = (s->index == index);
             s->render(s, x, y, j, i, selected);
             if (selected && ACTIVE && (gPlayer1Controller->buttonPressed & A_BUTTON)) {
@@ -922,7 +1006,7 @@ char upper[] = {'!', '?', '#', '$', '%', '&', '^', '|', '<', '>', '+',
 
 char *forbidden = ":\"/?^|<>_";
 int is_char_forbidden(char c) {
-    for (int i = 0; i < strlen(forbidden); i++) {
+    for (u32 i = 0; i < strlen(forbidden); i++) {
         if (c == forbidden[i]) {
             return TRUE;
         }
@@ -934,12 +1018,10 @@ u8 gCapsLock = FALSE;
 void keyboard_render_key(Selector2DComponent *s, s16 x, s16 y, u8 column, u8 row, int selected) {
     x += column * 24;
     y -= row * 24;
-    create_dl_translation_matrix(MENU_MTX_PUSH, x, y, 0);
-    gSPDisplayList(gDisplayListHead++, dl_ia_text_begin);
     int val = selected ? get_selected_color_value() : 0;
     gDPSetEnvColor(gDisplayListHead++, val, val, val, 150);
-    gSPDisplayList(gDisplayListHead++, &mm_btn_sm_mm_btn_sm_mesh);
-    gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
+    render_4slice_box(x, y, 11, 11, 11);
+    gSPDisplayList(gDisplayListHead++, dl_ia_text_begin);
 
     int index = row * s->columns + column;
     char buf[2] = {0};
@@ -952,7 +1034,7 @@ void keyboard_render_key(Selector2DComponent *s, s16 x, s16 y, u8 column, u8 row
     menu_text_display(buf, x, y-8, textcolor, TEXT_CENTER, 255);
 }
 
-void keyboard_select_key(Selector2DComponent *s, u8 column, u8 row) {
+void keyboard_select_key(Selector2DComponent *s, UNUSED u8 column, UNUSED u8 row) {
     KeyboardComponent *k = get_parent(s);
     char c = gCapsLock ? upper[s->index] : keys[s->index];
     int strLen = strlen(k->buf);
@@ -961,7 +1043,7 @@ void keyboard_select_key(Selector2DComponent *s, u8 column, u8 row) {
         play_sound(SOUND_MENU_CAMERA_BUZZ, gGlobalSoundSource);
         return;
     }
-    play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
+    menu_play_click_sound();
     TextComponent *t = get_component(k->text);
     gCursorTimerOffset = gGlobalTimer & 0x1f;
     memmove(&k->buf[t->cursorPos + 1], &k->buf[t->cursorPos], strLen - t->cursorPos + 1); // Shift characters right
@@ -973,7 +1055,7 @@ void keyboard_select_key(Selector2DComponent *s, u8 column, u8 row) {
 KeyboardComponent *init_keyboard_component(void *parent, s16 x, s16 y, char *buf, TextComponent *t, u8 maxLength, int isRestricted) {
     KeyboardComponent *k = alloc_component(parent, MENU_KEYBOARD);
     component_set_pos(k, x, y);
-    init_selector_2d_component(k, 0, 0, 11, 4,
+    init_selector_2d_component(k, 0, 0, 11, 11*4,
                                 keyboard_render_key, keyboard_select_key);
     k->buf = buf;
     k->text = get_id(t);
@@ -1001,7 +1083,7 @@ void component_keyboard_render(MenuComponent *m, s16 x, s16 y) {
                 k->buf[len - 1] = '\0'; // Remove last character
                 len--;
                 gCursorTimerOffset = gGlobalTimer & 0x1f;
-                play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
+                menu_play_click_sound();
                 t->cursorPos--;
             } else {
                 play_sound(SOUND_MENU_CAMERA_BUZZ, gGlobalSoundSource);
@@ -1011,11 +1093,41 @@ void component_keyboard_render(MenuComponent *m, s16 x, s16 y) {
         t->cursorPos = (t->cursorPos + len+1 + get_input(MENU_INPUT_DPAD, DIR_HORIZONTAL)) % (len+1);
         if (t->cursorPos != oldpos) {
             gCursorTimerOffset = gGlobalTimer & 0x1f;
-            play_sound(SOUND_MENU_MESSAGE_NEXT_PAGE, gGlobalSoundSource);
+            menu_play_move_sound();
         }
     }
 
     render_child(m, x + m->xpos, y + m->ypos);
+}
+
+// ================ COUNTER ===================
+
+CounterComponent *init_counter_component(void *parent, s16 x, s16 y, u8 symbol, s16 *value, s16 max, int align) {
+    CounterComponent *c = alloc_component(parent, MENU_COUNTER);
+    component_set_pos(c, x, y);
+    c->symbol = symbol;
+    c->value = value;
+    c->max = max;
+    c->align = align;
+    return c;
+}
+
+void component_counter_render(MenuComponent *m, s16 x, s16 y) {
+    CounterComponent *c = (CounterComponent *)m;
+    char buf[16];
+    x += m->xpos;
+    y += m->ypos;
+    if (c->max >= 0) {
+        sprintf(buf, "%c%d/%d", c->symbol, *c->value, c->max);
+    } else {
+        sprintf(buf, "%c*%d", c->symbol, *c->value);
+    }
+    if (c->align) {
+        x -= get_hud_string_width_ascii(buf) * c->align / 2;
+    }
+    menu_hud_text_display(buf, x, y);
+
+    render_child(m, x, y);
 }
 
 // ================ GENERAL ===================
@@ -1028,11 +1140,13 @@ ComponentRenderFunc component_render_funcs[] = {
     [MENU_SELECTOR] = component_selector_render,
     [MENU_ANIMATED] = component_animated_render,
     [MENU_RECT] = component_rect_render,
+    [MENU_BOX] = component_box_render,
     [MENU_MATRIX] = component_matrix_render,
     [MENU_PAGE_HANDLER] = component_page_handler_render,
     [MENU_PAGE_TITLE] = component_page_title_render,
     [MENU_SELECTOR_2D] = component_2d_render,
     [MENU_KEYBOARD] = component_keyboard_render,
+    [MENU_COUNTER] = component_counter_render,
 };
 
 void render_component(MenuComponent *m, s16 x, s16 y) {
@@ -1061,7 +1175,6 @@ void render_component(MenuComponent *m, s16 x, s16 y) {
 }
 
 FrameComponent *gMenuRoot;
-AnimatedComponent *sActiveError = NULL;
 
 void init_root(void) {
     gMenuRoot = init_frame_component(NULL);
@@ -1069,18 +1182,18 @@ void init_root(void) {
 
 void reset_menu(void) {
     bzero(&menu_pool, sizeof(menu_pool));
-    sActiveError = NULL;
     reset_settings_menu_state();
     reset_main_menu_state();
     reset_toolbox_state();
+    reset_misc_menu_state();
     init_root();
 }
 
-extern ComponentID settingsRoot;
+extern MenuComponent *settingsRoot;
 
 void render_menu(void) {
     menu_update_joystick();
-    render_component(gMenuRoot, 0, 0);
+    render_component((MenuComponent *)gMenuRoot, 0, 0);
     gSPDisplayList(gDisplayListHead++, dl_ia_text_end);
     // // Count loaded components
     // int count = 0;
@@ -1090,24 +1203,4 @@ void render_menu(void) {
     //     }
     // }
     // print_text_fmt_int(20,40,"%d",count);
-}
-
-void move_error(void) {
-    component_animate_ease_out(sActiveError, 0.2f, 15, DIR_VERTICAL);
-    sActiveError->delay = 90;
-}
-
-// Generic error message
-void show_error(char *msg) {
-    play_sound(SOUND_MENU_CAMERA_BUZZ, gGlobalSoundSource);
-    if (sActiveError) {
-        TextComponent *t = get_first_child(sActiveError);
-        t->text = msg;
-    } else {
-        sActiveError = alloc_component(gMenuRoot, MENU_ANIMATED);
-        init_text_component(sActiveError, 20, 220, msg, TEXT_LEFT, TEXT_RED);
-    }
-    component_animate_ease_in(sActiveError, 50.f, 0.4f, DIR_VERTICAL);
-    sActiveError->onFinish = move_error;
-    sActiveError->delay = 0;
 }

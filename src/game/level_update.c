@@ -3,7 +3,6 @@
 
 #include "sm64.h"
 #include "seq_ids.h"
-#include "dialog_ids.h"
 #include "audio/external.h"
 #include "audio/synthesis.h"
 #include "level_update.h"
@@ -31,10 +30,11 @@
 #include "rumble_init.h"
 #include "puppycam2.h"
 #include "puppyprint.h"
-#include "puppylights.h"
 #include "level_commands.h"
-#include "game/rovent.h"
 #include "mb64/main.h"
+#include "mb64/menu.h"
+#include "debug.h"
+#include "interaction.h"
 
 #include "config.h"
 
@@ -129,7 +129,7 @@ struct CreditsEntry sCreditsSequence[] = {
     // { LEVEL_DDD, 2, -111, -64, { 3948, 1185, -104 }, credits19 },
     // { LEVEL_CCM, 1, 33, 31, { 3169, -4607, 5240 }, credits20 },
     // { LEVEL_CASTLE_GROUNDS, 1, 1, -128, { 0, 906, -1200 }, NULL },
-    // { LEVEL_NONE, 0, 1, 0, { 0, 0, 0 }, NULL },
+    { LEVEL_NONE, 0, 1, 0, { 0, 0, 0 }, NULL },
 };
 
 struct MarioState gMarioStates[1];
@@ -178,25 +178,27 @@ u16 level_control_timer(s32 timerOp) {
 }
 
 u32 pressed_pause(void) {
-    u32 dialogActive = get_dialog_id() >= 0;
+    u32 dialogActive = gCurDialog != NULL;
     u32 intangible = (gMarioState->action & ACT_FLAG_INTANGIBLE) != 0;
 
-    if ((mb64_mode == MB64_MODE_MAKE)||(minigame_real)||(revent_active)) {
+    if (gMarioState->action == ACT_SPAWN_SPIN_AIRBORNE || gMarioState->action == ACT_SPAWN_SPIN_LANDING) {
+        intangible = FALSE;
+    }
+
+    if (mb64_mode == MB64_MODE_MAKE) {
         return FALSE;
     }
 
 #ifdef PUPPYPRINT_DEBUG
-#ifdef BETTER_REVERB
-    if (sPPDebugPage == PUPPYPRINT_PAGE_RAM || sPPDebugPage == PUPPYPRINT_PAGE_LEVEL_SELECT || sPPDebugPage == PUPPYPRINT_PAGE_BETTER_REVERB) {
-#else
     if (sPPDebugPage == PUPPYPRINT_PAGE_RAM || sPPDebugPage == PUPPYPRINT_PAGE_LEVEL_SELECT) {
-#endif
         return FALSE;
     }
 #endif
 
     if (!intangible && !dialogActive && !gWarpTransition.isActive && sDelayedWarpOp == WARP_OP_NONE
         && (gPlayer1Controller->buttonPressed & START_BUTTON)) {
+        // Hack to make the pause menu not instantly close itself
+        gPlayer1Controller->buttonPressed &= ~START_BUTTON;
         return TRUE;
     }
 
@@ -208,7 +210,7 @@ void set_play_mode(s16 playMode) {
 }
 
 void warp_special(s32 arg) {
-    sCurrPlayMode = PLAY_MODE_CHANGE_LEVEL;
+    set_play_mode(PLAY_MODE_CHANGE_LEVEL);
     sSpecialWarpDest = arg;
 }
 
@@ -224,7 +226,7 @@ void fade_into_special_warp(u32 arg, u32 color) {
     warp_special(arg);
 }
 
-void load_level_init_text(u32 arg) {
+void load_level_init_text(UNUSED u32 arg) {
     // s32 gotAchievement;
     // u32 dialogID = gCurrentArea->dialog[arg];
 
@@ -357,16 +359,18 @@ void set_mario_initial_action(struct MarioState *m, u32 spawnType, u32 actionArg
 
 extern u8 mb64_lopt_waterlevel;
 void init_mario_after_warp(void) {
-    struct ObjectWarpNode *spawnNode = area_get_warp_node(sWarpDest.nodeId);
-    u32 marioSpawnType = get_mario_spawn_type(spawnNode->object);
+    struct Object *object = get_destination_warp_object(sWarpDest.nodeId);
+    assert_args(object, "No dest warp object found for: 0x%02X", sWarpDest.nodeId);
+
+    u32 marioSpawnType = get_mario_spawn_type(object);
 
     if (gMarioState->action != ACT_UNINITIALIZED) {
-        gPlayerSpawnInfos[0].startPos[0] = (s16) spawnNode->object->oPosX;
-        gPlayerSpawnInfos[0].startPos[1] = (s16) spawnNode->object->oPosY;
-        gPlayerSpawnInfos[0].startPos[2] = (s16) spawnNode->object->oPosZ;
+        gPlayerSpawnInfos[0].startPos[0] = (s16) object->oPosX;
+        gPlayerSpawnInfos[0].startPos[1] = (s16) object->oPosY;
+        gPlayerSpawnInfos[0].startPos[2] = (s16) object->oPosZ;
 
         gPlayerSpawnInfos[0].startAngle[0] = 0;
-        gPlayerSpawnInfos[0].startAngle[1] = spawnNode->object->oMoveAngleYaw;
+        gPlayerSpawnInfos[0].startAngle[1] = object->oMoveAngleYaw;
         gPlayerSpawnInfos[0].startAngle[2] = 0;
 
         if (marioSpawnType == MARIO_SPAWN_DOOR_WARP) {
@@ -393,8 +397,8 @@ void init_mario_after_warp(void) {
         init_mario();
         set_mario_initial_action(gMarioState, marioSpawnType, sWarpDest.arg);
 
-        gMarioState->interactObj = spawnNode->object;
-        gMarioState->usedObj = spawnNode->object;
+        gMarioState->interactObj = object;
+        gMarioState->usedObj = object;
     }
 
     reset_camera(gCurrentArea->camera);
@@ -402,10 +406,8 @@ void init_mario_after_warp(void) {
     sDelayedWarpOp = WARP_OP_NONE;
 
     switch (marioSpawnType) {
-        case MARIO_SPAWN_PIPE:
-            play_transition(WARP_TRANSITION_FADE_FROM_STAR, 0x10, 0x00, 0x00, 0x00);
-            break;
         case MARIO_SPAWN_DOOR_WARP:
+        case MARIO_SPAWN_SPIN_AIRBORNE_CIRCLE:
             play_transition(WARP_TRANSITION_FADE_FROM_CIRCLE, 0x10, 0x00, 0x00, 0x00);
             break;
         case MARIO_SPAWN_TELEPORT:
@@ -413,9 +415,6 @@ void init_mario_after_warp(void) {
             break;
         case MARIO_SPAWN_SPIN_AIRBORNE:
             play_transition(WARP_TRANSITION_FADE_FROM_COLOR, 0x1A, 0xFF, 0xFF, 0xFF);
-            break;
-        case MARIO_SPAWN_SPIN_AIRBORNE_CIRCLE:
-            play_transition(WARP_TRANSITION_FADE_FROM_CIRCLE, 0x10, 0x00, 0x00, 0x00);
             break;
         case MARIO_SPAWN_FADE_FROM_BLACK:
             play_transition(WARP_TRANSITION_FADE_FROM_COLOR, 0x10, 0x00, 0x00, 0x00);
@@ -595,6 +594,8 @@ void check_instant_warp(void) {
 
 s16 music_unchanged_through_warp(s16 arg) {
     struct ObjectWarpNode *warpNode = area_get_warp_node(arg);
+    assert_args(warpNode, "No source warp node found for: 0x%02X", (u8) arg);
+
     s16 levelNum = warpNode->node.destLevel & 0x7F;
 
     s16 destArea = warpNode->node.destArea;
@@ -662,29 +663,14 @@ void initiate_warp(s16 destLevel, s16 destArea, s16 destWarpNode, s32 warpFlags)
     sWarpDest.areaIdx = destArea;
     sWarpDest.nodeId = destWarpNode;
     sWarpDest.arg = warpFlags;
-
-#if defined(PUPPYCAM) || defined(PUPPYLIGHTS)
-    s32 i = 0;
-#endif
 #ifdef PUPPYCAM
     if (sWarpDest.type == WARP_TYPE_CHANGE_LEVEL)
     {
-        for (i = 0; i < gPuppyVolumeCount; i++)
+        for (s32 i = 0; i < gPuppyVolumeCount; i++)
         {
             mem_pool_free(gPuppyMemoryPool, sPuppyVolumeStack[i]);
         }
         gPuppyVolumeCount = 0;
-    }
-#endif
-#ifdef PUPPYLIGHTS
-    if (sWarpDest.type == WARP_TYPE_CHANGE_LEVEL)
-    {
-        for (i = 0; i < gNumLights; i++)
-        {
-            mem_pool_free(gLightsPool, gPuppyLights[i]);
-        }
-        gNumLights = 0;
-        levelAmbient = FALSE;
     }
 #endif
 }
@@ -902,7 +888,6 @@ void initiate_delayed_warp(void) {
     s32 destWarpNode;
 
     if (sDelayedWarpOp != WARP_OP_NONE && --sDelayedWarpTimer == 0) {
-        reset_dialog_render_state();
         reset_menu();
 
         if (gDebugLevelSelect && (sDelayedWarpOp & WARP_OP_TRIGGERS_LEVEL_SELECT)) {
@@ -952,6 +937,7 @@ void initiate_delayed_warp(void) {
                 default:
                     mario_stop_riding_and_holding(gMarioState);
                     warpNode = area_get_warp_node(sSourceWarpNodeId);
+                    assert_args(warpNode, "No source warp node found for: 0x%02X", (u8) sSourceWarpNodeId);
 
                     initiate_warp(warpNode->node.destLevel & 0x7F, warpNode->node.destArea,
                                   warpNode->node.destNode, sDelayedWarpArg);
@@ -1029,49 +1015,23 @@ void update_hud_values(void) {
 void basic_update(void) {
     area_update_objects();
     update_hud_values();
-#ifdef PUPPYLIGHTS
-    delete_lights();
-#endif
 
     if (gCurrentArea != NULL) {
         update_camera(gCurrentArea->camera);
     }
 }
 
-extern s16 mb64_menu_index;
 extern void print_intro_text2(void);
 int gPressedStart = 0;
 
 u8 playtimer = 0;
 
 s32 play_mode_normal(void) {
-    event_main();
-
-    // playtimer++;
-    // if (playtimer>29) {
-    //     playtimer = 0;
-    //     save_file_one_second();
-    // }
-    
-    // if (gCurrDemoInput != NULL) {
-    //     print_intro_text();
-    //     if (gPlayer1Controller->buttonPressed & END_DEMO) {
-    //         level_trigger_warp(gMarioState, gCurrLevelNum == LEVEL_PSS ? WARP_OP_DEMO_END : WARP_OP_DEMO_NEXT);
-    //     } else if (!gWarpTransition.isActive && sDelayedWarpOp == WARP_OP_NONE
-    //                && (gPlayer1Controller->buttonPressed & START_BUTTON)) {
-    //         level_trigger_warp(gMarioState, WARP_OP_DEMO_NEXT);
-    //     }
-    // }
-
     warp_area();
     check_instant_warp();
 
 #ifdef PUPPYPRINT_DEBUG
-#ifdef BETTER_REVERB
-    if (sPPDebugPage != PUPPYPRINT_PAGE_RAM && sPPDebugPage != PUPPYPRINT_PAGE_LEVEL_SELECT && sPPDebugPage != PUPPYPRINT_PAGE_BETTER_REVERB) {
-#else
     if (sPPDebugPage != PUPPYPRINT_PAGE_RAM && sPPDebugPage != PUPPYPRINT_PAGE_LEVEL_SELECT) {
-#endif
         if (sTimerRunning && gHudDisplay.timer < 17999) {
             gHudDisplay.timer++;
         }
@@ -1084,16 +1044,9 @@ s32 play_mode_normal(void) {
     area_update_objects();
 #endif
     update_hud_values();
-#ifdef PUPPYLIGHTS
-    delete_lights();
-#endif
     if (gCurrentArea != NULL) {
 #ifdef PUPPYPRINT_DEBUG
-#ifdef BETTER_REVERB
-    if (sPPDebugPage != PUPPYPRINT_PAGE_RAM && sPPDebugPage != PUPPYPRINT_PAGE_LEVEL_SELECT && sPPDebugPage != PUPPYPRINT_PAGE_BETTER_REVERB) {
-#else
     if (sPPDebugPage != PUPPYPRINT_PAGE_RAM && sPPDebugPage != PUPPYPRINT_PAGE_LEVEL_SELECT) {
-#endif
             update_camera(gCurrentArea->camera);
         }
 #else
@@ -1112,17 +1065,17 @@ s32 play_mode_normal(void) {
         } else if (sTransitionTimer != 0) {
             set_play_mode(PLAY_MODE_CHANGE_AREA);
         } else if (pressed_pause()) {
-            mb64_menu_index = 0;
             lower_background_noise(1);
 #if ENABLE_RUMBLE
             cancel_rumble();
 #endif
             gCameraMovementFlags |= CAM_MOVE_PAUSE_SCREEN;
             set_play_mode(PLAY_MODE_PAUSED);
+            create_pause_menu();
             gMarioState->marioObj->header.gfx.node.flags &= ~GRAPH_RENDER_INVISIBLE;
         }
     }
-    
+
     return FALSE;
 }
 
@@ -1135,21 +1088,14 @@ void exit_level(void) {
         gCameraMovementFlags &= ~CAM_MOVE_PAUSE_SCREEN;
         mb64_level_action = MB64_LA_BUILD;
     } else {
-        func_80321080(1); // clear background music (i think)
+        stop_secondary_music(1); // clear background music (i think)
         fade_into_special_warp(WARP_SPECIAL_MARIO_HEAD_REGULAR, 0); // reset game
     }
 }
 
 s32 play_mode_paused(void) {
-    // playtimer++;
-    // if (playtimer>29) {
-    //     playtimer = 0;
-    //     save_file_one_second();
-    // }
-
-    if (gMenuOptSelectIndex == MENU_OPT_NONE) {
-        set_menu_mode(MENU_MODE_RENDER_PAUSE_SCREEN);
-    } else if (gMenuOptSelectIndex == MENU_OPT_DEFAULT) {
+    if (gMenuOptSelectIndex == MENU_OPT_NONE) return FALSE;
+    if (gMenuOptSelectIndex == MENU_OPT_CONTINUE) {
         raise_background_noise(1);
         gCameraMovementFlags &= ~CAM_MOVE_PAUSE_SCREEN;
         set_play_mode(PLAY_MODE_NORMAL);
@@ -1186,7 +1132,7 @@ s32 play_mode_frame_advance(void) {
  */
 void level_set_transition(s16 length, void (*updateFunction)()) {
     sTransitionTimer = length;
-    sTransitionUpdate = updateFunction;
+    sTransitionUpdate = (typeof(sTransitionUpdate)) updateFunction;
 }
 
 /**
@@ -1221,10 +1167,12 @@ s32 play_mode_change_level(void) {
         gHudDisplay.flags = HUD_DISPLAY_NONE;
         sTransitionTimer = 0;
         sTransitionUpdate = NULL;
-        full_menu_reset();
         reset_menu();
         if (sSpecialWarpDest == WARP_SPECIAL_MARIO_HEAD_REGULAR) {
-            mb64_init_exit_to_files();
+            mb64_mode = MB64_MODE_UNINITIALIZED;
+            mb64_lopt_template = 0;
+            mb64_lopt_size = 0;
+            mb64_lopt_game = MB64_GAME_VANILLA;
         }
 
         if (sWarpDest.type != WARP_TYPE_NOT_WARPING) {
@@ -1256,8 +1204,9 @@ UNUSED static s32 play_mode_unused(void) {
 
 s32 update_level(void) {
     s32 changeLevel = FALSE;
+    gBlockSurfacesAllocated = 0;
+    gBlockSurfaceNodesAllocated = 0;
 
-    clear_block_surfaces();
     switch (sCurrPlayMode) {
         case PLAY_MODE_NORMAL:
             changeLevel = play_mode_normal(); scroll_textures();
@@ -1286,11 +1235,12 @@ s32 update_level(void) {
 
 extern u8 mb64_append_frameone_bandaid_fix;
 
-s32 init_level(void) {//
-    s32 fadeFromColor = FALSE;
 #ifdef PUPPYPRINT_DEBUG
-    OSTime first = osGetTime();
+extern u32 gInitLevelTime;
 #endif
+
+s32 init_level(void) {
+    s32 fadeFromColor = FALSE;
 
     if (mb64_mode == MB64_MODE_UNINITIALIZED) {
         mb64_init();
@@ -1302,6 +1252,12 @@ s32 init_level(void) {//
     if ((mb64_level_action == MB64_LA_PLAY_LEVELS)||(mb64_level_action == MB64_LA_TEST_LEVEL)) {
         mb64_target_mode = MB64_MODE_PLAY;
     }
+
+    // First boot of editor, show tip
+    if (mb64_mode == MB64_MODE_UNINITIALIZED && mb64_target_mode == MB64_MODE_MAKE) {
+        show_tip();
+    }
+    
     mb64_mode = mb64_target_mode;
 
     gMarioState->MaskChase = FALSE;
@@ -1311,7 +1267,6 @@ s32 init_level(void) {//
 
     gMarioState->powerup = 0;
 
-    revent_tempo = 0;
     gMarioState->hundredSpawned = FALSE;
     gMarioState->YoshiCoins = 0;
     gMarioState->DeadRexes = 0;
@@ -1333,47 +1288,8 @@ s32 init_level(void) {//
 
     gMarioState->NewLevel = FALSE;
 
-    //De-Dither optimization
-    // if (gIsConsole) {
-    //     switch(gCurrLevelNum) {
-    //         case LEVEL_BBH:
-    //         case LEVEL_CCM:
-    //         case LEVEL_TTC:
-    //         case LEVEL_WDW://star fair is laggy as shit on n64
-    //         osViSetSpecialFeatures(OS_VI_DITHER_FILTER_OFF);
-    //         osViSetSpecialFeatures(OS_VI_DIVOT_OFF);
-    //         break;
-    //         default:
-    //         osViSetSpecialFeatures(OS_VI_DITHER_FILTER_ON);
-    //         osViSetSpecialFeatures(OS_VI_DIVOT_ON);
-    //         break;
-    //     }
-    // }
-
-    // if ((gCurrActNum == 5)&&(gCurrLevelNum == LEVEL_LLL)) {
-    //     gMarioState->NewTimer = 30;
-    //     gMarioState->NewTimerMode = 1;
-    // }
-
     gMarioState->LavaHeat = 3;
-    // switch(gCurrLevelNum) {
-    //     case LEVEL_HMC:
-    //     case LEVEL_JRB:
-    //         gMarioState->LavaHeat = 2;
-    //     break;
-    //     case LEVEL_SL:
-    //         gMarioState->LavaHeat = 5;
-    //     break;
-    //     case LEVEL_BITFS:
-    //         gMarioState->LavaHeat = 4;
-    //     break;
-    // }
-
     gMarioState->_2D = FALSE;
-    // if (gCurrLevelNum == LEVEL_SSL) {
-    //     gMarioState->_2D = TRUE;
-    // }
-
     set_play_mode(PLAY_MODE_NORMAL);
 
     sDelayedWarpOp = WARP_OP_NONE;
@@ -1381,6 +1297,10 @@ s32 init_level(void) {//
     sSpecialWarpDest = WARP_SPECIAL_NONE;
 
     g100CoinStarSpawned = FALSE;
+    gRedCoinsCollected = 0;
+    gRedCoinsTotal = 0;
+    gStarTriggersCollected = 0;
+    gStarTriggersTotal = 0;
 
     // NOTE: gStarModelLastCollected reset here as a safety to prevent possible UB if assigned a model used
     // in a non-global group. This checked can be removed as needed.
@@ -1457,11 +1377,14 @@ s32 init_level(void) {//
         sound_banks_disable(SEQ_PLAYER_SFX, SOUND_BANKS_DISABLED_DURING_INTRO_CUTSCENE);
     }
 
-#ifdef PUPPYLIGHTS
-    puppylights_allocate();
+#ifdef PUPPYPRINT_DEBUG
+    if (gInitLevelTime) {
+        u32 totalTime = osGetCount() - gInitLevelTime;
+        append_puppyprint_log("Level loaded in %2.3fs.", (f64) OS_CYCLES_TO_USEC(totalTime) / 1000000.0f);
+        gInitLevelTime = 0;
+    }
 #endif
 
-    append_puppyprint_log("Level loaded in %d" PP_CYCLE_STRING ".", (s32)(PP_CYCLE_CONV(osGetTime() - first)));
     return TRUE;
 }
 

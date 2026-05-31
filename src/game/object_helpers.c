@@ -6,7 +6,6 @@
 #include "behavior_data.h"
 #include "camera.h"
 #include "debug.h"
-#include "dialog_ids.h"
 #include "engine/behavior_script.h"
 #include "engine/geo_layout.h"
 #include "engine/math_util.h"
@@ -26,9 +25,6 @@
 #include "rendering_graph_node.h"
 #include "spawn_object.h"
 #include "spawn_sound.h"
-#include "puppylights.h"
-#include "puppycamold.h"
-#include "game/rovent.h"
 #include "save_file.h"
 #include "platform_displacement.h"
 #include "audio/external.h"
@@ -42,6 +38,7 @@ void cur_obj_shake(struct Object *obj) {
         obj->oPosY -= 5.0f;
     }
 }
+
 
 Gfx *geo_update_projectile_pos_from_parent(s32 callContext, UNUSED struct GraphNode *node, Mat4 mtx) {
     if (callContext == GEO_CONTEXT_RENDER) {
@@ -151,7 +148,7 @@ Gfx *geo_switch_anim_state(s32 callContext, struct GraphNode *node, UNUSED void 
     return NULL;
 }
 
-Gfx *geo_switch_area(s32 callContext, struct GraphNode *node, UNUSED void *context) {
+// Gfx *geo_switch_area(s32 callContext, struct GraphNode *node, UNUSED void *context) {
     // struct GraphNodeSwitchCase *switchCase = (struct GraphNodeSwitchCase *) node;
 
     // if (callContext == GEO_CONTEXT_RENDER && gMarioObject != NULL) {
@@ -171,8 +168,8 @@ Gfx *geo_switch_area(s32 callContext, struct GraphNode *node, UNUSED void *conte
     //     switchCase->selectedCase = 0;
     // }
 
-    // return NULL;
-}
+//     return NULL;
+// }
 
 void obj_update_pos_from_parent_transformation(Mat4 a0, struct Object *a1) {
     f32 spC = a1->oParentRelativePosX;
@@ -511,16 +508,16 @@ void obj_set_gfx_pos_from_pos(struct Object *obj) {
 }
 
 void obj_init_animation(struct Object *obj, s32 animIndex) {
-    struct Animation **anims = o->oAnimations;
+    struct Animation **anims = obj->oAnimations;
     geo_obj_init_animation(&obj->header.gfx, &anims[animIndex]);
 }
 
 void obj_apply_scale_to_transform(struct Object *obj) {
     Vec3f scale;
     vec3f_copy(scale, obj->header.gfx.scale);
-    vec3_mul_val(obj->transform[0], scale[0]);
-    vec3_mul_val(obj->transform[1], scale[1]);
-    vec3_mul_val(obj->transform[2], scale[2]);
+    vec3_scale(obj->transform[0], scale[0]);
+    vec3_scale(obj->transform[1], scale[1]);
+    vec3_scale(obj->transform[2], scale[2]);
 }
 
 void obj_copy_scale(struct Object *dst, struct Object *src) {
@@ -800,27 +797,25 @@ struct Object *cur_obj_find_nearby_held_actor(const BehaviorScript *behavior, f3
     return foundObj;
 }
 
-s32 count_imbued_objects(s32 objectList, s32 imbue) {
-    struct ObjectNode *listHead = &gObjectLists[objectList];
-    struct ObjectNode *obj = listHead->next;
+s32 count_imbued_objects(s32 imbue) {
     s32 count = 0;
+    for (s32 i = 0; i < ARRAY_COUNT(imbueObjectLists); i++) {
+        struct ObjectNode *listHead = &gObjectLists[imbueObjectLists[i]];
+        struct ObjectNode *obj = listHead->next;
 
-    while (obj != listHead) {
-        if (((struct Object *) obj)->oImbue == imbue) {
-            count++;
+        while (obj != listHead) {
+            if (((struct Object *) obj)->oImbue == imbue) {
+                count++;
+            }
+            obj = obj->next;
         }
-        obj = obj->next;
     }
 
     return count;
 }
 
 s32 count_star_triggers(void) {
-    s32 count = 0;
-    for (s32 i = 0; i < ARRAY_COUNT(imbueObjectLists); i++) {
-        count += count_imbued_objects(imbueObjectLists[i], IMBUE_TRIGGER);
-    }
-    return count;
+    return count_imbued_objects(IMBUE_TRIGGER);
 }
 
 s32 count_red_coins(void) {
@@ -834,10 +829,7 @@ s32 count_red_coins(void) {
         }
         obj = obj->next;
     }
-    
-    for (s32 i = 0; i < ARRAY_COUNT(imbueObjectLists); i++) {
-        count += count_imbued_objects(imbueObjectLists[i], IMBUE_RED_COIN);
-    }
+    count += count_imbued_objects(IMBUE_RED_COIN);
 
     return count;
 }
@@ -1031,10 +1023,6 @@ s32 cur_obj_clear_interact_status_flag(s32 flag) {
  * Mark an object to be unloaded at the end of the frame.
  */
 void obj_mark_for_deletion(struct Object *obj) {
-#ifdef PUPPYLIGHTS
-    obj_disable_light(obj);
-#endif
-
     //! This clears all activeFlags. Since some of these flags disable behavior,
     //  setting it to 0 could potentially enable unexpected behavior. After an
     //  object is marked for deletion, it still updates on that frame (I think),
@@ -2231,190 +2219,14 @@ s32 cur_obj_can_mario_activate_textbox_2(f32 radius, f32 height) {
     return cur_obj_can_mario_activate_textbox(radius, height, 0x1000);
 }
 
-static void cur_obj_end_dialog(s32 dialogFlags, s32 dialogResult) {
-    o->oDialogResponse = dialogResult;
-    o->oDialogState++;
+// static void cur_obj_end_dialog(s32 dialogFlags, s32 dialogResult) {
+//     o->oDialogResponse = dialogResult;
+//     o->oDialogState++;
 
-    if (!(dialogFlags & DIALOG_FLAG_TIME_STOP_ENABLED)) {
-        set_mario_npc_dialog(MARIO_DIALOG_STOP);
-    }
-}
-
-s32 cur_obj_update_dialog(s32 actionArg, s32 dialogFlags, s32 dialogID, UNUSED s32 unused) {
-    s32 dialogResponse = DIALOG_RESPONSE_NONE;
-
-    switch (o->oDialogState) {
-#ifdef BUGFIX_DIALOG_TIME_STOP
-        case DIALOG_STATUS_ENABLE_TIME_STOP:
-            // Patched :(
-            // Wait for Mario to be ready to speak, and then enable time stop
-            if (mario_ready_to_speak() || gMarioState->action == ACT_READING_NPC_DIALOG) {
-                gTimeStopState |= TIME_STOP_ENABLED;
-                o->activeFlags |= ACTIVE_FLAG_INITIATED_TIME_STOP;
-                o->oDialogState++;
-            } else {
-                break;
-            }
-            // Fall through so that Mario's action is interrupted immediately
-            // after time is stopped
-            FALL_THROUGH;
-#else
-        case DIALOG_STATUS_ENABLE_TIME_STOP:
-            //! We enable time stop even if Mario is not ready to speak. This
-            //  allows us to move during time stop as long as Mario never enters
-            //  an action that can be interrupted with text.
-            if (gMarioState->health >= 0x100) {
-                gTimeStopState |= TIME_STOP_ENABLED;
-                o->activeFlags |= ACTIVE_FLAG_INITIATED_TIME_STOP;
-                o->oDialogState++;
-            }
-            break;
-#endif
-        case DIALOG_STATUS_INTERRUPT:
-            // Interrupt until Mario is actually speaking with the NPC
-            if (set_mario_npc_dialog(actionArg) == MARIO_DIALOG_STATUS_SPEAK) {
-                o->oDialogState++;
-            }
-            break;
-
-        case DIALOG_STATUS_START_DIALOG:
-            // Starts dialog, depending of the flag defined, it calls
-            // a default dialog or a dialog with response.
-            if (dialogFlags & DIALOG_FLAG_TEXT_RESPONSE) {
-                create_dialog_box_with_response(dialogID);
-            } else if (dialogFlags & DIALOG_FLAG_TEXT_DEFAULT) {
-                create_dialog_box(dialogID);
-            }
-            o->oDialogState++;
-            break;
-
-        case DIALOG_STATUS_STOP_DIALOG:
-            // Stops dialog, if the flag dialog response was called
-            // then it defines the value to let the object do the rest.
-            if (dialogFlags & DIALOG_FLAG_TEXT_RESPONSE) {
-                if (gDialogResponse != DIALOG_RESPONSE_NONE) {
-                    cur_obj_end_dialog(dialogFlags, gDialogResponse);
-                }
-            } else if (dialogFlags & DIALOG_FLAG_TEXT_DEFAULT) {
-                if (get_dialog_id() == DIALOG_NONE) {
-                    cur_obj_end_dialog(dialogFlags, DIALOG_RESPONSE_NOT_DEFINED);
-                }
-            } else {
-                cur_obj_end_dialog(dialogFlags, DIALOG_RESPONSE_NOT_DEFINED);
-            }
-            break;
-
-        case DIALOG_STATUS_DISABLE_TIME_STOP:
-            // We disable time stop for a few seconds when Mario is no longer
-            // speaking or the flag is defined, then we enable it again.
-            // Usually, an object disables time stop using a separate function
-            // after a certain condition is met.
-            if (gMarioState->action != ACT_READING_NPC_DIALOG || (dialogFlags & DIALOG_FLAG_TIME_STOP_ENABLED)) {
-                gTimeStopState &= ~TIME_STOP_ENABLED;
-                o->activeFlags &= ~ACTIVE_FLAG_INITIATED_TIME_STOP;
-                dialogResponse = o->oDialogResponse;
-                o->oDialogState = DIALOG_STATUS_ENABLE_TIME_STOP;
-            }
-            break;
-
-        default:
-            o->oDialogState = DIALOG_STATUS_ENABLE_TIME_STOP;
-            break;
-    }
-
-    return dialogResponse;
-}
-
-s32 cur_obj_update_dialog_with_cutscene(s32 actionArg, s32 dialogFlags, s32 cutsceneTable, s32 dialogID) {
-    s32 dialogResponse = DIALOG_RESPONSE_NONE;
-    s32 doneTurning = TRUE;
-
-    switch (o->oDialogState) {
-#ifdef BUGFIX_DIALOG_TIME_STOP
-        case DIALOG_STATUS_ENABLE_TIME_STOP:
-            // Wait for Mario to be ready to speak, and then enable time stop
-            if (mario_ready_to_speak() || gMarioState->action == ACT_READING_NPC_DIALOG) {
-                gTimeStopState |= TIME_STOP_ENABLED;
-                o->activeFlags |= ACTIVE_FLAG_INITIATED_TIME_STOP;
-                o->oDialogState++;
-                o->oDialogResponse = DIALOG_RESPONSE_NONE;
-            } else {
-                break;
-            }
-            // Fall through so that Mario's action is interrupted immediately
-            // after time is stopped
-            FALL_THROUGH;
-#else
-        case DIALOG_STATUS_ENABLE_TIME_STOP:
-            //! We enable time stop even if Mario is not ready to speak. This
-            //  allows us to move during time stop as long as Mario never enters
-            //  an action that can be interrupted with text.
-            if (gMarioState->health >= 0x0100) {
-                gTimeStopState |= TIME_STOP_ENABLED;
-                o->activeFlags |= ACTIVE_FLAG_INITIATED_TIME_STOP;
-                o->oDialogState++;
-                o->oDialogResponse = DIALOG_RESPONSE_NONE;
-            }
-            break;
-#endif
-        case DIALOG_STATUS_INTERRUPT:
-            // Additional flag that makes the NPC rotate towards to Mario
-            if (dialogFlags & DIALOG_FLAG_TURN_TO_MARIO) {
-                doneTurning = cur_obj_rotate_yaw_toward(obj_angle_to_object(o, gMarioObject), 0x800);
-                // Failsafe just in case it takes more than 33 frames somehow
-                if (o->oDialogResponse > DIALOG_RESPONSE_MAXIMUM) {
-                    doneTurning = TRUE;
-                }
-            }
-            // Interrupt status until Mario is actually speaking with the NPC and if the
-            // object is done turning to Mario
-            if (set_mario_npc_dialog(actionArg) == MARIO_DIALOG_STATUS_SPEAK && doneTurning) {
-                o->oDialogResponse = DIALOG_RESPONSE_NONE;
-                o->oDialogState++;
-            } else {
-                o->oDialogResponse++; // treated as a timer for the failsafe
-            }
-            break;
-
-        case DIALOG_STATUS_START_DIALOG:
-            // Special check for Cap Switch cutscene since the cutscene itself
-            // handles what dialog should use
-            if (cutsceneTable == CUTSCENE_CAP_SWITCH_PRESS) {
-                if ((o->oDialogResponse = cutscene_object_without_dialog(cutsceneTable, o))) {
-                    o->oDialogState++;
-                }
-            } else {
-                // General dialog cutscene function, most of the time
-                // the "CUTSCENE_DIALOG" cutscene is called
-                if ((o->oDialogResponse = cutscene_object_with_dialog(cutsceneTable, o, dialogID))) {
-                    o->oDialogState++;
-                }
-            }
-            break;
-
-        case DIALOG_STATUS_STOP_DIALOG:
-            // If flag defined, keep time stop enabled until the object
-            // decided to disable it independently
-            if (dialogFlags & DIALOG_FLAG_TIME_STOP_ENABLED) {
-                dialogResponse = o->oDialogResponse;
-                o->oDialogState = DIALOG_STATUS_ENABLE_TIME_STOP;
-            } else if (gMarioState->action != ACT_READING_NPC_DIALOG) {
-                // Disable time stop, then enable time stop for a frame
-                // until the set_mario_npc_dialog function disables it
-                gTimeStopState &= ~TIME_STOP_ENABLED;
-                o->activeFlags &= ~ACTIVE_FLAG_INITIATED_TIME_STOP;
-                dialogResponse = o->oDialogResponse;
-                o->oDialogState = DIALOG_STATUS_ENABLE_TIME_STOP;
-            } else {
-                // And finally stop Mario dialog status
-                set_mario_npc_dialog(MARIO_DIALOG_STOP);
-            }
-            break;
-    }
-
-    return dialogResponse;
-}
-
+//     if (!(dialogFlags & DIALOG_FLAG_TIME_STOP_ENABLED)) {
+//         set_mario_npc_dialog(MARIO_DIALOG_STOP);
+//     }
+// }
 
 void cur_obj_align_gfx_with_floor(void) {
     struct Surface *floor;
@@ -2485,6 +2297,7 @@ s32 obj_attack_collided_from_other_object(struct Object *obj, s32 attackType) {
 }
 
 // for crowbar
+u32 interact_coin(struct MarioState *m, u32 interactType, struct Object *obj);
 s32 obj_coin_collected_by_other_object(struct Object *obj) {
     s32 ret = FALSE;
     for (s32 i = 0; i < obj->numCollidedObjs; i++) {

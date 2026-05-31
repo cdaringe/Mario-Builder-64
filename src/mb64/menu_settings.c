@@ -1,16 +1,14 @@
 #include "menu_engine.h"
 
-#include "menu.h"
-#include "game/game_init.h"
-#include "game/ingame_menu.h"
-#include "audio/external.h"
 #include "game/level_update.h"
-#include "game/segment2.h"
-
-#include "actors/bg/header.h"
 #include "actors/bigpainting2/header.h"
+#include "game/mario.h"
 
-ComponentID settingsRoot = 0;
+#include "main.h"
+#include "gfx.h"
+#include "menu.h"
+
+MenuComponent *settingsRoot = NULL;
 
 u8 gSettingsPage = 0;
 u8 gSettingsCustomOpen = 0;
@@ -22,16 +20,6 @@ char *settings_menu_pages[] = {
     "Miscellaneous",
     "System",
 };
-
-void component_settings_box_render(MenuComponent *m, s16 x, s16 y) {
-    x += m->xpos;
-    y += m->ypos;
-
-    create_dl_translation_matrix(MENU_MTX_PUSH, x, y, 0);
-    gDPSetEnvColor(gDisplayListHead++, 0, 0, 0, 150);
-    gSPDisplayList(gDisplayListHead++, &bg_back_graund_mesh);
-    gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
-}
 
 void component_level_portrait_render(MenuComponent *m, s16 x, s16 y) {
     x += m->xpos;
@@ -62,7 +50,7 @@ char *mb64_theme_string_table[] = {
 
 ListComponent *gEnvironmentList;
 void theme_changed(UNUSED SelectorComponent *s) {
-    AnimatedComponent *customtheme = get_first_child(component_list_get(gEnvironmentList, 3));
+    AnimatedComponent *customtheme = get_child(component_list_get(gEnvironmentList, 3));
 
     if (mb64_lopt_theme == MB64_THEME_CUSTOM) {
         // Enable custom theme button
@@ -364,7 +352,6 @@ char *mb64_costume_string_table[] = {
 
 
 // System page
-
 void settings_save_and_quit(void) {
     if (gSDCard) {
         save_level();
@@ -389,9 +376,10 @@ void settings_play_level(void) {
 void settings_take_screenshot(void) {
     freecam_camera_init();
     mb64_menu_state = MB64_MAKE_SCREENSHOT;
+    create_yellow_text("Analog Stick: Look around\n\x14 ^ / |: Move forward / backward\n\x14 < / >: Move sideways\n\x15 / \x13: Zoom\n\x12: Toggle Help\nSTART: Take screenshot\n\x11: Exit");
     play_sound(SOUND_MENU_CLICK_CHANGE_VIEW, gGlobalSoundSource);
-    dealloc_component(settingsRoot);
-    settingsRoot = 0;
+    dealloc_component(get_id(settingsRoot));
+    settingsRoot = NULL;
 }
 
 
@@ -556,7 +544,7 @@ void custom_theme_update_material(FrameComponent *f) {
         default:
             set_mat_from_category_and_index(f->matCategory, f->matIndex, &mb64_curr_custom_theme.mats[index]);
             set_mat_from_category_and_index(f->topmatCategory, f->topmatIndex, &mb64_curr_custom_theme.topmats[index]);
-            custom_theme_set_floor_class_name(get_child(f, MENU_TEXT, 0), index);
+            custom_theme_set_floor_class_name(get_child_of_type(f, MENU_TEXT, 0), index);
     }
 }
 
@@ -595,7 +583,7 @@ void material_changed(SelectorComponent *s) {
 void category_changed(SelectorComponent *s) {
     ListItemComponent *li = get_parent(s);
     ListItemComponent *mli = get_component(li->base.next); // hacky way to get the next item in the list, which is the material selector
-    SelectorComponent *s2 = get_child(mli, MENU_SELECTOR, 0);
+    SelectorComponent *s2 = get_child_of_type(mli, MENU_SELECTOR, 0);
     s2->scroll.count = get_category_size(*s->value);
     *s2->value = 0;
     FrameComponent *f = get_parent(get_parent(li)); // Assumes Frame -> List -> ListItem
@@ -705,7 +693,7 @@ FrameComponent *custom_theme_page_creator(UNUSED PageHandlerComponent *unusedph,
 }
 
 void custom_theme_button_pressed(void) {
-    PageHandlerComponent *ph = get_first_child(get_component(settingsRoot));
+    PageHandlerComponent *ph = get_child_of_type(settingsRoot, MENU_PAGE_HANDLER, 0);
     page_handler_scroll(ph, 1);
 }
 
@@ -735,7 +723,7 @@ void konami_code_check(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
                 konami_disable_inputs = FALSE;
                 konami_index = 0;
 
-                SelectorComponent *s = get_child(component_list_get(get_child(m, MENU_LIST, 0), 0), MENU_SELECTOR, 0);
+                SelectorComponent *s = get_child_of_type(component_list_get(get_child_of_type(m, MENU_LIST, 0), 0), MENU_SELECTOR, 0);
                 s->scroll.count = ARRAY_COUNT(mb64_theme_string_table);
             }
         } else {
@@ -852,19 +840,21 @@ FrameComponent *settings_page_creator(UNUSED PageHandlerComponent *unusedph, s32
 }
 
 void settings_page_closed() {
-    PageHandlerComponent *ph = get_first_child(get_component(settingsRoot));
+    PageHandlerComponent *ph = get_child_of_type(settingsRoot, MENU_PAGE_HANDLER, 0);
     gSettingsCustomOpen = ph->index;
-    PageHandlerComponent *ph2 = get_first_child(get_component(ph->currentPage));
+    PageHandlerComponent *ph2 = get_child(get_component(ph->currentPage));
     gSettingsPage = ph2->index;
 
-    dealloc_component(settingsRoot);
-    settingsRoot = 0;
+    dealloc_component(get_id(settingsRoot));
+    settingsRoot = NULL;
     mb64_menu_state = MB64_MAKE_MAIN;
+    show_coord_display();
     toolbar_set_active(TRUE);
 }
 
 MenuStyle settings_menu_style = {
-    .listOffsetSelected = TRUE
+    .listOffsetSelected = TRUE,
+    .textHighlightSelected = TRUE,
 };
 
 void settings_page_main(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
@@ -877,8 +867,8 @@ void settings_page_main(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
     mb64_gfx_index = 0;
 
     if (!(root->timer) && !konami_disable_inputs && gPlayer1Controller->buttonPressed & (START_BUTTON | B_BUTTON)) {
-        play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
-        PageHandlerComponent *ph = get_first_child(root);
+        menu_play_click_sound();
+        PageHandlerComponent *ph = get_child_of_type(root, MENU_PAGE_HANDLER, 0);
         if ((ph->index == 0) || (gPlayer1Controller->buttonPressed & START_BUTTON)) {
             component_animate_ease_out(root, 4.f, 12, DIR_VERTICAL);
             root->onFinish = settings_page_closed;
@@ -887,7 +877,7 @@ void settings_page_main(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
             gFromCustomTheme = TRUE;
             page_handler_scroll(ph, -1);
             // Save current page
-            PageHandlerComponent *ph2 = get_first_child(get_component(ph->oldPage));
+            PageHandlerComponent *ph2 = get_child(get_component(ph->oldPage));
             gSettingsPage = ph2->index;
         }
         update_custom_theme();
@@ -901,13 +891,13 @@ void settings_menu_create(void) {
     component_animate_ease_in(main, 180.f, 0.4f, DIR_VERTICAL);
     main->base.prerender = settings_page_main;
 
+    init_box_component(main, 0, 0, 155, 72, 11, 150);
     PageHandlerComponent *ph = init_page_handler(main, settings_page_creator, 2, SETTINGS_PAGE_HEIGHT/2);
-    ph->base.prerender = component_settings_box_render;
     ph->direction = DIR_VERTICAL;
     ph->input = MENU_INPUT_NONE;
     ph->index = gSettingsCustomOpen;
 
-    settingsRoot = get_id(main);
+    settingsRoot = (MenuComponent *)main;
 }
 
 // Called on level transition

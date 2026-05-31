@@ -17,7 +17,6 @@
 #include "include/behavior_data.h"
 #include "ingame_menu.h"
 #include "platform_displacement.h"
-#include "rovent.h"
 #include "mb64/main.h"
 #include "engine/surface_collision.h"
 
@@ -25,9 +24,9 @@ u8 bullet_fuel = 0;
 
 void bullet_bill_fly(struct MarioState *m) {
     struct Object *smoke;
-    if ((m->controller->buttonDown & A_BUTTON)&&(m->vel[1]<0.0f)&&(m->powerup & 2)&&(bullet_fuel > 0)&&(!revent_active)) {
+    if ((m->controller->buttonDown & A_BUTTON)&&(m->vel[1]<0.0f)&&(m->powerup & 2)&&(bullet_fuel > 0)) {
         bullet_fuel --;
-        cur_obj_play_sound_1(SOUND_AIR_BLOW_FIRE);
+        play_sound(SOUND_AIR_BLOW_FIRE, m->marioObj->header.gfx.cameraToObject);
         m->vel[1] = 0.0f;
         if (m->forwardVel < 40.0f) {
             m->forwardVel += 4.0f;
@@ -143,7 +142,7 @@ s32 should_get_stuck_in_ground(UNUSED struct MarioState *m) {
 }
 #else
 s32 should_get_stuck_in_ground(struct MarioState *m) {
-    u32 terrainType = m->area->terrainType & TERRAIN_MASK;
+    // u32 terrainType = m->area->terrainType & TERRAIN_MASK;
     struct Surface *floor = m->floor;
     s32 type = floor->type;
 
@@ -175,30 +174,30 @@ s32 check_fall_damage_or_get_stuck(struct MarioState *m, u32 hardFallAction) {
 
 s32 check_horizontal_wind(struct MarioState *m) {
     struct Surface *floor = m->floor;
-    f32 speed;
-    s16 pushAngle;
+    // f32 speed;
+    // s16 pushAngle;
 
     if (floor->type == SURFACE_HORIZONTAL_WIND) {
         //pushAngle = floor->force << 8;
 
-        m->slideVelX += 1.2f * sins(pushAngle);
-        m->slideVelZ += 1.2f * coss(pushAngle);
+        // m->slideVelX += 1.2f * sins(pushAngle);
+        // m->slideVelZ += 1.2f * coss(pushAngle);
 
-        speed = (sqr(m->slideVelX) + sqr(m->slideVelZ));
+        // speed = (sqr(m->slideVelX) + sqr(m->slideVelZ));
 
-        if (speed > sqr(48.0f)) {
-            speed = sqrtf(speed);
-            m->slideVelX = m->slideVelX * 48.0f / speed;
-            m->slideVelZ = m->slideVelZ * 48.0f / speed;
-            speed = 48.0f;
-        } else if (speed > 32.0f) {
-            speed = 32.0f;
-        }
+        // if (speed > sqr(48.0f)) {
+        //     speed = sqrtf(speed);
+        //     m->slideVelX = m->slideVelX * 48.0f / speed;
+        //     m->slideVelZ = m->slideVelZ * 48.0f / speed;
+        //     speed = 48.0f;
+        // } else if (speed > 32.0f) {
+        //     speed = 32.0f;
+        // }
 
-        m->vel[0] = m->slideVelX;
-        m->vel[2] = m->slideVelZ;
-        m->slideYaw = atan2s(m->slideVelZ, m->slideVelX);
-        m->forwardVel = speed * coss(m->faceAngle[1] - m->slideYaw);
+        // m->vel[0] = m->slideVelX;
+        // m->vel[2] = m->slideVelZ;
+        // m->slideYaw = atan2s(m->slideVelZ, m->slideVelX);
+        // m->forwardVel = speed * coss(m->faceAngle[1] - m->slideYaw);
         return TRUE;
     }
 
@@ -491,15 +490,6 @@ u32 common_air_action_step(struct MarioState *m, u32 landAction, s32 animation, 
 }
 
 s32 act_jump(struct MarioState *m) {
-#ifdef EASIER_LONG_JUMPS
-    if (m->actionTimer < 1) {
-        m->actionTimer++;
-        if (m->input & INPUT_Z_PRESSED && m->forwardVel > 10.0f) {
-            return set_jumping_action(m, ACT_LONG_JUMP, 0);
-        }
-    }
-#endif
-
     if (check_kick_or_dive_in_air(m)) {
         return TRUE;
     }
@@ -709,6 +699,7 @@ s32 act_wall_kick_air(struct MarioState *m) {
     return FALSE;
 }
 
+s32 bonk_or_hit_lava_wall(struct MarioState *m, struct WallCollisionData *wallData);
 s32 act_wall_stick(struct MarioState *m) {
     struct WallCollisionData wall;
 

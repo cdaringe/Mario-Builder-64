@@ -1,15 +1,11 @@
 #include "menu_engine.h"
-
-#include "game/game_init.h"
-#include "game/ingame_menu.h"
-#include "audio/external.h"
+#include "menu.h"
 
 #include "game/sram.h"
-#include "game/segment2.h"
-#include "levels/menu/mm_btn2/header.h"
-#include "levels/menu/mm_btn_lg/header.h"
+#include "lib/libpl/libpl.h"
 #include "levels/menu/header.h"
-#include "libpl/libpl.h"
+#include "game/emutest.h"
+#include <string.h>
 
 char *info_credits[] = {
     "3Mario Builder 64",
@@ -319,18 +315,7 @@ char *new_level_templates[] = {
     "Retro",
 };
 
-void component_main_menu_button_render(MenuComponent *m, s16 x, s16 y) {
-    x += m->xpos;
-    y += m->ypos + 7;
-    u8 value = gMenuState.selected ? get_selected_color_value() : 0;
-
-    create_dl_translation_matrix(MENU_MTX_PUSH, x, y, 0);
-    gSPDisplayList(gDisplayListHead++, dl_ia_text_begin);
-    gDPSetEnvColor(gDisplayListHead++, value, value, value, 190);
-    gSPDisplayList(gDisplayListHead++, &mm_btn2_mm_btn_mesh);
-    gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
-    gSPDisplayList(gDisplayListHead++, dl_ia_text_end);
-}
+void main_menu_page_change_animate(FrameComponent *page, int out);
 
 #define levelIndex params[0].asInt
 void component_main_menu_level_render(MenuComponent *m, s16 x, s16 y) {
@@ -341,18 +326,15 @@ void component_main_menu_level_render(MenuComponent *m, s16 x, s16 y) {
     y += m->ypos;
     u8 value = gMenuState.selected ? get_selected_color_value() : 0;
 
-    create_dl_translation_matrix(MENU_MTX_PUSH, x, y, 0);
-    gSPDisplayList(gDisplayListHead++, dl_ia_text_begin);
     if (gMenuState.disabled) {
         gDPSetEnvColor(gDisplayListHead++, 50, 0, 0, 150);
     } else {
         gDPSetEnvColor(gDisplayListHead++, value, value, value, 150);
     }
-    gSPDisplayList(gDisplayListHead++, &mm_btn_lg_mm_btn_lg_mesh);
-    gSPDisplayList(gDisplayListHead++, dl_ia_text_end);
+    render_4slice_box(x, y, 135, 14, 10);
 
     if (f->levelIndex != -2) {
-        create_dl_translation_matrix(MENU_MTX_NOPUSH, -108, -2, 0);
+        create_dl_translation_matrix(MENU_MTX_PUSH, x-108, y, 0);
         if (gMenuState.disabled) {
             gDPSetEnvColor(gDisplayListHead++, 150, 0, 0, 255);
         } else {
@@ -370,8 +352,8 @@ void component_main_menu_level_render(MenuComponent *m, s16 x, s16 y) {
         if (gMenuState.disabled) {
             menu_text_display("X", 1, -7, TEXT_DARKRED, TEXT_CENTER, 255);
         }
+        gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
     }
-    gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
 }
 
 enum MainMenuPages {
@@ -421,18 +403,18 @@ void do_page_change(UNUSED AnimatedComponent *a) {
 }
 
 void unfreeze_page(UNUSED AnimatedComponent *a) {
-    MenuComponent *page = get_first_child(gMainMenuPageHandler);
+    MenuComponent *page = get_child(gMainMenuPageHandler);
     page->inactive = FALSE;
 }
 
 void main_menu_list_animate(ListComponent *l, int out) {
     int dir = gMainMenuAnimateDir;
     for (int i = 0; i < l->count; i++) {
-        AnimatedComponent *a = get_first_child(component_list_get(l, i));
+        AnimatedComponent *a = get_child(component_list_get(l, i));
         if (out) {
             component_animate_bounce_out(a, -8.f*dir, 23.f*dir, 20, DIR_HORIZONTAL);
         } else {
-            component_animate_bounce_in(a, 300.f*dir, 8.f*dir, -75.f*dir, DIR_HORIZONTAL);
+            component_animate_bounce_in(a, 350.f*dir, 8.f*dir, -81.f*dir, DIR_HORIZONTAL);
         }
         a->delay = ABS(l->index - i)*2;
     }
@@ -455,7 +437,7 @@ void main_menu_keyboard_animate(AnimatedComponent *k, int out) {
 }
 
 void main_menu_key_text_animate(FrameComponent *page, int out, int dir) {
-    AnimatedComponent *a = get_child(page, MENU_ANIMATED, 0);
+    AnimatedComponent *a = get_child_of_type(page, MENU_ANIMATED, 0);
     main_menu_text_animate(a, out, dir);
     if (out) {
         a->onFinish = do_page_change;
@@ -465,7 +447,7 @@ void main_menu_key_text_animate(FrameComponent *page, int out, int dir) {
 }
 
 void main_menu_shade_animate(FrameComponent *page, int out) {
-    RectComponent *rect = get_first_child(page);
+    RectComponent *rect = get_child(page);
     if (!out) rect->curAlpha = 0;
     component_rect_do_fade(rect, out ? 0 : 110, 12, out ? do_page_change : unfreeze_page);
 }
@@ -473,19 +455,19 @@ void main_menu_shade_animate(FrameComponent *page, int out) {
 void button_change_page(TextComponent *b) {
     gMainMenuAnimateDir = TO_NEXT;
     gScheduledNextPage = b->onClickArg;
-    main_menu_page_change_animate(get_first_child(gMainMenuPageHandler), TRUE);
+    main_menu_page_change_animate(get_child(gMainMenuPageHandler), TRUE);
 }
 
-AnimatedComponent *main_menu_create_title(MenuComponent *parent, char *text, s16 y) {
+AnimatedComponent *main_menu_create_title(FrameComponent *parent, char *text, s16 y) {
     AnimatedComponent *a = alloc_component(parent, MENU_ANIMATED);
     component_set_pos(a, SCREEN_WIDTH/2, y);
 
     MatrixComponent *mat = init_matrix_component(a, 0, 2.f, 2.f);
-    TextComponent *t = init_text_component(mat, 0, 0, text, TEXT_CENTER, 0);
+    init_text_component(mat, 0, 0, text, TEXT_CENTER, 0);
     return a;
 }
 
-ListComponent *main_menu_create_list(MenuComponent *parent, s16 y) {
+ListComponent *main_menu_create_list(FrameComponent *parent, s16 y) {
     ListComponent *l = init_list(parent, DIR_VERTICAL, MENU_INPUT_JOYSTICK);
     component_set_pos(l, SCREEN_WIDTH/2, y);
     return l;
@@ -499,15 +481,15 @@ void main_menu_list_set_index(ListComponent *l) {
 
 void main_menu_create_button(ListComponent *l, char *text, s16 y, ComponentUpdateFunc func, int arg) {
     AnimatedComponent *a = alloc_component(NULL, MENU_ANIMATED);
-    TextComponent *t = init_text_button(a, 0, 0, text, TEXT_CENTER, func, arg);
-    t->base.prerender = component_main_menu_button_render;
+    init_box_component(a, 0, 7, 55, 11, 11, 190);
+    init_text_button(a, 0, 0, text, TEXT_CENTER, func, arg);
     component_list_append(l, a, 0, y);
 }
 
 void main_menu_create_selector(ListComponent *l, char *text, s16 y, u8 *value, char **options, int count) {
     AnimatedComponent *a = alloc_component(NULL, MENU_ANIMATED);
+    init_box_component(a, 20, 7, 55, 11, 11, 190);
     SelectorComponent *s = init_array_selector(a, value, 40, count, options, NULL);
-    s->base.prerender = component_main_menu_button_render;
     component_set_pos(s, 20, 0);
     init_text_component(a, -45, 0, text, TEXT_RIGHT, 0);
     component_list_append(l, a, 0, y);
@@ -553,15 +535,15 @@ void main_menu_info_loop(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
     }
 
     if (gCurrMainMenuPage == PAGE_NO_SD_CARD && gPlayer1Controller->buttonPressed & (A_BUTTON | START_BUTTON)) {
-        MenuComponent *page = get_first_child(gMainMenuPageHandler);
+        FrameComponent *page = get_child(gMainMenuPageHandler);
         gMainMenuAnimateDir = TO_NEXT;
         gScheduledNextPage = PAGE_MAIN;
-        play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
+        menu_play_click_sound();
         main_menu_page_change_animate(page, TRUE);
     }
 }
 
-FrameComponent *main_menu_create_info(MenuComponent *parent, char **text, int len) {
+FrameComponent *main_menu_create_info(FrameComponent *parent, char **text, int len) {
     RectComponent *rect = init_rect_component(parent, 110, SCREEN_WIDTH/2, SCREEN_HEIGHT/2, SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
     FrameComponent *info = init_dynamic_component(rect, main_menu_info_loop);
     info->infoText = text;
@@ -569,13 +551,13 @@ FrameComponent *main_menu_create_info(MenuComponent *parent, char **text, int le
     return info;
 }
 
-void main_menu_load_level(TextComponent *b) {
+void main_menu_load_level(UNUSED TextComponent *b) {
     FILINFO * level_entries_ptr = segmented_to_virtual(mb64_level_entries);
 
     // Animate menu
-    MenuComponent *m = get_first_child(gMainMenuPageHandler);
+    FrameComponent *m = get_child(gMainMenuPageHandler);
     gMainMenuAnimateDir = TO_NEXT;
-    play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
+    menu_play_click_sound();
     main_menu_page_change_animate(m, TRUE);
 
     mb64_mode = MB64_MODE_UNINITIALIZED;
@@ -606,7 +588,7 @@ FrameComponent *main_menu_create_level_page(PageHandlerComponent *ph, s32 index)
         AnimatedComponent *a = alloc_component(NULL, MENU_ANIMATED);
         FrameComponent *level = init_dynamic_component(a, component_main_menu_level_render);
         level->levelIndex = levelindex;
-        TextComponent *t = init_text_component(level, -82, -10, level_entries_ptr[levelindex].fname, TEXT_LEFT, 0);
+        TextComponent *t = init_text_component(level, -82, -8, level_entries_ptr[levelindex].fname, TEXT_LEFT, 0);
         t->onClick = main_menu_load_level;
         t->skipExtension = TRUE;
         component_list_append(l, a, 0, 75 - (i * 36));
@@ -622,16 +604,19 @@ FrameComponent *main_menu_create_level_page(PageHandlerComponent *ph, s32 index)
 }
 
 void page_number_init_text(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
-    component_main_menu_button_render(m, x, y);
     TextComponent *t = (TextComponent *)m;
     FrameComponent *page = get_parent(get_parent(t));
-    PageHandlerComponent *ph = get_first_child(page);
+    PageHandlerComponent *ph = get_child(page);
     sprintf(t->text, "Page %d/%d", ph->index + 1, ph->scroll.count);
 }
+
+void page_handler_set_page(PageHandlerComponent *ph, int page);
+void page_handler_load_initial_page(PageHandlerComponent *ph);
 
 void main_menu_level_list_fast_scroll(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
     PageHandlerComponent *ph = (PageHandlerComponent *)m;
     if (ph->scroll.offset) return;
+    if (gMenuState.inactive) return;
     int index = ph->index;
     int dir = get_input(MENU_INPUT_TRIGGERS | MENU_INPUT_JOYSTICK, DIR_HORIZONTAL);
     if (!dir) {
@@ -639,20 +624,20 @@ void main_menu_level_list_fast_scroll(MenuComponent *m, UNUSED s16 x, UNUSED s16
     }
     index = (index + dir + ph->scroll.count) % ph->scroll.count;
 
-    ListComponent *l = get_child(get_component(ph->currentPage), MENU_LIST, 0);
+    ListComponent *l = get_child_of_type(get_component(ph->currentPage), MENU_LIST, 0);
     int curIndex = l->index;
     page_handler_set_page(ph, index);
-    l = get_child(get_component(ph->currentPage), MENU_LIST, 0);
+    l = get_child_of_type(get_component(ph->currentPage), MENU_LIST, 0);
     l->index = CLAMP(curIndex, 0, l->count - 1);
 }
 
-char *page_buf[12];
-void main_menu_create_level_list(MenuComponent *parent) {
+char page_buf[12];
+void main_menu_create_level_list(FrameComponent *parent) {
     if (mb64_level_entry_count == 0) {
         AnimatedComponent *a = alloc_component(parent, MENU_ANIMATED);
         component_set_pos(a, SCREEN_WIDTH/2,200);
-        TextComponent *t = init_text_component(a, 0, 0, "No levels...", TEXT_CENTER, TEXT_RED);
-        t->base.prerender = component_main_menu_button_render;
+        init_box_component(a, 0, 7, 55, 11, 11, 190);
+        init_text_component(a, 0, 0, "No levels...", TEXT_CENTER, TEXT_RED);
         return;
     }
     int levelcount = (mb64_level_entry_count-1) / LEVELS_PER_PAGE + 1;
@@ -667,20 +652,23 @@ void main_menu_create_level_list(MenuComponent *parent) {
 
     AnimatedComponent *pageinfo = alloc_component(parent, MENU_ANIMATED);
     component_set_pos(pageinfo, 70, 15);
+    init_box_component(pageinfo, 0, 7, 55, 11, 11, 190);
     TextComponent *t = init_text_component(pageinfo, 0, 0, page_buf, TEXT_CENTER, 0);
     t->base.prerender = page_number_init_text;
 }
 
-char main_menu_keyboard_input[MAX(MAX_FILE_NAME_SIZE, MAX_USERNAME_SIZE)];
+//MAX(MAX_FILE_NAME_SIZE, MAX_USERNAME_SIZE)
+char main_menu_keyboard_input[MAX_FILE_NAME_SIZE];
 #define KEYBOARD_CONFIRM (!gMenuState.inactive && (gPlayer1Controller->buttonPressed & START_BUTTON) && main_menu_keyboard_input[0] != 0)
-void keyboard_start_level(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
+
+void keyboard_start_level(UNUSED MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
     if (KEYBOARD_CONFIRM) {
         int fileExists = level_file_exists(main_menu_keyboard_input);
         if (fileExists) {
             show_error("Level already exists!");
             return;
         }
-        MenuComponent *page = get_first_child(gMainMenuPageHandler);
+        FrameComponent *page = get_child(gMainMenuPageHandler);
         gMainMenuAnimateDir = TO_NEXT;
         play_sound(SOUND_MENU_STAR_SOUND, gGlobalSoundSource);
         main_menu_page_change_animate(page, TRUE);
@@ -705,9 +693,9 @@ void no_sd_card_start_level(void) {
     gMB64LevelLoaded = TRUE;
 }
 
-void keyboard_set_author_name(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
+void keyboard_set_author_name(UNUSED MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
     if (KEYBOARD_CONFIRM) {
-        MenuComponent *page = get_first_child(gMainMenuPageHandler);
+        FrameComponent *page = get_child(gMainMenuPageHandler);
         if (gCurrMainMenuPage == PAGE_AUTHOR) {
             gMainMenuAnimateDir = TO_NEXT;
             gScheduledNextPage = PAGE_MAIN;
@@ -718,23 +706,21 @@ void keyboard_set_author_name(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
         play_sound(SOUND_MENU_STAR_SOUND, gGlobalSoundSource);
         main_menu_page_change_animate(page, TRUE);
 
-        strncpy(mb64_username,main_menu_keyboard_input,MAX_USERNAME_SIZE);
-        strncpy(mb64_sram_configuration.author, mb64_username, MAX_USERNAME_SIZE);
+        strncpy(mb64_sram_configuration.author, main_menu_keyboard_input, MAX_USERNAME_SIZE);
         if (gSramProbe != 0) {
             nuPiWriteSram(0, &mb64_sram_configuration, ALIGN8(sizeof(mb64_sram_configuration)));
         }
-        mb64_has_username = TRUE;
     }
 }
 
-void main_menu_create_keyboard_page(MenuComponent *parent, char *text, ComponentRenderFunc *func, int isFilename) {
+void main_menu_create_keyboard_page(FrameComponent *parent, char *text, ComponentRenderFunc func, int isFilename) {
     RectComponent *rect = init_rect_component(parent, 110, SCREEN_WIDTH/2, SCREEN_HEIGHT/2, SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
     AnimatedComponent *top = alloc_component(rect, MENU_ANIMATED);
-    TextComponent *t = init_text_component(top, -120, 85, text, TEXT_LEFT, TEXT_WHITE);
+    init_text_component(top, -120, 85, text, TEXT_LEFT, TEXT_WHITE);
     FrameComponent *f = init_dynamic_component(top, component_main_menu_level_render);
     f->levelIndex = (isFilename ? -1 : -2); // -1 for filename, -2 for author name
     component_set_pos(f, 0, 60);
-    TextComponent *input = init_text_component(f, (isFilename ? -82 : -120), -10, main_menu_keyboard_input, TEXT_LEFT, 0);
+    TextComponent *input = init_text_component(f, (isFilename ? -82 : -120), -8, main_menu_keyboard_input, TEXT_LEFT, 0);
 
     AnimatedComponent *bottom = alloc_component(rect, MENU_ANIMATED);
     KeyboardComponent *k = init_keyboard_component(bottom, -120, 18, main_menu_keyboard_input, input, isFilename ? MAX_FILE_NAME_INPUT : MAX_USERNAME_INPUT, isFilename);
@@ -756,7 +742,7 @@ void main_menu_page_change_animate(FrameComponent *page, int out) {
         case PAGE_BUILD:
         case PAGE_HELP:
         case PAGE_NEW_LEVEL:
-            l = get_child(page, MENU_LIST, 0);
+            l = get_child_of_type(page, MENU_LIST, 0);
             main_menu_list_animate(l, out);
             main_menu_key_text_animate(page, out, 1);
             break;
@@ -775,9 +761,9 @@ void main_menu_page_change_animate(FrameComponent *page, int out) {
                 main_menu_key_text_animate(page, out, 1);
                 break;
             }
-            PageHandlerComponent *ph = get_first_child(page);
+            PageHandlerComponent *ph = get_child(page);
             page_handler_load_initial_page(ph);
-            l = get_child(get_component(ph->currentPage), MENU_LIST, 0);
+            l = get_child_of_type(get_component(ph->currentPage), MENU_LIST, 0);
             main_menu_list_animate(l, out);
             main_menu_key_text_animate(page, out, -1);
             gLevelSelectorIndex = ph->index * LEVELS_PER_PAGE + l->index;
@@ -786,22 +772,23 @@ void main_menu_page_change_animate(FrameComponent *page, int out) {
         case PAGE_CHANGE_NAME:
         case PAGE_AUTHOR:
             main_menu_shade_animate(page, out);
-            RectComponent *shade = get_first_child(page);
-            main_menu_text_animate(get_child(shade, MENU_ANIMATED, 0), out, 1);
-            main_menu_keyboard_animate(get_child(shade, MENU_ANIMATED, 1), out);
+            RectComponent *shade = get_child(page);
+            main_menu_text_animate(get_child_of_type(shade, MENU_ANIMATED, 0), out, 1);
+            main_menu_keyboard_animate(get_child_of_type(shade, MENU_ANIMATED, 1), out);
             break;
     }
 }
 
 void main_menu_page_loop(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
-    if (!m->inactive && gPrevMainMenuPage != PAGE_NONE) {
+    FrameComponent *page = (FrameComponent *)m;
+    if (!page->base.inactive && gPrevMainMenuPage != PAGE_NONE) {
         if (gPlayer1Controller->buttonPressed & B_BUTTON) {
             gMainMenuAnimateDir = TO_PREV;
             gScheduledNextPage = gPrevMainMenuPage;
-            play_sound(SOUND_MENU_CLICK_FILE_SELECT, gGlobalSoundSource);
-            main_menu_page_change_animate(m, TRUE);
+            menu_play_click_sound();
+            main_menu_page_change_animate(page, TRUE);
 
-            m->inactive = TRUE;
+            page->base.inactive = TRUE;
         }
     }
 }
@@ -940,9 +927,11 @@ void create_page(int page, int animate) {
     if (animate) main_menu_page_change_animate(frame, FALSE);
 }
 
-MenuStyle main_menu_style = {0};
+MenuStyle main_menu_style = {
+    .textHighlightSelected = TRUE,
+};
 
-void main_menu_loop(MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
+void main_menu_loop(UNUSED MenuComponent *m, UNUSED s16 x, UNUSED s16 y) {
     set_menu_style(main_menu_style);
 
     if (gChangePage != PAGE_NONE) {

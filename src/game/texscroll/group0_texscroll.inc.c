@@ -15,12 +15,13 @@
 //#include "actors/executive_loom_/texscroll.inc.c"
 //#include "actors/tvhead/texscroll.inc.c"
 //#include "actors/ocean_ttc/texscroll.inc.c"
-#include "actors/mario/texscroll.inc.c"
+#include "actors/mario_btcm/texscroll.inc.c"
 #include "actors/maker/texscroll.inc.c"
 #include "actors/badge/texscroll.inc.c"
 #include "actors/showrunner/texscroll.inc.c"
 void scroll_textures_group14() {
 	scroll_actor_geo_showrunner();
+	scroll_actor_geo_badge();
 }
 
 #include "actors/conveyor_slope/texscroll.inc.c"
@@ -57,8 +58,7 @@ void scroll_textures_group0() {
 	//scroll_actor_geo_tvhead();
 	scroll_actor_geo_mario();
 	scroll_actor_dl_maker();
-	scroll_actor_geo_badge();
-		scroll_actor_geo_conveyor_slope();
+	scroll_actor_geo_conveyor_slope();
 	scroll_actor_geo_conveyor_half();
 	scroll_actor_geo_conveyor();
 	scroll_actor_geo_conveyor_dslope();

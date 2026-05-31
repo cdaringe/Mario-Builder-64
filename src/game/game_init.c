@@ -30,14 +30,13 @@
 #include "debug_box.h"
 #include "vc_ultra.h"
 #include "profiling.h"
+#include "debug.h"
 #include "emutest.h"
 #include "mb64/main.h"
+#include "mb64/menu.h"
+#include "mb64/menu_engine.h"
 
-#include "libcart/include/cart.h"
-#include "libcart/ff/ff.h"
-
-#include "libpl/libpl.h"
-#include "levels/menu/header.h"
+#include "lib/libpl/libpl.h"
 
 u8 painting_base_rgba16[] = {
 	0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 
@@ -298,8 +297,8 @@ u8 painting_base_rgba16[] = {
 	0x38, 0x81, 0x18, 0x01, 0x00, 0x01, 0x00, 0x01, 
 };
 
-// Emulators that the Instant Input patch should not be applied to
-#define INSTANT_INPUT_BLACKLIST (EMU_CONSOLE | EMU_WIIVC | EMU_ARES | EMU_SIMPLE64 | EMU_CEN64)
+// Emulators that the Instant Input patch should be applied to
+#define INSTANT_INPUT_WHITELIST (EMU_PARALLEL_LAUNCHER | EMU_PROJECT64 | EMU_MUPEN)
 
 // Gfx handlers
 struct SPTask *gGfxSPTask;
@@ -422,32 +421,40 @@ void my_rsp_init(void) {
  * Initialize the z buffer for the current frame.
  */
 void init_z_buffer(s32 resetZB) {
-    gDPPipeSync(gDisplayListHead++);
+    Gfx *tempGfxHead = gDisplayListHead;
 
-    gDPSetDepthSource(gDisplayListHead++, G_ZS_PIXEL);
-    gDPSetDepthImage(gDisplayListHead++, gPhysicalZBuffer);
+    gDPPipeSync(tempGfxHead++);
 
-    gDPSetColorImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WIDTH, gPhysicalZBuffer);
+    gDPSetDepthSource(tempGfxHead++, G_ZS_PIXEL);
+    gDPSetDepthImage(tempGfxHead++, gPhysicalZBuffer);
+
+    gDPSetColorImage(tempGfxHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WIDTH, gPhysicalZBuffer);
     if (!resetZB)
         return;
-    gDPSetFillColor(gDisplayListHead++,
+    gDPSetFillColor(tempGfxHead++,
                     GPACK_ZDZ(G_MAXFBZ, 0) << 16 | GPACK_ZDZ(G_MAXFBZ, 0));
 
-    gDPFillRectangle(gDisplayListHead++, 0, gBorderHeight, SCREEN_WIDTH - 1,
+    gDPFillRectangle(tempGfxHead++, 0, gBorderHeight, SCREEN_WIDTH - 1,
                      SCREEN_HEIGHT - 1 - gBorderHeight);
+
+    gDisplayListHead = tempGfxHead;
 }
 
 /**
  * Tells the RDP which of the three framebuffers it shall draw to.
  */
 void select_framebuffer(void) {
-    gDPPipeSync(gDisplayListHead++);
+    Gfx *tempGfxHead = gDisplayListHead;
 
-    gDPSetCycleType(gDisplayListHead++, G_CYC_1CYCLE);
-    gDPSetColorImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WIDTH,
+    gDPPipeSync(tempGfxHead++);
+
+    gDPSetCycleType(tempGfxHead++, G_CYC_1CYCLE);
+    gDPSetColorImage(tempGfxHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WIDTH,
                      gPhysicalFramebuffers[sRenderingFramebuffer]);
-    gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, gBorderHeight, SCREEN_WIDTH,
+    gDPSetScissor(tempGfxHead++, G_SC_NON_INTERLACE, 0, gBorderHeight, SCREEN_WIDTH,
                   SCREEN_HEIGHT - gBorderHeight);
+
+    gDisplayListHead = tempGfxHead;
 }
 
 /**
@@ -455,19 +462,23 @@ void select_framebuffer(void) {
  * Information about the color argument: https://jrra.zone/n64/doc/n64man/gdp/gDPSetFillColor.htm
  */
 void clear_framebuffer(s32 color) {
-    gDPPipeSync(gDisplayListHead++);
+    Gfx *tempGfxHead = gDisplayListHead;
 
-    gDPSetRenderMode(gDisplayListHead++, G_RM_OPA_SURF, G_RM_OPA_SURF2);
-    gDPSetCycleType(gDisplayListHead++, G_CYC_FILL);
+    gDPPipeSync(tempGfxHead++);
 
-    gDPSetFillColor(gDisplayListHead++, color);
-    gDPFillRectangle(gDisplayListHead++,
+    gDPSetRenderMode(tempGfxHead++, G_RM_OPA_SURF, G_RM_OPA_SURF2);
+    gDPSetCycleType(tempGfxHead++, G_CYC_FILL);
+
+    gDPSetFillColor(tempGfxHead++, color);
+    gDPFillRectangle(tempGfxHead++,
                      GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(0), gBorderHeight,
                      GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(0) - 1, SCREEN_HEIGHT - gBorderHeight - 1);
 
-    gDPPipeSync(gDisplayListHead++);
+    gDPPipeSync(tempGfxHead++);
 
-    gDPSetCycleType(gDisplayListHead++, G_CYC_1CYCLE);
+    gDPSetCycleType(tempGfxHead++, G_CYC_1CYCLE);
+
+    gDisplayListHead = tempGfxHead;
 }
 
 /**
@@ -484,38 +495,46 @@ void clear_viewport(Vp *viewport, s32 color) {
     vpLrx = GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(SCREEN_WIDTH - vpLrx);
 #endif
 
-    gDPPipeSync(gDisplayListHead++);
+    Gfx *tempGfxHead = gDisplayListHead;
 
-    gDPSetRenderMode(gDisplayListHead++, G_RM_OPA_SURF, G_RM_OPA_SURF2);
-    gDPSetCycleType(gDisplayListHead++, G_CYC_FILL);
+    gDPPipeSync(tempGfxHead++);
 
-    gDPSetFillColor(gDisplayListHead++, color);
-    gDPFillRectangle(gDisplayListHead++, vpUlx, vpUly, vpLrx, vpLry);
+    gDPSetRenderMode(tempGfxHead++, G_RM_OPA_SURF, G_RM_OPA_SURF2);
+    gDPSetCycleType(tempGfxHead++, G_CYC_FILL);
 
-    gDPPipeSync(gDisplayListHead++);
+    gDPSetFillColor(tempGfxHead++, color);
+    gDPFillRectangle(tempGfxHead++, vpUlx, vpUly, vpLrx, vpLry);
 
-    gDPSetCycleType(gDisplayListHead++, G_CYC_1CYCLE);
+    gDPPipeSync(tempGfxHead++);
+
+    gDPSetCycleType(tempGfxHead++, G_CYC_1CYCLE);
+
+    gDisplayListHead = tempGfxHead;
 }
 
 /**
  * Draw the horizontal screen borders.
  */
 void draw_screen_borders(void) {
-    gDPPipeSync(gDisplayListHead++);
+    Gfx *tempGfxHead = gDisplayListHead;
 
-    gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-    gDPSetRenderMode(gDisplayListHead++, G_RM_OPA_SURF, G_RM_OPA_SURF2);
-    gDPSetCycleType(gDisplayListHead++, G_CYC_FILL);
+    gDPPipeSync(tempGfxHead++);
 
-    gDPSetFillColor(gDisplayListHead++, GPACK_RGBA5551(0, 0, 0, 0) << 16 | GPACK_RGBA5551(0, 0, 0, 0));
+    gDPSetScissor(tempGfxHead++, G_SC_NON_INTERLACE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    gDPSetRenderMode(tempGfxHead++, G_RM_OPA_SURF, G_RM_OPA_SURF2);
+    gDPSetCycleType(tempGfxHead++, G_CYC_FILL);
+
+    gDPSetFillColor(tempGfxHead++, GPACK_RGBA5551(0, 0, 0, 0) << 16 | GPACK_RGBA5551(0, 0, 0, 0));
 
     if (gBorderHeight) {
-        gDPFillRectangle(gDisplayListHead++, GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(0), 0,
+        gDPFillRectangle(tempGfxHead++, GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(0), 0,
                         GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(0) - 1, gBorderHeight - 1);
-        gDPFillRectangle(gDisplayListHead++,
+        gDPFillRectangle(tempGfxHead++,
                         GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(0), SCREEN_HEIGHT - gBorderHeight,
                         GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(0) - 1, SCREEN_HEIGHT - 1);
     }
+
+    gDisplayListHead = tempGfxHead;
 }
 
 /**
@@ -543,11 +562,7 @@ void create_gfx_task_structure(void) {
     gGfxSPTask->task.t.type = M_GFXTASK;
     gGfxSPTask->task.t.ucode_boot = rspbootTextStart;
     gGfxSPTask->task.t.ucode_boot_size = ((u8 *) rspbootTextEnd - (u8 *) rspbootTextStart);
-#if defined(F3DEX_GBI_SHARED) && defined(OBJECTS_REJ)
     gGfxSPTask->task.t.flags = (OS_TASK_LOADABLE | OS_TASK_DP_WAIT);
-#else
-    gGfxSPTask->task.t.flags = 0x0;
-#endif
 #ifdef  L3DEX2_ALONE
     gGfxSPTask->task.t.ucode = gspL3DEX2_fifoTextStart;
     gGfxSPTask->task.t.ucode_data = gspL3DEX2_fifoDataStart;
@@ -598,6 +613,9 @@ void create_gfx_task_structure(void) {
     gGfxSPTask->task.t.data_size = entries * sizeof(Gfx);
     gGfxSPTask->task.t.yield_data_ptr = (u64 *) gGfxSPTaskYieldBuffer;
     gGfxSPTask->task.t.yield_data_size = OS_YIELD_DATA_SIZE;
+
+    // NOTE: 'entries' is not representative of the right-side allocations coming from the GFX pool; do not use that variable here.
+    assert_args((u8*) gDisplayListHead <= gGfxPoolEnd, "GFX pool exceeded: %d command(s) over!", ((s32) gGfxPoolEnd - (s32) gDisplayListHead) / sizeof(Gfx));
 }
 
 /**
@@ -671,10 +689,9 @@ void render_init(void) {
     end_master_display_list();
     exec_display_list(&gGfxPool->spTask);
 
-    // Skip incrementing the initial framebuffer index on emulators so that they display immediately as the Gfx task finishes
-    // VC probably emulates osViSwapBuffer accurately so instant patch breaks VC compatibility
-    // Currently, Ares and Simple64 have issues with single buffering so disable it there as well.
-    if (gEmulator & INSTANT_INPUT_BLACKLIST) {
+    // Skip incrementing the initial framebuffer index on certain emulators so that they display immediately as the Gfx task finishes
+    // This will break accurate emulators, so only enable on Project64, Parallel Launcher and Mupen.
+    if (!(gEmulator & INSTANT_INPUT_WHITELIST)) {
         sRenderingFramebuffer++;
     }
     gGlobalTimer++;
@@ -712,8 +729,8 @@ void display_and_vsync(void) {
 #ifndef UNLOCK_FPS
     osRecvMesg(&gGameVblankQueue, &gMainReceivedMesg, OS_MESG_BLOCK);
 #endif
-    // Skip swapping buffers on inaccurate emulators other than VC so that they display immediately as the Gfx task finishes
-    if (gEmulator & INSTANT_INPUT_BLACKLIST) {
+    // Skip swapping buffers on some inaccurate emulators so that they display immediately as the Gfx task finishes
+    if (!(gEmulator & INSTANT_INPUT_WHITELIST)) {
         if (++sRenderedFramebuffer == 3) {
             sRenderedFramebuffer = 0;
         }
@@ -1011,112 +1028,8 @@ void setup_game_memory(void) {
 /**
  * Main game loop thread. Runs forever as long as the game continues.
  */
-Bool32 gSupportsLibpl = FALSE;
 Bool32 gIsGliden = FALSE;
 Bool32 gIsWidescreen = FALSE;
-
-FATFS fs;
-FRESULT mount_success;
-FRESULT directory_success;
-FILINFO mb64_dir_info;
-
-struct mb64_level_save_header temp_mb64_save;
-
-
-u8 mb64_level_entry_count = 0;
-FRESULT global_code;
-
-TCHAR *mb64_level_dir_name = "/Mario Builder 64 Levels";
-TCHAR *mb64_hack_dir_name = "/Mario Builder 64 Hacks";
-
-struct mb64_sram_config mb64_sram_configuration;
-
-void create_level_file_path(TCHAR *buffer, TCHAR *filename, TCHAR *suffix) {
-    TCHAR *s;
-    s = mb64_level_dir_name;
-    while (*s) {
-        *buffer++ = *s++;
-    }
-    *buffer++ = '/';
-    s = filename;
-    while (*s) {
-        *buffer++ = *s++;
-    }
-    if (suffix) {
-        s = suffix;
-        while (*s) {
-            *buffer++ = *s++;
-        }
-    }
-    *buffer++ = '\0';
-}
-
-struct mb64_level_save_header * get_level_info_from_filename(char * filename) {
-    u32 bytes_read;
-    FIL read_file;
-    TCHAR path[256];
-    create_level_file_path(path, filename, NULL);
-    f_open(&read_file,path, FA_READ);
-    f_read(&read_file,&temp_mb64_save,sizeof(temp_mb64_save),&bytes_read);
-    f_close(&read_file);
-
-    return &temp_mb64_save;
-}
-
-char filename_with_mb64[31];
-u8 level_file_exists(char * filename) {
-    FILINFO fno;
-    TCHAR path[256];
-    create_level_file_path(path, filename, ".mb64");
-    return (f_stat(path, &fno) == FR_OK);
-}
-
-u8 mb64_level_entry_version[MAX_FILES];
-void load_level_files_from_sd_card(void) {
-    DIR dir;
-    f_opendir(&dir,mb64_level_dir_name);
-
-    // LEVEL ENTRIES ARE LOADED IN FILE SELECT
-    FILINFO * level_entries_ptr = segmented_to_virtual(mb64_level_entries);
-    u16 (*u16_array)[MAX_FILES][64][64] = segmented_to_virtual(mb64_level_entry_piktcher);
-
-    s16 i = -1;
-    do {
-        i++;
-        if ((f_readdir(&dir,&level_entries_ptr[i]) == FR_OK)) {
-            if (level_entries_ptr[i].fname[0] == 0) {
-                // Reached end of directory
-                continue;
-            }
-            s32 filenamelen = strlen(level_entries_ptr[i].fname);
-            if (filenamelen > MAX_FILE_NAME_SIZE - 1) {
-                // Too long level name, skip
-                i--;
-                continue;
-            }
-            if ((filenamelen > 5) && (strcmp(level_entries_ptr[i].fname + (filenamelen - 5), ".mb64"))) {
-                // File is not an .mb64 file
-                i--;
-                continue;
-            }
-            struct mb64_level_save_header * level_info = get_level_info_from_filename(level_entries_ptr[i].fname);
-
-            s16 x;
-            s16 y;
-            for (x = 0; x < 64; x++) {
-                for (y = 0; y < 64; y++) {
-                    (*u16_array)[i][y][x] = level_info->piktcher[y][x];
-                } 
-            }
-            mb64_level_entry_version[i] = level_info->version;
-        }
-
-    } while ((level_entries_ptr[i].fname[0] != 0) && (i<MAX_FILES-1));
-
-    mb64_level_entry_count = i;
-
-    f_closedir(&dir);
-}
 
 void thread5_game_loop(UNUSED void *arg) {
     setup_game_memory();
@@ -1157,27 +1070,14 @@ void thread5_game_loop(UNUSED void *arg) {
         mb64_sram_configuration.magic = SRAM_MAGIC;
     }
 
-    gSupportsLibpl = libpl_is_supported( LPL_ABI_VERSION_CURRENT );
     if (gSupportsLibpl) {
         libpl_create_auto_sd_card(16,255);
-        lpl_plugin_info *pluginInfo = libpl_get_graphics_plugin();
+        const lpl_plugin_info *pluginInfo = libpl_get_graphics_plugin();
         gIsGliden = ((pluginInfo->plugin_id == LPL_GLN64)||(pluginInfo->plugin_id == LPL_OGRE)||(pluginInfo->plugin_id == LPL_GLIDE64));
         gIsWidescreen = (pluginInfo->capabilities & LPL_WIDESCREEN_VIEWPORT) != 0;
     }
-    //init mb64 file structure
-    cart_init();
-    mount_success = f_mount(&fs, "", 1);
-    if (mount_success == FR_OK) {
-        //mount is successful
 
-        //create directory if not exist
-        directory_success = f_stat(mb64_level_dir_name,&mb64_dir_info);
-        if (directory_success == FR_NO_FILE) {
-            //does not exist, therefore make
-            f_mkdir(mb64_level_dir_name);
-        }
-        
-    }
+    mb64_file_init();
     reset_menu();
     set_initial_menu_page();
 

@@ -7,8 +7,9 @@
 void intro_peach_set_pos_and_opacity(struct Object *obj, f32 targetOpacity, f32 increment) {
     Vec3f newPos;
     s16 focusPitch, focusYaw;
+    f32 dist;
 
-    vec3f_get_angle(gLakituState.pos, gLakituState.focus, &focusPitch, &focusYaw);
+    vec3f_get_dist_and_angle(gLakituState.pos, gLakituState.focus, &dist, &focusPitch, &focusYaw);
     vec3f_set_dist_and_angle(gLakituState.pos, newPos, obj->oIntroPeachDistToCamera,
                              obj->oIntroPeachPitchFromFocus + focusPitch,
                              obj->oIntroPeachYawFromFocus + focusYaw);
@@ -44,7 +45,7 @@ void bhv_intro_peach_loop(void) {
         case PEACH_ACT_UNFADE:
             intro_peach_set_pos_and_opacity(o, 255.0f, 3.0f);
 
-            if ((o->oTimer > 100) && (get_dialog_id() == DIALOG_NONE)) {
+            if ((o->oTimer > 100) && (!gCurDialog)) {
                 o->oAction++;
             }
             break;

@@ -7,7 +7,6 @@
 #include "behavior_data.h"
 #include "camera.h"
 #include "course_table.h"
-#include "dialog_ids.h"
 #include "engine/behavior_script.h"
 #include "engine/math_util.h"
 #include "engine/surface_collision.h"
@@ -30,9 +29,8 @@
 #include "spawn_object.h"
 #include "spawn_sound.h"
 #include "rumble_init.h"
-#include "puppylights.h"
-#include "game/rovent.h"
 #include "mb64/main.h"
+#include "mb64/trajectory.h"
 
 /**
  * @file obj_behaviors.c
@@ -207,7 +205,7 @@ void obj_orient_graph(struct Object *obj, f32 normalX, f32 normalY, f32 normalZ)
     vec3f_copy_y_off(objVisualPosition, &obj->oPosVec, obj->oGraphYOffset);
     vec3f_set(surfaceNormals, normalX, normalY, normalZ);
 
-    mtxf_align_terrain_normal(*obj->transform, surfaceNormals, objVisualPosition, obj->oFaceAngleYaw);
+    mtxf_align_terrain_normal(obj->transform, surfaceNormals, objVisualPosition, obj->oFaceAngleYaw);
     obj->header.gfx.throwMatrix = &obj->transform;
 }
 
@@ -261,9 +259,7 @@ void calc_new_obj_vel_and_pos_y(struct Surface *objFloor, f32 objFloorY, f32 obj
         }
     }
 
-    //! (Obj Position Crash) If you got an object with height past 2^31, the game would crash.
     if ((o->oPosY >= objFloorY) && (o->oPosY < objFloorY + 37)) {
-
         // Adds horizontal component of gravity for horizontal speed.
         f32 nxz = sqr(floor_nX) + sqr(floor_nZ);
         f32 vel = ((nxz) / (nxz + sqr(floor_nY))) * o->oGravity * 2;
@@ -322,7 +318,6 @@ void calc_new_obj_vel_and_pos_y_underwater(struct Surface *objFloor, f32 floorY,
     }
 
     if ((o->oPosY >= floorY) && (o->oPosY < floorY + 37)) {
-
         // Adds horizontal component of gravity for horizontal speed.
         f32 nxz = sqr(floor_nX) + sqr(floor_nZ);
         f32 velm = (nxz / (nxz + sqr(floor_nY))) * netYAccel * 2;
@@ -369,7 +364,7 @@ void obj_update_pos_vel_xz(void) {
  * Generates splashes if at surface of water, entering water, or bubbles
  * if underwater.
  */
-void obj_splash(f32 waterY, f32 objY) {
+void obj_splash(f32 waterY, UNUSED f32 objY) {
     // Spawns waves if near surface of water and plays a noise if entering.
     if ((waterY + 20) > o->oPosY && o->oPosY > (waterY - 60)) {
 
@@ -642,30 +637,6 @@ s32 obj_flicker_and_disappear(struct Object *obj, s16 lifeSpan) {
     }
 
     return FALSE;
-}
-
-/**
- * Triggers dialog when Mario is facing an object and controls it while in the dialog.
- */
-s32 trigger_obj_dialog_when_facing(s32 *inDialog, s16 dialogID, f32 dist, s32 actionArg) {
-    if ((is_point_within_radius_of_mario(o->oPosX, o->oPosY, o->oPosZ, (s32) dist)
-         && obj_check_if_facing_toward_angle(o->oFaceAngleYaw, gMarioObject->header.gfx.angle[1] + 0x8000, 0x1000)
-         && obj_check_if_facing_toward_angle(o->oMoveAngleYaw, o->oAngleToMario, 0x1000))
-        || (*inDialog == TRUE)) {
-        *inDialog = TRUE;
-
-        if (set_mario_npc_dialog(actionArg) == MARIO_DIALOG_STATUS_SPEAK) { // If Mario is speaking.
-            s16 dialogResponse = cutscene_object_with_dialog(CUTSCENE_DIALOG, o, dialogID);
-            if (dialogResponse != DIALOG_RESPONSE_NONE) {
-                set_mario_npc_dialog(MARIO_DIALOG_STOP);
-                *inDialog = FALSE;
-                return dialogResponse;
-            }
-            return DIALOG_RESPONSE_NONE;
-        }
-    }
-
-    return DIALOG_RESPONSE_NONE;
 }
 
 /**

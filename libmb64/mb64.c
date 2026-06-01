@@ -22,6 +22,22 @@
 #define TILE_SIZE  4   /* u32 packed */
 #define OBJ_SIZE   8   /* bparam,x,y,z,type,rot,imbue,pad */
 
+#define TILE_TYPE_V1_0_UPPER_GENTLE 12
+#define TILE_TYPE_V1_1_BLOCK        18
+
+static uint8_t upgrade_tile_type(uint8_t version, uint8_t type) {
+    /*
+     * MB64 v1.1 inserted two tile shapes before the old upper-gentle slope.
+     * Keep consumers on current src/mb64/data.h ids while preserving the
+     * on-disk raw word for diagnostics.
+     */
+    if (version < 1 && type >= TILE_TYPE_V1_0_UPPER_GENTLE &&
+        type <= (uint8_t)(31 - 2)) {
+        return (uint8_t)(type + 2);
+    }
+    return type;
+}
+
 _Static_assert(offsetof(struct mb64_level_save_header, version) == 10,
                "MB64 disk header version offset changed");
 _Static_assert(offsetof(struct mb64_level_save_header, author) == 11,
@@ -201,7 +217,7 @@ mb64_level_t *mb64_load(const char *path) {
             t->x          = (uint8_t)((raw >> 26) & 0x3F);
             t->y          = (uint8_t)((raw >> 20) & 0x3F);
             t->z          = (uint8_t)((raw >> 14) & 0x3F);
-            t->type       = (uint8_t)((raw >>  9) & 0x1F);
+            t->type       = upgrade_tile_type(hdr->version, (uint8_t)((raw >>  9) & 0x1F));
             t->mat        = (uint8_t)((raw >>  5) & 0x0F);
             t->rot        = (uint8_t)((raw >>  3) & 0x03);
             t->waterlogged= (uint8_t)((raw >>  2) & 0x01);

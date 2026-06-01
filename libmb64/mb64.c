@@ -60,9 +60,9 @@ static inline uint32_t u32be(const uint8_t *p) {
            ((uint32_t)p[2] <<  8) |  (uint32_t)p[3];
 }
 
-/* File I/O */
+/* Host stdio file buffering for libmb64; src/mb64/file.c owns FatFs loading. */
 
-static uint8_t *read_entire_file(const char *path, size_t *out_size) {
+static uint8_t *read_file_into_buffer(const char *path, size_t *out_size) {
     FILE *f = fopen(path, "rb");
     if (!f) return NULL;
     fseek(f, 0, SEEK_END);
@@ -91,7 +91,7 @@ mb64_level_t *mb64_load(const char *path) {
 
     /* Read file */
     size_t file_size = 0;
-    uint8_t *data = read_entire_file(path, &file_size);
+    uint8_t *data = read_file_into_buffer(path, &file_size);
     if (!data) {
         MB64_LOG("MB64_PARSE", "error=cannot_read path=%s errno=%s", path, strerror(errno));
         return NULL;

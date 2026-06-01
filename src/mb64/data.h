@@ -1,39 +1,7 @@
 #pragma once
 
 #include "structs.h"
-
-enum {
-    TILE_TYPE_EMPTY,
-    // Flippable tiles
-    TILE_TYPE_SLOPE = 2,
-    TILE_TYPE_DSLOPE,
-    TILE_TYPE_SLAB,
-    TILE_TYPE_DSLAB,
-    TILE_TYPE_CORNER,
-    TILE_TYPE_DCORNER,
-    TILE_TYPE_ICORNER, // Inner Corner
-    TILE_TYPE_DICORNER, // Down Inner Corner
-    TILE_TYPE_SCORNER, // Sloped Corner
-    TILE_TYPE_DSCORNER, // Down Sloped Corner
-    TILE_TYPE_ISCORNER, // Inverted Sloped Corner
-    TILE_TYPE_DISCORNER, // Down Inverted Sloped Corner
-    TILE_TYPE_UGENTLE,
-    TILE_TYPE_DUGENTLE,
-    TILE_TYPE_LGENTLE,
-    TILE_TYPE_DLGENTLE,
-
-    TILE_END_OF_FLIPPABLE,
-    TILE_TYPE_BLOCK = TILE_END_OF_FLIPPABLE,
-    TILE_TYPE_SSLOPE,
-    TILE_TYPE_SSLAB,
-    TILE_TYPE_CULL,
-    TILE_TYPE_TROLL,
-    TILE_TYPE_FENCE,
-    TILE_TYPE_POLE,
-    TILE_TYPE_BARS,
-
-    TILE_TYPE_WATER, // only blocks that are empty otherwise
-};
+#include "../../libmb64/mb64_tile_types.h"
 
 enum mb64_materials {
     MB64_MATLIST_START,

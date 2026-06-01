@@ -42,142 +42,6 @@
 #define MB64_BOUNDARY_OUTER_WALLS (1 << 3)
 #define MB64_BOUNDARY_CEILING     (1 << 4)
 
-enum mb64_material_id {
-    MB64_MAT_GRASS = 0,
-    MB64_MAT_GRASS_OLD = 1,
-    MB64_MAT_CARTOON_GRASS = 2,
-    MB64_MAT_DARK_GRASS = 3,
-    MB64_MAT_HMC_GRASS = 4,
-    MB64_MAT_ORANGE_GRASS = 5,
-    MB64_MAT_RED_GRASS = 6,
-    MB64_MAT_PURPLE_GRASS = 7,
-    MB64_MAT_SAND = 8,
-    MB64_MAT_JRB_SAND = 9,
-    MB64_MAT_SNOW = 10,
-    MB64_MAT_SNOW_OLD = 11,
-    MB64_MAT_DIRT = 12,
-    MB64_MAT_SANDDIRT = 13,
-    MB64_MAT_LIGHTDIRT = 14,
-    MB64_MAT_HMC_DIRT = 15,
-    MB64_MAT_ROCKY_DIRT = 16,
-    MB64_MAT_DIRT_OLD = 17,
-    MB64_MAT_WAVY_DIRT = 18,
-    MB64_MAT_WAVY_DIRT_BLUE = 19,
-    MB64_MAT_SNOWDIRT = 20,
-    MB64_MAT_PURPLE_DIRT = 21,
-    MB64_MAT_HMC_LAKEGRASS = 22,
-    MB64_MAT_STONE = 23,
-    MB64_MAT_HMC_STONE = 24,
-    MB64_MAT_HMC_MAZEFLOOR = 25,
-    MB64_MAT_COBBLESTONE = 29,
-    MB64_MAT_JRB_WALL = 30,
-    MB64_MAT_RHR_STONE = 32,
-    MB64_MAT_RHR_BASALT = 35,
-    MB64_MAT_JRB_UNDERWATER = 38,
-    MB64_MAT_SNOW_ROCK = 39,
-    MB64_MAT_DESERT_STONE = 41,
-    MB64_MAT_RHR_OBSIDIAN = 42,
-    MB64_MAT_JRB_STONE = 43,
-    MB64_MAT_BRICKS = 44,
-    MB64_MAT_DESERT_BRICKS = 45,
-    MB64_MAT_RHR_BRICK = 46,
-    MB64_MAT_HMC_BRICK = 47,
-    MB64_MAT_C_BRICK = 51,
-    MB64_MAT_BBH_BRICKS = 52,
-    MB64_MAT_C_OUTSIDEBRICK = 54,
-    MB64_MAT_SNOW_BRICKS = 55,
-    MB64_MAT_JRB_BRICKS = 56,
-    MB64_MAT_SNOW_TILE_SIDE = 57,
-    MB64_MAT_TILESBRICKS = 58,
-    MB64_MAT_TILES = 59,
-    MB64_MAT_C_TILES = 60,
-    MB64_MAT_DESERT_TILES = 61,
-    MB64_MAT_VP_BLUETILES = 62,
-    MB64_MAT_SNOW_TILES = 63,
-    MB64_MAT_JRB_TILETOP = 64,
-    MB64_MAT_JRB_TILESIDE = 65,
-    MB64_MAT_HMC_TILES = 66,
-    MB64_MAT_RHR_TILES = 68,
-    MB64_MAT_VP_TILES = 69,
-    MB64_MAT_C_STONETOP = 71,
-    MB64_MAT_SNOW_BRICK_TILES = 72,
-    MB64_MAT_DESERT_BLOCK = 73,
-    MB64_MAT_VP_BLOCK = 74,
-    MB64_MAT_BBH_STONE = 75,
-    MB64_MAT_BBH_STONE_PATTERN = 76,
-    MB64_MAT_HMC_SLAB = 78,
-    MB64_MAT_RHR_BLOCK = 79,
-    MB64_MAT_C_STONESIDE = 81,
-    MB64_MAT_C_PILLAR = 82,
-    MB64_MAT_BBH_PILLAR = 83,
-    MB64_MAT_RHR_PILLAR = 84,
-    MB64_MAT_WOOD = 85,
-    MB64_MAT_BBH_WOOD_FLOOR = 86,
-    MB64_MAT_BBH_WOOD_WALL = 87,
-    MB64_MAT_C_WOOD = 88,
-    MB64_MAT_JRB_WOOD = 89,
-    MB64_MAT_JRB_SHIPSIDE = 90,
-    MB64_MAT_JRB_SHIPTOP = 91,
-    MB64_MAT_BBH_HAUNTED_PLANKS = 92,
-    MB64_MAT_BBH_ROOF = 93,
-    MB64_MAT_RHR_WOOD = 95,
-    MB64_MAT_BBH_METAL = 96,
-    MB64_MAT_JRB_METALSIDE = 97,
-    MB64_MAT_JRB_METAL = 98,
-    MB64_MAT_C_BASEMENTWALL = 99,
-    MB64_MAT_DESERT_TILES2 = 100,
-    MB64_MAT_VP_RUSTYBLOCK = 101,
-    MB64_MAT_C_CARPET = 102,
-    MB64_MAT_C_WALL = 103,
-    MB64_MAT_ROOF = 104,
-    MB64_MAT_C_ROOF = 105,
-    MB64_MAT_SNOW_ROOF = 106,
-    MB64_MAT_BBH_WINDOW = 107,
-    MB64_MAT_HMC_LIGHT = 108,
-    MB64_MAT_VP_CAUTION = 109,
-    MB64_MAT_LAVA = 116,
-    MB64_MAT_VANILLA_LAVA = 117,
-    MB64_MAT_SERVER_ACID = 118,
-    MB64_MAT_BURNING_ICE = 119,
-    MB64_MAT_QUICKSAND = 120,
-    MB64_MAT_DESERT_SLOWSAND = 121,
-    MB64_MAT_VOID = 122,
-    MB64_MAT_VP_VOID = 122,
-    MB64_MAT_RHR_MESH = 123,
-    MB64_MAT_VP_MESH = 124,
-    MB64_MAT_HMC_MESH = 125,
-    MB64_MAT_BBH_MESH = 126,
-    MB64_MAT_PINK_MESH = 127,
-    MB64_MAT_TTC_MESH = 128,
-    MB64_MAT_ICE = 129,
-    MB64_MAT_CRYSTAL = 130,
-    MB64_MAT_VP_SCREEN = 131,
-    MB64_MAT_RETRO_GROUND = 132,
-    MB64_MAT_RETRO_BRICKS = 133,
-    MB64_MAT_RETRO_TREETOP = 134,
-    MB64_MAT_RETRO_TREEPLAT = 135,
-    MB64_MAT_RETRO_BLOCK = 136,
-    MB64_MAT_RETRO_BLUEGROUND = 137,
-    MB64_MAT_RETRO_BLUEBRICKS = 138,
-    MB64_MAT_RETRO_BLUEBLOCK = 139,
-    MB64_MAT_RETRO_WHITEBRICK = 140,
-    MB64_MAT_RETRO_LAVA = 141,
-    MB64_MAT_RETRO_UNDERWATERGROUND = 142,
-    MB64_MAT_MC_DIRT = 143,
-    MB64_MAT_MC_GRASS = 144,
-    MB64_MAT_MC_COBBLESTONE = 145,
-    MB64_MAT_MC_STONE = 146,
-    MB64_MAT_MC_OAK_LOG_TOP = 147,
-    MB64_MAT_MC_OAK_LOG_SIDE = 148,
-    MB64_MAT_MC_OAK_LEAVES = 149,
-    MB64_MAT_MC_WOOD_PLANKS = 150,
-    MB64_MAT_MC_SAND = 151,
-    MB64_MAT_MC_BRICKS = 152,
-    MB64_MAT_MC_LAVA = 153,
-    MB64_MAT_MC_FLOWING_LAVA = 154,
-    MB64_MAT_MC_GLASS = 155,
-};
-
 enum mb64_surface_id {
     MB64_SURFACE_DEFAULT = 0x0000,
     MB64_SURFACE_BURNING = 0x0001,
@@ -219,20 +83,6 @@ typedef struct {
     uint8_t side;
     uint8_t top;
 } mb64_material_def_t;
-
-typedef struct {
-    uint8_t fence;
-    uint8_t pole;
-    uint8_t bars;
-    uint8_t water;
-} mb64_theme_special_t;
-
-enum mb64_water_id {
-    MB64_WATER_DEFAULT = 0,
-    MB64_WATER_GREEN = 1,
-    MB64_WATER_RETRO = 2,
-    MB64_WATER_MC = 3,
-};
 
 static const mb64_material_def_t s_theme_materials[][MB64_MATERIAL_SLOT_COUNT] = {
     {{MB64_MAT_DIRT, MB64_MAT_GRASS}, {MB64_MAT_BRICKS, MB64_MAT_BRICKS}, {MB64_MAT_COBBLESTONE, MB64_MAT_STONE}, {MB64_MAT_TILESBRICKS, MB64_MAT_TILES}, {MB64_MAT_ROOF, MB64_MAT_ROOF}, {MB64_MAT_WOOD, MB64_MAT_WOOD}, {MB64_MAT_SANDDIRT, MB64_MAT_SAND}, {MB64_MAT_SNOWDIRT, MB64_MAT_SNOW}, {MB64_MAT_LAVA, MB64_MAT_LAVA}, {MB64_MAT_QUICKSAND, MB64_MAT_QUICKSAND}},
@@ -611,7 +461,7 @@ uint8_t mb64_resolve_tile_material(const mb64_level_t *level,
     return top_face ? def->top : def->side;
 }
 
-static const mb64_theme_special_t *theme_specials(const mb64_level_t *level) {
+const mb64_theme_special_t *mb64_theme_specials_for_level(const mb64_level_t *level) {
     static const mb64_theme_special_t fallback = {0, MB64_MAT_STONE, 0, 0};
     if (level == NULL) {
         return &fallback;
@@ -641,7 +491,7 @@ static uint8_t mb64_resolve_face_material(const mb64_level_t *level,
         case TILE_TYPE_FENCE:
             return MB64_RENDER_MATERIAL_FENCE;
         case TILE_TYPE_POLE:
-            return theme_specials(level)->pole;
+            return mb64_theme_specials_for_level(level)->pole;
         case TILE_TYPE_BARS:
             return direction == MB64_MESH_FACE_TOP || direction == MB64_MESH_FACE_BOTTOM
                 ? MB64_RENDER_MATERIAL_BARS_TOP
@@ -782,7 +632,7 @@ mb64_material_texture_animation_t mb64_texture_animation_for_material(uint8_t ma
 }
 
 mb64_material_texture_animation_t mb64_texture_animation_for_water(const mb64_level_t *level) {
-    const uint8_t water = theme_specials(level)->water;
+    const uint8_t water = mb64_theme_specials_for_level(level)->water;
     switch (water) {
         case MB64_WATER_DEFAULT:
         case MB64_WATER_GREEN:
@@ -796,6 +646,17 @@ mb64_material_texture_animation_t mb64_texture_animation_for_water(const mb64_le
         default:
             return (mb64_material_texture_animation_t) { 0, 0, 0, 0, 0 };
     }
+}
+
+void mb64_water_vertex_color(const mb64_level_t *level, uint8_t wave, uint8_t rgba[4]) {
+    (void)level;
+    if (rgba == NULL) {
+        return;
+    }
+    rgba[0] = (uint8_t)(54 + wave);
+    rgba[1] = (uint8_t)(132 + wave * 2);
+    rgba[2] = (uint8_t)(128 + wave * 2);
+    rgba[3] = (uint8_t)(136 + wave);
 }
 
 static void tile_bounds(const mb64_tile_t *t,

@@ -1,8 +1,18 @@
 /**
  * mb64.c - libmb64 implementation.
  *
- * Parses Mario Builder 64 (.mb64) binary files. The on-disk layout mirrors
- * the save structs used by the in-game MB64 code in src/mb64/file.h.
+ * mb64_load and src/mb64/file.c:load_level read the same save stream: the
+ * shared mb64_level_save_header, then packed tiles, then packed objects.
+ * Shared disk-layout structs and version-upgrade helpers live in
+ * mb64_save_format.h so both loaders keep the same compatibility rules.
+ *
+ * The implementations stay separate because load_level is the editor/runtime
+ * loader: it reads through FatFs/libcart, mutates global editor state, creates
+ * template levels when no save exists, initializes UI/toolbox state, and places
+ * terrain into the live MB64 grid. mb64_load is a host-side parser API: it reads
+ * a named file, returns heap-owned decoded data, logs parse stages, and never
+ * touches game globals.
+ *
  * Multi-byte scalar fields are stored big-endian.
  */
 
@@ -21,22 +31,6 @@
 
 #define TILE_SIZE  4   /* u32 packed */
 #define OBJ_SIZE   8   /* bparam,x,y,z,type,rot,imbue,pad */
-
-#define TILE_TYPE_V1_0_UPPER_GENTLE 12
-#define TILE_TYPE_V1_1_BLOCK        18
-
-static uint8_t upgrade_tile_type(uint8_t version, uint8_t type) {
-    /*
-     * MB64 v1.1 inserted two tile shapes before the old upper-gentle slope.
-     * Keep consumers on current src/mb64/data.h ids while preserving the
-     * on-disk raw word for diagnostics.
-     */
-    if (version < 1 && type >= TILE_TYPE_V1_0_UPPER_GENTLE &&
-        type <= (uint8_t)(31 - 2)) {
-        return (uint8_t)(type + 2);
-    }
-    return type;
-}
 
 _Static_assert(offsetof(struct mb64_level_save_header, version) == 10,
                "MB64 disk header version offset changed");
@@ -217,7 +211,7 @@ mb64_level_t *mb64_load(const char *path) {
             t->x          = (uint8_t)((raw >> 26) & 0x3F);
             t->y          = (uint8_t)((raw >> 20) & 0x3F);
             t->z          = (uint8_t)((raw >> 14) & 0x3F);
-            t->type       = upgrade_tile_type(hdr->version, (uint8_t)((raw >>  9) & 0x1F));
+            t->type       = mb64_save_upgrade_tile_type(hdr->version, (uint8_t)((raw >>  9) & 0x1F));
             t->mat        = (uint8_t)((raw >>  5) & 0x0F);
             t->rot        = (uint8_t)((raw >>  3) & 0x03);
             t->waterlogged= (uint8_t)((raw >>  2) & 0x01);

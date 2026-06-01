@@ -32,9 +32,7 @@ void compat_upgrade_1_0_to_1_1(Version_1_0_Save *save, Version_1_0_Tile *tile_da
         }
     }
     for (s32 i = 0; i < save->tile_count; i++) {
-        if (tile_data[i].type >= 12) { // 1.0 ID - Upper Gentle Slope
-            tile_data[i].type += 2; // Addition of two new tile shapes
-        }
+        tile_data[i].type = mb64_save_upgrade_tile_type(save->version, tile_data[i].type);
     }
 }
 

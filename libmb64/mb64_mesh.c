@@ -36,6 +36,12 @@
 #define TILE_TYPE_POLE 24
 #define TILE_TYPE_BARS 25
 
+#define MB64_BOUNDARY_INNER_FLOOR (1 << 0)
+#define MB64_BOUNDARY_OUTER_FLOOR (1 << 1)
+#define MB64_BOUNDARY_INNER_WALLS (1 << 2)
+#define MB64_BOUNDARY_OUTER_WALLS (1 << 3)
+#define MB64_BOUNDARY_CEILING     (1 << 4)
+
 enum mb64_material_id {
     MB64_MAT_GRASS = 0,
     MB64_MAT_GRASS_OLD = 1,
@@ -258,6 +264,15 @@ static const mb64_theme_special_t s_theme_specials[] = {
     {13, MB64_MAT_MC_OAK_LOG_SIDE, 10, 3},
 };
 
+static const uint8_t s_boundary_table[] = {
+    0,
+    MB64_BOUNDARY_INNER_FLOOR | MB64_BOUNDARY_OUTER_FLOOR,
+    MB64_BOUNDARY_INNER_FLOOR | MB64_BOUNDARY_OUTER_FLOOR | MB64_BOUNDARY_INNER_WALLS,
+    MB64_BOUNDARY_OUTER_FLOOR | MB64_BOUNDARY_INNER_WALLS,
+    MB64_BOUNDARY_INNER_FLOOR | MB64_BOUNDARY_OUTER_WALLS,
+    MB64_BOUNDARY_INNER_FLOOR | MB64_BOUNDARY_INNER_WALLS | MB64_BOUNDARY_CEILING,
+};
+
 static uint8_t s_solid_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
 static uint8_t s_water_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
 static const mb64_tile_t *s_tile_grid[MB64_GRID_SIZE][MB64_GRID_SIZE][MB64_GRID_SIZE];
@@ -267,6 +282,32 @@ static const int8_t s_fence_alt_uvs[4][2] = {
     {32,  0},
     { 0, 16},
     { 0,  0},
+};
+
+typedef struct {
+    int8_t v[4][2];
+} mb64_boundary_floor_quad_t;
+
+static const mb64_boundary_floor_quad_t s_boundary_inner_floor[] = {
+    {{{ 32,  32}, { 32,   0}, {  0,  32}, {  0,   0}}},
+    {{{  0,  32}, {  0,   0}, {-32,  32}, {-32,   0}}},
+    {{{ 32,   0}, { 32, -32}, {  0,   0}, {  0, -32}}},
+    {{{  0,   0}, {  0, -32}, {-32,   0}, {-32, -32}}},
+};
+
+static const mb64_boundary_floor_quad_t s_boundary_outer_floor[] = {
+    {{{ 48,  32}, { 48,   0}, { 32,  32}, { 32,   0}}},
+    {{{ 48,  32}, { 32,  32}, { 48,  48}, { 32,  48}}},
+    {{{ 32,  48}, { 32,  32}, {  0,  48}, {  0,  32}}},
+    {{{-32,  32}, {-32,   0}, {-48,  32}, {-48,   0}}},
+    {{{-32,  48}, {-32,  32}, {-48,  48}, {-48,  32}}},
+    {{{  0,  48}, {  0,  32}, {-32,  48}, {-32,  32}}},
+    {{{ 48,   0}, { 48, -32}, { 32,   0}, { 32, -32}}},
+    {{{ 48, -32}, { 48, -48}, { 32, -32}, { 32, -48}}},
+    {{{ 32, -32}, { 32, -48}, {  0, -32}, {  0, -48}}},
+    {{{-32,   0}, {-32, -32}, {-48,   0}, {-48, -32}}},
+    {{{-32, -48}, {-48, -48}, {-32, -32}, {-48, -32}}},
+    {{{  0, -32}, {  0, -48}, {-32, -32}, {-32, -48}}},
 };
 
 static int solid_at(int x, int y, int z);
@@ -615,6 +656,92 @@ static uint8_t mb64_resolve_face_material(const mb64_level_t *level,
                 }
                 return resolved;
             }
+    }
+}
+
+static uint8_t boundary_flags(const mb64_level_t *level) {
+    if (level == NULL) {
+        return 0;
+    }
+    uint8_t boundary = level->header.boundary;
+    if (boundary >= (uint8_t)(sizeof(s_boundary_table) / sizeof(s_boundary_table[0]))) {
+        return 0;
+    }
+    uint8_t flags = s_boundary_table[boundary];
+    if ((flags & MB64_BOUNDARY_INNER_FLOOR) &&
+        level->header.boundary_height == 0) {
+        flags &= ~(MB64_BOUNDARY_CEILING | MB64_BOUNDARY_INNER_WALLS);
+    }
+    if ((flags & MB64_BOUNDARY_INNER_FLOOR) &&
+        !(flags & (MB64_BOUNDARY_INNER_WALLS | MB64_BOUNDARY_OUTER_WALLS))) {
+        flags |= MB64_BOUNDARY_OUTER_FLOOR;
+    }
+    return flags;
+}
+
+static uint32_t boundary_floor_face_count(const mb64_level_t *level) {
+    uint8_t flags = boundary_flags(level);
+    uint32_t count = 0;
+    if (flags & MB64_BOUNDARY_INNER_FLOOR) {
+        count += (uint32_t)(sizeof(s_boundary_inner_floor) / sizeof(s_boundary_inner_floor[0]));
+    }
+    if (flags & MB64_BOUNDARY_OUTER_FLOOR) {
+        count += (uint32_t)(sizeof(s_boundary_outer_floor) / sizeof(s_boundary_outer_floor[0]));
+    }
+    if (flags & MB64_BOUNDARY_CEILING) {
+        count += (uint32_t)(sizeof(s_boundary_inner_floor) / sizeof(s_boundary_inner_floor[0]));
+    }
+    return count;
+}
+
+static void emit_boundary_floor_face(mb64_mesh_t *mesh, uint32_t *idx,
+                                     const mb64_level_t *level,
+                                     const mb64_boundary_floor_quad_t *quad,
+                                     int16_t y, uint8_t direction) {
+    mb64_mesh_face_t *face = &mesh->faces[(*idx)++];
+    mb64_tile_t material_tile;
+    memset(&material_tile, 0, sizeof(material_tile));
+    material_tile.mat = level->header.boundary_mat;
+
+    face->material = material_tile.mat;
+    face->resolved_material = mb64_resolve_tile_material(
+        level,
+        &material_tile,
+        direction == MB64_MESH_FACE_TOP
+    );
+    face->tile_type = 0;
+    face->direction = direction;
+    face->is_water = 0;
+    face->vertex_count = 4;
+    face->use_tc = 1;
+
+    for (uint8_t i = 0; i < 4; i++) {
+        face->v[i][0] = (int16_t)(quad->v[i][0] * MB64_TILE_SUBUNITS);
+        face->v[i][1] = y;
+        face->v[i][2] = (int16_t)(quad->v[i][1] * MB64_TILE_SUBUNITS);
+        face->tc[i][0] = (int16_t)(quad->v[i][0] * 32);
+        face->tc[i][1] = (int16_t)(quad->v[i][1] * 32);
+    }
+}
+
+static void emit_boundary_floor_faces(mb64_mesh_t *mesh, uint32_t *idx,
+                                      const mb64_level_t *level) {
+    const uint8_t flags = boundary_flags(level);
+    if (flags & MB64_BOUNDARY_INNER_FLOOR) {
+        for (uint32_t i = 0; i < (uint32_t)(sizeof(s_boundary_inner_floor) / sizeof(s_boundary_inner_floor[0])); i++) {
+            emit_boundary_floor_face(mesh, idx, level, &s_boundary_inner_floor[i], 0, MB64_MESH_FACE_TOP);
+        }
+    }
+    if (flags & MB64_BOUNDARY_OUTER_FLOOR) {
+        for (uint32_t i = 0; i < (uint32_t)(sizeof(s_boundary_outer_floor) / sizeof(s_boundary_outer_floor[0])); i++) {
+            emit_boundary_floor_face(mesh, idx, level, &s_boundary_outer_floor[i], 0, MB64_MESH_FACE_TOP);
+        }
+    }
+    if (flags & MB64_BOUNDARY_CEILING) {
+        int16_t y = (int16_t)(level->header.boundary_height * MB64_TILE_SUBUNITS);
+        for (uint32_t i = 0; i < (uint32_t)(sizeof(s_boundary_inner_floor) / sizeof(s_boundary_inner_floor[0])); i++) {
+            emit_boundary_floor_face(mesh, idx, level, &s_boundary_inner_floor[i], y, MB64_MESH_FACE_BOTTOM);
+        }
     }
 }
 
@@ -1011,6 +1138,7 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
         if (!solid_at(tx, ty, tz - 1)) { face_count++; }
         if (!solid_at(tx, ty, tz + 1)) { face_count++; }
     }
+    face_count += boundary_floor_face_count(level);
 
     if (face_count == 0) { return 0; }
     mesh->faces = calloc(face_count, sizeof(*mesh->faces));
@@ -1021,6 +1149,7 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
     mesh->face_count = face_count;
 
     uint32_t out = 0;
+    emit_boundary_floor_faces(mesh, &out, level);
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
         if (!tile_is_solid(t)) { continue; }

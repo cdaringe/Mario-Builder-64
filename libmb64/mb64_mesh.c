@@ -333,6 +333,11 @@ static void tile_bounds(const mb64_tile_t *t,
     *z1 = (int16_t)(*z0 + MB64_TILE_SUBUNITS);
 }
 
+static void assign_tile_texture_coordinates(mb64_mesh_face_t *face,
+                                            const mb64_tile_t *tile,
+                                            const int16_t local[4][3],
+                                            uint8_t direction);
+
 static void emit_face(mb64_mesh_t *mesh, uint32_t *idx,
                       const mb64_level_t *level,
                       const mb64_tile_t *t, uint8_t direction,
@@ -346,6 +351,18 @@ static void emit_face(mb64_mesh_t *mesh, uint32_t *idx,
     face->is_water = is_water;
     face->vertex_count = 4;
     face->use_tc = 0;
+    if (!is_water) {
+        int16_t local[4][3];
+        int16_t x0, x1, y0, y1, z0, z1;
+        tile_bounds(t, &x0, &x1, &y0, &y1, &z0, &z1);
+        (void)x1; (void)y1; (void)z1;
+        for (uint8_t i = 0; i < 4; i++) {
+            local[i][0] = (int16_t)(p[i][0] - x0);
+            local[i][1] = (int16_t)(p[i][1] - y0);
+            local[i][2] = (int16_t)(p[i][2] - z0);
+        }
+        assign_tile_texture_coordinates(face, t, local, direction);
+    }
 }
 
 static uint8_t rotate_direction(uint8_t direction, uint8_t rot) {

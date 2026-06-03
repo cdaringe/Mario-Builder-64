@@ -72,6 +72,7 @@ def parse_surfaces(path: Path) -> dict[str, int]:
     values: dict[str, int] = {}
     current = -1
     for raw in body.splitlines():
+        comment_value = re.search(r"//\s*(0x[0-9A-Fa-f]+|-?\d+)", raw)
         line = strip_line_comment(raw).strip().rstrip(",")
         if not line or line.startswith("#"):
             continue
@@ -79,7 +80,12 @@ def parse_surfaces(path: Path) -> dict[str, int]:
         if not match:
             continue
         name, value = match.groups()
-        current = int(value, 0) if value is not None else current + 1
+        if value is not None:
+            current = int(value, 0)
+        elif comment_value is not None:
+            current = int(comment_value.group(1), 0)
+        else:
+            current = current + 1
         values[name] = current
     return values
 

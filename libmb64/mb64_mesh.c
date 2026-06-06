@@ -268,6 +268,16 @@ static int mb64_cutout_skip_culling_check(const mb64_level_t *level,
     return cur_class < other_class;
 }
 
+uint8_t mb64_tile_occludes_face(const mb64_level_t *level,
+                                const mb64_tile_t *cur,
+                                const mb64_tile_t *other,
+                                uint8_t direction) {
+    if (!tile_is_solid(other)) {
+        return 0;
+    }
+    return !mb64_cutout_skip_culling_check(level, cur, other, direction);
+}
+
 static uint8_t boundary_flags(const mb64_level_t *level) {
     if (level == NULL) {
         return 0;
@@ -690,7 +700,7 @@ static int full_face_is_occluded(const mb64_level_t *level,
     if (!solid_at(nx, ny, nz)) {
         return 0;
     }
-    return !mb64_cutout_skip_culling_check(level, t, tile_at(nx, ny, nz), direction);
+    return mb64_tile_occludes_face(level, t, tile_at(nx, ny, nz), direction);
 }
 
 static void rotate_vertex(uint8_t rot, const int8_t in[3], int16_t out[3]) {

@@ -394,6 +394,10 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh);
 int mb64_build_collision_mesh(const mb64_level_t *level, mb64_mesh_t *mesh);
 void mb64_free_render_mesh(mb64_mesh_t *mesh);
 uint8_t mb64_tile_has_collision(const mb64_tile_t *tile);
+uint8_t mb64_tile_occludes_face(const mb64_level_t *level,
+                                const mb64_tile_t *cur,
+                                const mb64_tile_t *other,
+                                uint8_t direction);
 uint8_t mb64_boundary_flags_for_level(const mb64_level_t *level);
 uint32_t mb64_build_death_plane_faces(const mb64_level_t *level,
                                       mb64_boundary_face_t out[MB64_DEATH_PLANE_FACE_COUNT]);

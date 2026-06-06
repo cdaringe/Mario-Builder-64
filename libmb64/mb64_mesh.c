@@ -10,6 +10,7 @@
 #define MB64_TILE_SUBUNITS 16
 #define MB64_THEME_CUSTOM 10
 #define MB64_MATERIAL_SLOT_COUNT 10
+#define MB64_DEATH_PLANE_GRID_Y (-40)
 #define PACK_TILESIZE(w, d) (((w) << 2) + (d))
 
 #define MB64_BOUNDARY_INNER_FLOOR (1 << 0)
@@ -17,6 +18,23 @@
 #define MB64_BOUNDARY_INNER_WALLS (1 << 2)
 #define MB64_BOUNDARY_OUTER_WALLS (1 << 3)
 #define MB64_BOUNDARY_CEILING     (1 << 4)
+
+enum {
+    MAT_OPAQUE = 0,
+    MAT_DECAL,
+    MAT_CUTOUT,
+    MAT_CUTOUT_NOCULL,
+    MAT_TRANSPARENT,
+    MAT_SCREEN,
+};
+
+enum {
+    CLASS_OPAQUE = 0,
+    CLASS_HOLLOW_TRANSPARENT,
+    CLASS_HOLLOW_CUTOUT,
+    CLASS_TRANSPARENT,
+    CLASS_CUTOUT,
+};
 
 typedef struct {
     uint8_t side;
@@ -76,6 +94,13 @@ static int tile_in_range(const mb64_tile_t *t) {
            t->x < MB64_GRID_SIZE &&
            t->y < MB64_GRID_SIZE &&
            t->z < MB64_GRID_SIZE;
+}
+
+static uint8_t mb64_material_type(uint8_t material) {
+    if (material < (uint8_t)(sizeof(s_material_types) / sizeof(s_material_types[0]))) {
+        return s_material_types[material];
+    }
+    return MAT_OPAQUE;
 }
 
 static int tile_is_solid(const mb64_tile_t *t) {
@@ -177,6 +202,72 @@ static uint8_t mb64_resolve_face_material(const mb64_level_t *level,
     }
 }
 
+static uint8_t mb64_resolve_tile_side_class(const mb64_level_t *level,
+                                            const mb64_tile_t *tile,
+                                            uint8_t direction) {
+    if (tile == NULL) {
+        return CLASS_CUTOUT;
+    }
+    if (tile->type == TILE_TYPE_FENCE || tile->type == TILE_TYPE_BARS) {
+        return CLASS_CUTOUT;
+    }
+    if (tile->type == TILE_TYPE_WATER) {
+        return CLASS_TRANSPARENT;
+    }
+
+    uint8_t material_type = mb64_material_type(mb64_resolve_tile_material(
+        level,
+        tile,
+        direction == MB64_MESH_FACE_TOP
+    ));
+    if (direction != MB64_MESH_FACE_TOP) {
+        material_type = mb64_material_type(mb64_resolve_tile_material(level, tile, 0));
+        if (material_type < MAT_CUTOUT) {
+            const uint8_t top_type = mb64_material_type(mb64_resolve_tile_material(level, tile, 1));
+            if (top_type == MAT_CUTOUT) {
+                return CLASS_HOLLOW_CUTOUT;
+            }
+            if (top_type > MAT_CUTOUT) {
+                return CLASS_HOLLOW_TRANSPARENT;
+            }
+        }
+    }
+    if (material_type < MAT_CUTOUT) {
+        return CLASS_OPAQUE;
+    }
+    if (material_type == MAT_CUTOUT) {
+        return CLASS_CUTOUT;
+    }
+    return CLASS_TRANSPARENT;
+}
+
+static int mb64_cutout_skip_culling_check(const mb64_level_t *level,
+                                          const mb64_tile_t *cur,
+                                          const mb64_tile_t *other,
+                                          uint8_t direction) {
+    if (cur == NULL || other == NULL) {
+        return 0;
+    }
+    const uint8_t cur_material = mb64_resolve_face_material(level, cur, direction);
+    const uint8_t other_material = mb64_resolve_face_material(level, other, direction ^ 1);
+    if (cur_material == other_material && cur->type == other->type) {
+        return 0;
+    }
+
+    const uint8_t cur_class = mb64_resolve_tile_side_class(level, cur, direction);
+    const uint8_t other_class = mb64_resolve_tile_side_class(level, other, direction ^ 1);
+    if (cur_class == other_class) {
+        return cur_class == CLASS_TRANSPARENT;
+    }
+    if (cur_class == CLASS_HOLLOW_CUTOUT || cur_class == CLASS_HOLLOW_TRANSPARENT) {
+        if (direction == MB64_MESH_FACE_BOTTOM &&
+            mb64_resolve_tile_side_class(level, other, MB64_MESH_FACE_BOTTOM) == cur_class) {
+            return 0;
+        }
+    }
+    return cur_class < other_class;
+}
+
 static uint8_t boundary_flags(const mb64_level_t *level) {
     if (level == NULL) {
         return 0;
@@ -195,6 +286,32 @@ static uint8_t boundary_flags(const mb64_level_t *level) {
         flags |= MB64_BOUNDARY_OUTER_FLOOR;
     }
     return flags;
+}
+
+uint8_t mb64_boundary_flags_for_level(const mb64_level_t *level) {
+    return boundary_flags(level);
+}
+
+uint32_t mb64_build_death_plane_faces(const mb64_level_t *level,
+                                      mb64_boundary_face_t out[MB64_DEATH_PLANE_FACE_COUNT]) {
+    if (out == NULL) {
+        return 0;
+    }
+    const uint8_t flags = boundary_flags(level);
+    const int16_t gridSize =
+        (flags & (MB64_BOUNDARY_OUTER_FLOOR | MB64_BOUNDARY_CEILING))
+            ? MB64_GRID_SIZE
+            : MB64_GRID_SIZE + 16;
+    const int16_t extent = (int16_t)(gridSize * MB64_TILE_SUBUNITS / 2);
+    const int16_t y = (int16_t)(MB64_DEATH_PLANE_GRID_Y * MB64_TILE_SUBUNITS);
+    const mb64_boundary_face_t faces[MB64_DEATH_PLANE_FACE_COUNT] = {
+        {{{ extent, y, extent }, { extent, y, 0 }, { 0, y, extent }, { 0, y, 0 }}},
+        {{{ 0, y, extent }, { 0, y, 0 }, { (int16_t)-extent, y, extent }, { (int16_t)-extent, y, 0 }}},
+        {{{ extent, y, 0 }, { extent, y, (int16_t)-extent }, { 0, y, 0 }, { 0, y, (int16_t)-extent }}},
+        {{{ 0, y, 0 }, { 0, y, (int16_t)-extent }, { (int16_t)-extent, y, 0 }, { (int16_t)-extent, y, (int16_t)-extent }}},
+    };
+    memcpy(out, faces, sizeof(faces));
+    return MB64_DEATH_PLANE_FACE_COUNT;
 }
 
 static uint32_t boundary_floor_face_count(const mb64_level_t *level) {
@@ -232,6 +349,9 @@ static void emit_boundary_floor_face(mb64_mesh_t *mesh, uint32_t *idx,
     face->is_water = 0;
     face->vertex_count = 4;
     face->use_tc = 1;
+    face->tile_x = UINT8_MAX;
+    face->tile_y = UINT8_MAX;
+    face->tile_z = UINT8_MAX;
 
     for (uint8_t i = 0; i < 4; i++) {
         face->v[i][0] = (int16_t)(quad->v[i][0] * MB64_TILE_SUBUNITS);
@@ -351,6 +471,9 @@ static void emit_face(mb64_mesh_t *mesh, uint32_t *idx,
     face->is_water = is_water;
     face->vertex_count = 4;
     face->use_tc = 0;
+    face->tile_x = t->x;
+    face->tile_y = t->y;
+    face->tile_z = t->z;
     if (!is_water) {
         int16_t local[4][3];
         int16_t x0, x1, y0, y1, z0, z1;
@@ -486,7 +609,10 @@ static uint8_t faceshape_at(int x, int y, int z, uint8_t direction) {
     return MB64_FACESHAPE_EMPTY;
 }
 
-static int shape_face_is_occluded(const mb64_tile_t *t, uint8_t direction, uint8_t faceshape) {
+static int shape_face_is_occluded(const mb64_level_t *level,
+                                  const mb64_tile_t *t,
+                                  uint8_t direction,
+                                  uint8_t faceshape) {
     if ((faceshape & MB64_FACESHAPE_EMPTY) != 0) {
         return 0;
     }
@@ -521,6 +647,10 @@ static int shape_face_is_occluded(const mb64_tile_t *t, uint8_t direction, uint8
     if (!solid_at(ax, ay, az)) {
         return 0;
     }
+    const mb64_tile_t *adj = tile_at(ax, ay, az);
+    if (mb64_cutout_skip_culling_check(level, t, adj, direction)) {
+        return 0;
+    }
     uint8_t other = faceshape_at(ax, ay, az, direction);
     if ((other & MB64_FACESHAPE_EMPTY) != 0) {
         return 0;
@@ -532,7 +662,6 @@ static int shape_face_is_occluded(const mb64_tile_t *t, uint8_t direction, uint8
         return 0;
     }
     if (faceshape == MB64_FACESHAPE_TOPTRI || faceshape == MB64_FACESHAPE_TOPHALF) {
-        const mb64_tile_t *adj = tile_at(ax, ay, az);
         return other == faceshape && adj != NULL && ((adj->rot & 3) == (t->rot & 3));
     }
     if (faceshape == MB64_FACESHAPE_BOTTOMSLAB ||
@@ -550,6 +679,18 @@ static int shape_face_is_occluded(const mb64_tile_t *t, uint8_t direction, uint8
         return faceshape > other;
     }
     return 0;
+}
+
+static int full_face_is_occluded(const mb64_level_t *level,
+                                 const mb64_tile_t *t,
+                                 uint8_t direction,
+                                 int nx,
+                                 int ny,
+                                 int nz) {
+    if (!solid_at(nx, ny, nz)) {
+        return 0;
+    }
+    return !mb64_cutout_skip_culling_check(level, t, tile_at(nx, ny, nz), direction);
 }
 
 static void rotate_vertex(uint8_t rot, const int8_t in[3], int16_t out[3]) {
@@ -609,7 +750,7 @@ static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     }
 
     uint8_t direction = rotate_direction(src->direction, t->rot);
-    if (shape_face_is_occluded(t, direction, src->faceshape)) {
+    if (shape_face_is_occluded(level, t, direction, src->faceshape)) {
         return;
     }
     mb64_mesh_face_t *face = &mesh->faces[(*idx)++];
@@ -620,6 +761,10 @@ static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     face->direction = direction;
     face->is_water = 0;
     face->vertex_count = src->vertex_count;
+    face->use_tc = 0;
+    face->tile_x = t->x;
+    face->tile_y = t->y;
+    face->tile_z = t->z;
     if (t->type == TILE_TYPE_FENCE) {
         assign_fence_texture_coordinates(face, t, direction);
     } else {
@@ -671,12 +816,12 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
             continue;
         }
         int tx = t->x, ty = t->y, tz = t->z;
-        if (!solid_at(tx, ty + 1, tz)) { face_count++; }
-        if (!solid_at(tx, ty - 1, tz)) { face_count++; }
-        if (!solid_at(tx - 1, ty, tz)) { face_count++; }
-        if (!solid_at(tx + 1, ty, tz)) { face_count++; }
-        if (!solid_at(tx, ty, tz - 1)) { face_count++; }
-        if (!solid_at(tx, ty, tz + 1)) { face_count++; }
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_TOP, tx, ty + 1, tz)) { face_count++; }
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_BOTTOM, tx, ty - 1, tz)) { face_count++; }
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_NEG_X, tx - 1, ty, tz)) { face_count++; }
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_POS_X, tx + 1, ty, tz)) { face_count++; }
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_NEG_Z, tx, ty, tz - 1)) { face_count++; }
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_POS_Z, tx, ty, tz + 1)) { face_count++; }
     }
     face_count += boundary_floor_face_count(level);
 
@@ -705,27 +850,27 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
         tile_bounds(t, &x0, &x1, &y0, &y1, &z0, &z1);
         int tx = t->x, ty = t->y, tz = t->z;
 
-        if (!solid_at(tx, ty + 1, tz)) {
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_TOP, tx, ty + 1, tz)) {
             const int16_t p[4][3] = {{x0,y1,z1},{x0,y1,z0},{x1,y1,z1},{x1,y1,z0}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_TOP, 0, p);
         }
-        if (!solid_at(tx, ty - 1, tz)) {
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_BOTTOM, tx, ty - 1, tz)) {
             const int16_t p[4][3] = {{x0,y0,z0},{x0,y0,z1},{x1,y0,z0},{x1,y0,z1}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_BOTTOM, 0, p);
         }
-        if (!solid_at(tx - 1, ty, tz)) {
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_NEG_X, tx - 1, ty, tz)) {
             const int16_t p[4][3] = {{x0,y1,z0},{x0,y0,z0},{x0,y1,z1},{x0,y0,z1}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_NEG_X, 0, p);
         }
-        if (!solid_at(tx + 1, ty, tz)) {
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_POS_X, tx + 1, ty, tz)) {
             const int16_t p[4][3] = {{x1,y1,z1},{x1,y0,z1},{x1,y1,z0},{x1,y0,z0}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_POS_X, 0, p);
         }
-        if (!solid_at(tx, ty, tz - 1)) {
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_NEG_Z, tx, ty, tz - 1)) {
             const int16_t p[4][3] = {{x1,y1,z0},{x1,y0,z0},{x0,y1,z0},{x0,y0,z0}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_NEG_Z, 0, p);
         }
-        if (!solid_at(tx, ty, tz + 1)) {
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_POS_Z, tx, ty, tz + 1)) {
             const int16_t p[4][3] = {{x0,y1,z1},{x0,y0,z1},{x1,y1,z1},{x1,y0,z1}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_POS_Z, 0, p);
         }

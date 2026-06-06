@@ -125,6 +125,9 @@ typedef struct {
     uint8_t is_water;
     uint8_t vertex_count;
     uint8_t use_tc;
+    uint8_t tile_x;
+    uint8_t tile_y;
+    uint8_t tile_z;
 } mb64_mesh_face_t;
 
 typedef struct {
@@ -133,6 +136,17 @@ typedef struct {
     uint32_t solid_tile_count;
     uint32_t water_tile_count;
 } mb64_mesh_t;
+
+#define MB64_BOUNDARY_FLAG_INNER_FLOOR (1 << 0)
+#define MB64_BOUNDARY_FLAG_OUTER_FLOOR (1 << 1)
+#define MB64_BOUNDARY_FLAG_INNER_WALLS (1 << 2)
+#define MB64_BOUNDARY_FLAG_OUTER_WALLS (1 << 3)
+#define MB64_BOUNDARY_FLAG_CEILING     (1 << 4)
+#define MB64_DEATH_PLANE_FACE_COUNT 4
+
+typedef struct {
+    int16_t v[4][3]; /* MB64 coordinates in sixteenths of one tile */
+} mb64_boundary_face_t;
 
 typedef struct {
     uint8_t animated;
@@ -379,6 +393,9 @@ void mb64_free(mb64_level_t *level);
 int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh);
 void mb64_free_render_mesh(mb64_mesh_t *mesh);
 uint8_t mb64_tile_has_collision(const mb64_tile_t *tile);
+uint8_t mb64_boundary_flags_for_level(const mb64_level_t *level);
+uint32_t mb64_build_death_plane_faces(const mb64_level_t *level,
+                                      mb64_boundary_face_t out[MB64_DEATH_PLANE_FACE_COUNT]);
 uint8_t mb64_resolve_tile_material(const mb64_level_t *level,
                                    const mb64_tile_t *tile,
                                    uint8_t top_face);

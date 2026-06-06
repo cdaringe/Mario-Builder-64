@@ -604,11 +604,11 @@ static const mb64_tile_t *tile_at(int x, int y, int z) {
     return s_tile_grid[z][y][x];
 }
 
-static uint8_t faceshape_at(int x, int y, int z, uint8_t direction) {
+static uint8_t faceshape_at(int x, int y, int z, uint8_t direction, int collision_mesh) {
     const mb64_tile_t *tile = tile_at(x, y, z);
-    const mb64_shape_t *shape = shape_for_tile(tile, 0);
+    const mb64_shape_t *shape = shape_for_tile(tile, collision_mesh);
     if (shape == NULL) {
-        return MB64_FACESHAPE_EMPTY;
+        return solid_at(x, y, z) ? MB64_FACESHAPE_FULL : MB64_FACESHAPE_EMPTY;
     }
     uint8_t local_dir = (uint8_t)(rotate_direction(direction, (uint8_t)((4 - (tile->rot & 3)) & 3)) ^ 1);
     for (uint8_t i = 0; i < shape->face_count; i++) {
@@ -622,7 +622,8 @@ static uint8_t faceshape_at(int x, int y, int z, uint8_t direction) {
 static int shape_face_is_occluded(const mb64_level_t *level,
                                   const mb64_tile_t *t,
                                   uint8_t direction,
-                                  uint8_t faceshape) {
+                                  uint8_t faceshape,
+                                  int collision_mesh) {
     if ((faceshape & MB64_FACESHAPE_EMPTY) != 0) {
         return 0;
     }
@@ -661,7 +662,7 @@ static int shape_face_is_occluded(const mb64_level_t *level,
     if (mb64_cutout_skip_culling_check(level, t, adj, direction)) {
         return 0;
     }
-    uint8_t other = faceshape_at(ax, ay, az, direction);
+    uint8_t other = faceshape_at(ax, ay, az, direction, collision_mesh);
     if ((other & MB64_FACESHAPE_EMPTY) != 0) {
         return 0;
     }
@@ -696,11 +697,15 @@ static int full_face_is_occluded(const mb64_level_t *level,
                                  uint8_t direction,
                                  int nx,
                                  int ny,
-                                 int nz) {
+                                 int nz,
+                                 int collision_mesh) {
     if (!solid_at(nx, ny, nz)) {
         return 0;
     }
-    return mb64_tile_occludes_face(level, t, tile_at(nx, ny, nz), direction);
+    if (!mb64_tile_occludes_face(level, t, tile_at(nx, ny, nz), direction)) {
+        return 0;
+    }
+    return faceshape_at(nx, ny, nz, direction, collision_mesh) == MB64_FACESHAPE_FULL;
 }
 
 static void rotate_vertex(uint8_t rot, const int8_t in[3], int16_t out[3]) {
@@ -755,7 +760,8 @@ static int tile_uses_shaped_mesh(const mb64_tile_t *t, int collision_mesh) {
 static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
                             const mb64_level_t *level,
                             const mb64_tile_t *t,
-                            const mb64_shape_face_t *src) {
+                            const mb64_shape_face_t *src,
+                            int collision_mesh) {
     int16_t p[4][3];
     int16_t local[4][3];
     int16_t x0, x1, y0, y1, z0, z1;
@@ -769,7 +775,7 @@ static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     }
 
     uint8_t direction = rotate_direction(src->direction, t->rot);
-    if (shape_face_is_occluded(level, t, direction, src->faceshape)) {
+    if (shape_face_is_occluded(level, t, direction, src->faceshape, collision_mesh)) {
         return;
     }
     mb64_mesh_face_t *face = &mesh->faces[(*idx)++];
@@ -835,12 +841,12 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
             continue;
         }
         int tx = t->x, ty = t->y, tz = t->z;
-        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_TOP, tx, ty + 1, tz)) { face_count++; }
-        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_BOTTOM, tx, ty - 1, tz)) { face_count++; }
-        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_NEG_X, tx - 1, ty, tz)) { face_count++; }
-        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_POS_X, tx + 1, ty, tz)) { face_count++; }
-        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_NEG_Z, tx, ty, tz - 1)) { face_count++; }
-        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_POS_Z, tx, ty, tz + 1)) { face_count++; }
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_TOP, tx, ty + 1, tz, collision_mesh)) { face_count++; }
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_BOTTOM, tx, ty - 1, tz, collision_mesh)) { face_count++; }
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_NEG_X, tx - 1, ty, tz, collision_mesh)) { face_count++; }
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_POS_X, tx + 1, ty, tz, collision_mesh)) { face_count++; }
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_NEG_Z, tx, ty, tz - 1, collision_mesh)) { face_count++; }
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_POS_Z, tx, ty, tz + 1, collision_mesh)) { face_count++; }
     }
     face_count += boundary_floor_face_count(level);
 
@@ -860,7 +866,7 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
         const mb64_shape_t *shape = shape_for_tile(t, collision_mesh);
         if (tile_uses_shaped_mesh(t, collision_mesh) && shape != NULL) {
             for (uint8_t j = 0; j < shape->face_count; j++) {
-                emit_shape_face(mesh, &out, level, t, &shape->faces[j]);
+                emit_shape_face(mesh, &out, level, t, &shape->faces[j], collision_mesh);
             }
             continue;
         }
@@ -869,27 +875,27 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
         tile_bounds(t, &x0, &x1, &y0, &y1, &z0, &z1);
         int tx = t->x, ty = t->y, tz = t->z;
 
-        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_TOP, tx, ty + 1, tz)) {
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_TOP, tx, ty + 1, tz, collision_mesh)) {
             const int16_t p[4][3] = {{x0,y1,z1},{x0,y1,z0},{x1,y1,z1},{x1,y1,z0}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_TOP, 0, p);
         }
-        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_BOTTOM, tx, ty - 1, tz)) {
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_BOTTOM, tx, ty - 1, tz, collision_mesh)) {
             const int16_t p[4][3] = {{x0,y0,z0},{x0,y0,z1},{x1,y0,z0},{x1,y0,z1}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_BOTTOM, 0, p);
         }
-        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_NEG_X, tx - 1, ty, tz)) {
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_NEG_X, tx - 1, ty, tz, collision_mesh)) {
             const int16_t p[4][3] = {{x0,y1,z0},{x0,y0,z0},{x0,y1,z1},{x0,y0,z1}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_NEG_X, 0, p);
         }
-        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_POS_X, tx + 1, ty, tz)) {
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_POS_X, tx + 1, ty, tz, collision_mesh)) {
             const int16_t p[4][3] = {{x1,y1,z1},{x1,y0,z1},{x1,y1,z0},{x1,y0,z0}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_POS_X, 0, p);
         }
-        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_NEG_Z, tx, ty, tz - 1)) {
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_NEG_Z, tx, ty, tz - 1, collision_mesh)) {
             const int16_t p[4][3] = {{x1,y1,z0},{x1,y0,z0},{x0,y1,z0},{x0,y0,z0}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_NEG_Z, 0, p);
         }
-        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_POS_Z, tx, ty, tz + 1)) {
+        if (!full_face_is_occluded(level, t, MB64_MESH_FACE_POS_Z, tx, ty, tz + 1, collision_mesh)) {
             const int16_t p[4][3] = {{x0,y1,z1},{x0,y0,z1},{x1,y1,z1},{x1,y0,z1}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_POS_Z, 0, p);
         }

@@ -75,7 +75,7 @@ typedef struct {
     uint8_t face_count;
 } mb64_shape_t;
 
-static const mb64_shape_t *shape_for_tile(const mb64_tile_t *t);
+static const mb64_shape_t *shape_for_tile(const mb64_tile_t *t, int collision_mesh);
 
 #define Q(dir, faceshape, ...) { { __VA_ARGS__ }, dir, faceshape, 4 }
 #define T(dir, faceshape, ...) { { __VA_ARGS__, {0,0,0} }, dir, faceshape, 3 }
@@ -596,7 +596,7 @@ static const mb64_tile_t *tile_at(int x, int y, int z) {
 
 static uint8_t faceshape_at(int x, int y, int z, uint8_t direction) {
     const mb64_tile_t *tile = tile_at(x, y, z);
-    const mb64_shape_t *shape = shape_for_tile(tile);
+    const mb64_shape_t *shape = shape_for_tile(tile, 0);
     if (shape == NULL) {
         return MB64_FACESHAPE_EMPTY;
     }
@@ -721,16 +721,25 @@ static void rotate_vertex(uint8_t rot, const int8_t in[3], int16_t out[3]) {
     }
 }
 
-static const mb64_shape_t *shape_for_tile(const mb64_tile_t *t) {
-    if (t == NULL || t->type >= (sizeof(s_shapes) / sizeof(s_shapes[0])) ||
-        s_shapes[t->type].faces == NULL) {
+static const mb64_shape_t *shape_for_tile(const mb64_tile_t *t, int collision_mesh) {
+    if (t == NULL || t->type >= (sizeof(s_shapes) / sizeof(s_shapes[0]))) {
+        return NULL;
+    }
+    if (collision_mesh &&
+        t->type < (sizeof(s_collision_shapes) / sizeof(s_collision_shapes[0])) &&
+        s_collision_shapes[t->type].faces != NULL) {
+        return &s_collision_shapes[t->type];
+    }
+    if (s_shapes[t->type].faces == NULL) {
         return NULL;
     }
     return &s_shapes[t->type];
 }
 
-static int tile_uses_shaped_mesh(const mb64_tile_t *t) {
-    return shape_for_tile(t) != NULL && t->type != TILE_TYPE_BLOCK && t->type != TILE_TYPE_TROLL;
+static int tile_uses_shaped_mesh(const mb64_tile_t *t, int collision_mesh) {
+    return shape_for_tile(t, collision_mesh) != NULL &&
+           t->type != TILE_TYPE_BLOCK &&
+           t->type != TILE_TYPE_TROLL;
 }
 
 static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
@@ -772,7 +781,7 @@ static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     }
 }
 
-int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
+static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int collision_mesh) {
     if (mesh == NULL) { return 0; }
     memset(mesh, 0, sizeof(*mesh));
     if (level == NULL || level->tiles == NULL || level->header.tile_count == 0) {
@@ -810,8 +819,8 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
         if (!tile_is_solid(t)) { continue; }
-        const mb64_shape_t *shape = shape_for_tile(t);
-        if (tile_uses_shaped_mesh(t) && shape != NULL) {
+        const mb64_shape_t *shape = shape_for_tile(t, collision_mesh);
+        if (tile_uses_shaped_mesh(t, collision_mesh) && shape != NULL) {
             face_count += shape->face_count;
             continue;
         }
@@ -838,8 +847,8 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
         if (!tile_is_solid(t)) { continue; }
-        const mb64_shape_t *shape = shape_for_tile(t);
-        if (tile_uses_shaped_mesh(t) && shape != NULL) {
+        const mb64_shape_t *shape = shape_for_tile(t, collision_mesh);
+        if (tile_uses_shaped_mesh(t, collision_mesh) && shape != NULL) {
             for (uint8_t j = 0; j < shape->face_count; j++) {
                 emit_shape_face(mesh, &out, level, t, &shape->faces[j]);
             }
@@ -910,6 +919,14 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
 
     mesh->face_count = out;
     return out > 0;
+}
+
+int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
+    return mb64_build_mesh(level, mesh, 0);
+}
+
+int mb64_build_collision_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
+    return mb64_build_mesh(level, mesh, 1);
 }
 
 void mb64_free_render_mesh(mb64_mesh_t *mesh) {

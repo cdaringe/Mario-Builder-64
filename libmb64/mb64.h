@@ -391,6 +391,7 @@ mb64_level_t *mb64_load(const char *path);
 void mb64_free(mb64_level_t *level);
 
 int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh);
+int mb64_build_collision_mesh(const mb64_level_t *level, mb64_mesh_t *mesh);
 void mb64_free_render_mesh(mb64_mesh_t *mesh);
 uint8_t mb64_tile_has_collision(const mb64_tile_t *tile);
 uint8_t mb64_boundary_flags_for_level(const mb64_level_t *level);

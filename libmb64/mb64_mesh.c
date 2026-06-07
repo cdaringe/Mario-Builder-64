@@ -135,6 +135,69 @@ static int water_at(int x, int y, int z) {
     return s_water_grid[z][y][x] != 0;
 }
 
+static const mb64_tile_t *find_level_tile(const mb64_level_t *level, int x, int y, int z) {
+    if (level == NULL || level->tiles == NULL ||
+        x < 0 || y < 0 || z < 0 ||
+        x >= MB64_GRID_SIZE || y >= MB64_GRID_SIZE || z >= MB64_GRID_SIZE) {
+        return NULL;
+    }
+
+    for (uint32_t i = 0; i < level->header.tile_count; i++) {
+        const mb64_tile_t *tile = &level->tiles[i];
+        if (tile->x == x && tile->y == y && tile->z == z) {
+            return tile;
+        }
+    }
+    return NULL;
+}
+
+static int level_water_at(const mb64_level_t *level, int x, int y, int z) {
+    return tile_is_water(find_level_tile(level, x, y, z));
+}
+
+int mb64_find_water_column_top(const mb64_level_t *level,
+                               int grid_x,
+                               int grid_y,
+                               int grid_z,
+                               int *out_top_grid_y) {
+    if (out_top_grid_y != NULL) {
+        *out_top_grid_y = -1;
+    }
+    if (level == NULL || level->tiles == NULL ||
+        grid_x < 0 || grid_x >= MB64_GRID_SIZE ||
+        grid_z < 0 || grid_z >= MB64_GRID_SIZE) {
+        return 0;
+    }
+
+    if (grid_y >= MB64_GRID_SIZE) {
+        grid_y = MB64_GRID_SIZE - 1;
+    }
+    if (grid_y < 0) {
+        return 0;
+    }
+
+    if (level_water_at(level, grid_x, grid_y, grid_z)) {
+        grid_y++;
+        while (grid_y < MB64_GRID_SIZE && level_water_at(level, grid_x, grid_y, grid_z)) {
+            grid_y++;
+        }
+        grid_y--;
+    } else {
+        grid_y--;
+        while (grid_y > -1 && !level_water_at(level, grid_x, grid_y, grid_z)) {
+            grid_y--;
+        }
+        if (grid_y == -1) {
+            return 0;
+        }
+    }
+
+    if (out_top_grid_y != NULL) {
+        *out_top_grid_y = grid_y;
+    }
+    return 1;
+}
+
 uint8_t mb64_resolve_tile_material(const mb64_level_t *level,
                                    const mb64_tile_t *tile,
                                    uint8_t top_face) {

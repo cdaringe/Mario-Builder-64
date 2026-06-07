@@ -410,6 +410,21 @@ mb64_material_texture_animation_t mb64_texture_animation_for_material(uint8_t ma
 mb64_material_texture_animation_t mb64_texture_animation_for_water(const mb64_level_t *level);
 
 /**
+ * mb64_find_water_column_top() - MB64's Y-aware stacked-water lookup.
+ *
+ * @grid_x, @grid_y, and @grid_z are MB64 grid coordinates. The query mirrors
+ * src/mb64/collision.c: if the query cell is water, scan upward to the top of
+ * the contiguous water column; otherwise scan downward to the nearest water
+ * column below. Returns 1 and writes the top water grid Y on success, or 0 when
+ * no local water column exists.
+ */
+int mb64_find_water_column_top(const mb64_level_t *level,
+                               int grid_x,
+                               int grid_y,
+                               int grid_z,
+                               int *out_top_grid_y);
+
+/**
  * mb64_theme_specials_for_level() - Return MB64 special material ids.
  *
  * Regular tile materials resolve through mb64_resolve_tile_material(); fences,

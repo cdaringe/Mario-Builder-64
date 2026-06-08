@@ -390,6 +390,15 @@ mb64_level_t *mb64_load(const char *path);
  */
 void mb64_free(mb64_level_t *level);
 
+/**
+ * mb64_music_sequence_from_index() - Convert MB64 music menu index to sequence.
+ *
+ * MB64 saves level, race, and boss music as indices into its music selector
+ * table. This returns the SM64 sequence id from MB64's seq_musicmenu_array, or
+ * 0 when the index is outside the authored table.
+ */
+uint8_t mb64_music_sequence_from_index(uint8_t music_index);
+
 int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh);
 int mb64_build_collision_mesh(const mb64_level_t *level, mb64_mesh_t *mesh);
 void mb64_free_render_mesh(mb64_mesh_t *mesh);

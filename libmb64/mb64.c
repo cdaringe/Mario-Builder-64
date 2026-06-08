@@ -19,6 +19,7 @@
 #include "mb64.h"
 #include "mb64_log.h"
 #include "mb64_save_format.h"
+#include "../include/seq_ids.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +32,121 @@
 
 #define TILE_SIZE  4   /* u32 packed */
 #define OBJ_SIZE   8   /* bparam,x,y,z,type,rot,imbue,pad */
+
+/* Mirrors src/mb64/data.c:seq_musicmenu_array. Keep music index semantics in
+ * libmb64 so external loaders do not maintain partial duplicate mappings. */
+static const uint8_t s_music_sequence_by_index[] = {
+    SEQ_LEVEL_GRASS,
+    SEQ_LEVEL_SLIDE,
+    SEQ_LEVEL_WATER,
+    SEQ_LEVEL_WATER,
+    SEQ_LEVEL_HOT,
+    SEQ_LEVEL_SNOW,
+    SEQ_LEVEL_SPOOKY,
+    SEQ_LEVEL_UNDERGROUND,
+    SEQ_LEVEL_UNDERGROUND,
+    SEQ_LEVEL_KOOPA_ROAD_2,
+    SEQ_VANILLA_BOSS,
+    SEQ_LEVEL_BOSS_KOOPA,
+    SEQ_LEVEL_BOSS_KOOPA_FINAL,
+    SEQ_LEVEL_INSIDE_CASTLE2,
+    SEQ_LEVEL_INSIDE_CASTLE,
+    SEQ_REDHOT,
+    SEQ_FARM,
+    SEQ_JUNGLE,
+    SEQ_PIRATE,
+    SEQ_EVENT_CUTSCENE_ENDING,
+    SEQ_BIG_HOUSE,
+    SEQ_NSMB_CASTLE,
+    SEQ_EVENT_BOSS,
+    SEQ_LEVEL_KOOPA_ROAD,
+    SEQ_COSMIC_SEED_BOSS,
+    SEQ_SHOWRUNNER_BOSS,
+    SEQ_COSMIC_SEED_LEVEL,
+    SEQ_FINAL_BOSS,
+    SEQ_SMS_BIANCO_HILLS,
+    SEQ_SMS_SKY_AND_SEA,
+    SEQ_SMS_SECRET_COURSE,
+    SEQ_SMG_COMET_OBSERVATORY,
+    SEQ_SMG_BUOY_BASE,
+    SEQ_SMG_BATTLEROCK,
+    SEQ_SMG_GHOSTLY_GALAXY,
+    SEQ_SMG_PURPLE_COMET,
+    SEQ_SMG2_HONEYBLOOM,
+    SEQ_PIRANHA_CREEK,
+    SEQ_NSMB_DESERT,
+    SEQ_KOOPA_BEACH,
+    SEQ_FRAPPE_SNOWLAND,
+    SEQ_MK64_BOWSERS_CASTLE,
+    SEQ_MK64_RAINBOW_ROAD,
+    SEQ_MKDS_WALUIGI_PINBALL,
+    SEQ_MK8_RAINBOW_ROAD,
+    SEQ_SMRPG_MARIOS_PAD,
+    SEQ_SMRPG_NIMBUS_LAND,
+    SEQ_FOREST_MAZE,
+    SEQ_SMRPG_SUNKEN_SHIP,
+    SEQ_PM_DRY_DESERT,
+    SEQ_PM_FOREVER_FOREST,
+    SEQ_TTYD_PETAL_MEADOWS,
+    SEQ_TTYD_EIGHT_KEY_DOMAIN,
+    SEQ_TTYD_ROGUEPORT_SEWERS,
+    SEQ_TTYD_XNAUT_FORTRESS,
+    SEQ_SPM_FLIPSIDE,
+    SEQ_SPM_LINELAND_ROAD,
+    SEQ_SAMMER_KINGDOM,
+    SEQ_SPM_FLORO_CAVERNS,
+    SEQ_SPM_OVERTHERE_STAIR,
+    SEQ_MP_YOSHIS_TROPICAL_ISLAND,
+    SEQ_MP_RAINBOW_CASTLE,
+    SEQ_MLPIT_BEHIND_YOSHI_VILLAGE,
+    SEQ_PIT_GRITZY_DESERT,
+    SEQ_BIS_BUMPSY_PLAINS,
+    SEQ_BIS_DEEP_CASTLE,
+    SEQ_YI_OVERWORLD,
+    SEQ_YI_CRYSTAL_CAVES,
+    SEQ_YS_TITLE,
+    SEQ_OOT_KOKIRI_FOREST,
+    SEQ_OOT_LOST_WOODS,
+    SEQ_OOT_GERUDO_VALLEY,
+    SEQ_STONE_TOWER_TEMPLE,
+    SEQ_WW_OUTSET_ISLAND,
+    SEQ_TP_LAKE_HYLIA,
+    SEQ_TP_GERUDO_DESERT,
+    SEQ_SS_SKYLOFT,
+    SEQ_DK64_FRANTIC_FACTORY,
+    SEQ_DK64_HIDEOUT_HELM,
+    SEQ_DK_CREEPY_CASTLE,
+    SEQ_DK64_GLOOMY_GALLEON,
+    SEQ_DK64_FUNGI_FOREST,
+    SEQ_DK64_CRYSTAL_CAVES,
+    SEQ_DK64_ANGRY_AZTEC,
+    SEQ_DKC2_SNOWBOUND_LAND,
+    SEQ_BK_BUBBLEGLOOP_SWAMP,
+    SEQ_BK_FREEZEEZY_PEAKS,
+    SEQ_BK_GOBI_VALLEY,
+    SEQ_K64_FACTORY_INSPECTION,
+    SEQ_BM_GREEN_GARDEN,
+    SEQ_BM_BLACK_FORTRESS,
+    SEQ_SA_WINDY_HILL,
+    SEQ_PKMN_SKY_TOWER,
+    SEQ_TOUHOU_YOUKAI_MOUNTAIN,
+    SEQ_FOREST_TEMPLE,
+    SEQ_RAYMAN_BAND_LAND,
+    SEQ_SMB1_OVERWORLD,
+    SEQ_SMB_BOWSER_REMIX,
+    SEQ_SMB2_OVERWORLD,
+    SEQ_SMB3_OVERWORLD,
+    SEQ_SMB3_CASTLE,
+    SEQ_SMW_ATHLETIC,
+    SEQ_SMW_CASTLE,
+};
+
+uint8_t mb64_music_sequence_from_index(uint8_t music_index) {
+    if (music_index >= sizeof(s_music_sequence_by_index) / sizeof(s_music_sequence_by_index[0])) {
+        return 0;
+    }
+    return s_music_sequence_by_index[music_index];
+}
 
 _Static_assert(offsetof(struct mb64_level_save_header, version) == 10,
                "MB64 disk header version offset changed");

@@ -86,29 +86,31 @@ def parse_surfaces(path: Path) -> dict[str, int]:
         match = re.match(r"#define\s+(SURFACE_[A-Z0-9_]+)\s+(0x[0-9A-Fa-f]+|-?\d+)", line)
         if match:
             defines[match.group(1)] = int(match.group(2), 0)
-    if defines:
-        defines.update({name: value for name, value in SURFACE_ALIASES.items() if name not in defines})
-        return defines
 
-    body = extract_initializer(text, "enum SurfaceTypes")
     values: dict[str, int] = {}
-    current = -1
-    for raw in body.splitlines():
-        comment_value = re.search(r"//\s*(0x[0-9A-Fa-f]+|-?\d+)", raw)
-        line = strip_line_comment(raw).strip().rstrip(",")
-        if not line or line.startswith("#"):
-            continue
-        match = re.match(r"([A-Z0-9_]+)(?:\s*=\s*(0x[0-9A-Fa-f]+|-?\d+))?$", line)
-        if not match:
-            continue
-        name, value = match.groups()
-        if value is not None:
-            current = int(value, 0)
-        elif comment_value is not None:
-            current = int(comment_value.group(1), 0)
-        else:
-            current = current + 1
-        values[name] = current
+    if "enum SurfaceTypes" in text:
+        body = extract_initializer(text, "enum SurfaceTypes")
+        current = -1
+        for raw in body.splitlines():
+            comment_value = re.search(r"//\s*(0x[0-9A-Fa-f]+|-?\d+)", raw)
+            line = strip_line_comment(raw).strip().rstrip(",")
+            if not line or line.startswith("#"):
+                continue
+            match = re.match(r"([A-Z0-9_]+)(?:\s*=\s*(0x[0-9A-Fa-f]+|-?\d+))?$", line)
+            if not match:
+                continue
+            name, value = match.groups()
+            if value is not None:
+                current = int(value, 0)
+            elif comment_value is not None:
+                current = int(comment_value.group(1), 0)
+            else:
+                current = current + 1
+            values[name] = current
+    values.update(defines)
+    values.update({name: value for name, value in SURFACE_ALIASES.items() if name not in values})
+    if not values:
+        raise ValueError(f"no surfaces parsed from {path}")
     return values
 
 

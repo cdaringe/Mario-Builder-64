@@ -36,6 +36,23 @@ enum {
     CLASS_CUTOUT,
 };
 
+enum {
+    MB64_GROWTH_NONE,
+    MB64_GROWTH_FULL,
+    MB64_GROWTH_NORMAL_SIDE,
+    MB64_GROWTH_HALF_SIDE,
+    MB64_GROWTH_UNDERSLOPE_CORNER,
+    MB64_GROWTH_DIAGONAL_SIDE,
+    MB64_GROWTH_VSLAB_SIDE,
+    MB64_GROWTH_UNCONDITIONAL,
+
+    MB64_GROWTH_EXTRADECAL_START = 0x10,
+    MB64_GROWTH_SLOPE_SIDE_L = MB64_GROWTH_EXTRADECAL_START,
+    MB64_GROWTH_SLOPE_SIDE_R,
+    MB64_GROWTH_GENTLE_SIDE_L,
+    MB64_GROWTH_GENTLE_SIDE_R,
+};
+
 typedef struct {
     uint8_t side;
     uint8_t top;
@@ -68,6 +85,9 @@ typedef struct {
     uint8_t direction;
     uint8_t faceshape;
     uint8_t vertex_count;
+    uint8_t growth_type;
+    uint8_t has_alt_uvs;
+    int8_t alt_uvs[4][2];
 } mb64_shape_face_t;
 
 typedef struct {
@@ -77,8 +97,8 @@ typedef struct {
 
 static const mb64_shape_t *shape_for_tile(const mb64_tile_t *t, int collision_mesh);
 
-#define Q(dir, faceshape, ...) { { __VA_ARGS__ }, dir, faceshape, 4 }
-#define T(dir, faceshape, ...) { { __VA_ARGS__, {0,0,0} }, dir, faceshape, 3 }
+#define Q(dir, faceshape, growth, has_alt, alt, ...) { { __VA_ARGS__ }, dir, faceshape, 4, growth, has_alt, alt }
+#define T(dir, faceshape, growth, has_alt, alt, ...) { { __VA_ARGS__, {0,0,0} }, dir, faceshape, 3, growth, has_alt, alt }
 
 #include "mb64_mesh_data.generated.inc.c"
 
@@ -101,6 +121,13 @@ static uint8_t mb64_material_type(uint8_t material) {
         return s_material_types[material];
     }
     return MAT_OPAQUE;
+}
+
+static uint8_t mb64_material_vertical(uint8_t material) {
+    if (material < (sizeof(s_material_verticals) / sizeof(s_material_verticals[0]))) {
+        return s_material_verticals[material];
+    }
+    return 0;
 }
 
 static int tile_is_solid(const mb64_tile_t *t) {
@@ -529,7 +556,11 @@ static void tile_bounds(const mb64_tile_t *t,
 static void assign_tile_texture_coordinates(mb64_mesh_face_t *face,
                                             const mb64_tile_t *tile,
                                             const int16_t local[4][3],
-                                            uint8_t direction);
+                                            uint8_t direction,
+                                            uint8_t faceshape,
+                                            uint8_t material,
+                                            const int8_t alt_uvs[4][2],
+                                            uint8_t use_alt_uvs);
 
 static void emit_face(mb64_mesh_t *mesh, uint32_t *idx,
                       const mb64_level_t *level,
@@ -557,7 +588,9 @@ static void emit_face(mb64_mesh_t *mesh, uint32_t *idx,
             local[i][1] = (int16_t)(p[i][1] - y0);
             local[i][2] = (int16_t)(p[i][2] - z0);
         }
-        assign_tile_texture_coordinates(face, t, local, direction);
+        assign_tile_texture_coordinates(face, t, local, direction,
+                                        MB64_FACESHAPE_FULL, face->resolved_material,
+                                        NULL, 0);
     }
 }
 
@@ -635,10 +668,18 @@ static void assign_fence_texture_coordinates(mb64_mesh_face_t *face,
 static void assign_tile_texture_coordinates(mb64_mesh_face_t *face,
                                             const mb64_tile_t *tile,
                                             const int16_t local[4][3],
-                                            uint8_t direction) {
+                                            uint8_t direction,
+                                            uint8_t faceshape,
+                                            uint8_t material,
+                                            const int8_t alt_uvs[4][2],
+                                            uint8_t use_alt_uvs) {
+    uint8_t uv_direction = direction;
+    if (mb64_material_vertical(material) && faceshape > MB64_FACESHAPE_EMPTY) {
+        uv_direction = (uint8_t)((faceshape - MB64_FACESHAPE_EMPTY) + 1);
+    }
     uint8_t u_axis;
     uint8_t v_axis;
-    uint8_t flip_u = face_uv_axes(direction, &u_axis, &v_axis);
+    uint8_t flip_u = face_uv_axes(uv_direction, &u_axis, &v_axis);
     int32_t u_pos = flip_u ? 64 - tile_axis_value(tile, u_axis)
                            : tile_axis_value(tile, u_axis);
     int32_t v_pos = tile_axis_value(tile, v_axis);
@@ -646,10 +687,17 @@ static void assign_tile_texture_coordinates(mb64_mesh_face_t *face,
     v_pos = mb64_uv_wrap_offset(v_pos);
 
     for (uint8_t i = 0; i < face->vertex_count; i++) {
-        int16_t u = local[i][u_axis];
-        int16_t v = (int16_t)(16 - local[i][v_axis]);
-        if (!flip_u) {
-            u = (int16_t)(16 - u);
+        int16_t u;
+        int16_t v;
+        if (use_alt_uvs && alt_uvs != NULL) {
+            u = (int16_t)(16 - alt_uvs[i][0]);
+            v = (int16_t)(16 - alt_uvs[i][1]);
+        } else {
+            u = local[i][u_axis];
+            v = (int16_t)(16 - local[i][v_axis]);
+            if (!flip_u) {
+                u = (int16_t)(16 - u);
+            }
         }
         u = (int16_t)(u - u_pos * 16);
         v = (int16_t)(v - v_pos * 16);
@@ -856,7 +904,9 @@ static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     if (t->type == TILE_TYPE_FENCE) {
         assign_fence_texture_coordinates(face, t, direction);
     } else {
-        assign_tile_texture_coordinates(face, t, local, direction);
+        assign_tile_texture_coordinates(face, t, local, direction,
+                                        src->faceshape, face->resolved_material,
+                                        src->alt_uvs, src->has_alt_uvs);
     }
 }
 

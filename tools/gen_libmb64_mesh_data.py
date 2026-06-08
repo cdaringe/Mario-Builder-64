@@ -106,8 +106,26 @@ def parse_vertex(text: str) -> tuple[int, int, int]:
     return values[0], values[1], values[2]
 
 
+def parse_uv(text: str) -> tuple[int, int]:
+    values = [int(part.strip(), 0) for part in unwrap_braces(text).split(",") if part.strip()]
+    if len(values) != 2:
+        raise ValueError(f"bad uv: {text}")
+    return values[0], values[1]
+
+
+def parse_uv_arrays(data_text: str) -> dict[str, list[tuple[int, int]]]:
+    arrays: dict[str, list[tuple[int, int]]] = {}
+    pattern = re.compile(r"s8\s+(\w+)\[(?:3|4)\]\[2\]\s*=\s*\{", re.M)
+    for match in pattern.finditer(data_text):
+        name = match.group(1)
+        body = extract_initializer(data_text, match.group(0)[:-1])
+        arrays[name] = [parse_uv(uv) for uv in split_top_level(body)]
+    return arrays
+
+
 def parse_poly_entries(data_text: str) -> dict[str, list[dict[str, object]]]:
     entries: dict[str, list[dict[str, object]]] = {}
+    uv_arrays = parse_uv_arrays(data_text)
     pattern = re.compile(r"struct\s+mb64_terrain_poly\s+(\w+)\[\]\s*=\s*\{", re.M)
     for match in pattern.finditer(data_text):
         name = match.group(1)
@@ -125,10 +143,21 @@ def parse_poly_entries(data_text: str) -> dict[str, list[dict[str, object]]]:
                 raise ValueError(f"{name}: expected 3 or 4 vertices, got {len(vertices)}")
             direction = DIRECTION_MAP[fields[1].strip()]
             faceshape = fields[2].strip()
+            growth_type = fields[3].strip() if len(fields) >= 4 else "0"
+            altuvs: list[tuple[int, int]] | None = None
+            if len(fields) >= 5:
+                altuv_field = fields[4].strip()
+                altuv_name = altuv_field[1:] if altuv_field.startswith("&") else altuv_field
+                if altuv_name != "NULL":
+                    if altuv_name not in uv_arrays:
+                        raise ValueError(f"{name}: unknown altuv array {altuv_name}")
+                    altuvs = uv_arrays[altuv_name]
             polys.append({
                 "vertices": vertices,
                 "direction": direction,
                 "faceshape": faceshape,
+                "growth_type": growth_type,
+                "altuvs": altuvs,
             })
         entries[name] = polys
     return entries
@@ -168,9 +197,25 @@ def emit_poly_array(name: str, entries: list[dict[str, object]], lines: list[str
     lines.append(f"static const mb64_shape_face_t {name}[] = {{")
     for entry in entries:
         vertices = entry["vertices"]
-        macro = "Q" if len(vertices) == 4 else "T"
-        verts = ", ".join(f"{{{x}, {y}, {z}}}" for x, y, z in vertices)
-        lines.append(f"    {macro}({entry['direction']}, {entry['faceshape']}, {verts}),")
+        vertex_count = len(vertices)
+        padded_vertices = list(vertices)
+        while len(padded_vertices) < 4:
+            padded_vertices.append((0, 0, 0))
+        verts = "{" + ", ".join(f"{{{x}, {y}, {z}}}" for x, y, z in padded_vertices[:4]) + "}"
+        altuvs = entry["altuvs"]
+        if altuvs is None:
+            altuv_literal = "{{0, 0}, {0, 0}, {0, 0}, {0, 0}}"
+            has_altuvs = "0"
+        else:
+            padded = list(altuvs)
+            while len(padded) < 4:
+                padded.append((0, 0))
+            altuv_literal = "{" + ", ".join(f"{{{u}, {v}}}" for u, v in padded[:4]) + "}"
+            has_altuvs = "1"
+        lines.append(
+            f"    {{{verts}, {entry['direction']}, {entry['faceshape']}, "
+            f"{vertex_count}, {entry['growth_type']}, {has_altuvs}, {altuv_literal}}},"
+        )
     lines.append("};")
     lines.append("")
 

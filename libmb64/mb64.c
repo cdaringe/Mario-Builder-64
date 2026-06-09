@@ -26,6 +26,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stddef.h>
+#include <ctype.h>
 
 /* src/mb64/file.c reads this header, then tiles, then objects. */
 #define MB64_DISK_HEADER_SIZE sizeof(struct mb64_level_save_header)
@@ -195,6 +196,71 @@ static uint8_t *read_file_into_buffer(const char *path, size_t *out_size) {
     return buf;
 }
 
+static uint8_t *unwrap_json_buffer_payload(uint8_t *data, size_t file_size, size_t *out_size) {
+    if (file_size == 0 || data[0] != '{') return data;
+
+    const char *text = (const char *)data;
+    const char *level_data = strstr(text, "\"levelData\"");
+    const char *buffer_type = strstr(text, "\"type\":\"Buffer\"");
+    const char *array_start = strstr(text, "\"data\":[");
+    if (!level_data || !buffer_type || !array_start) return data;
+
+    array_start = strchr(array_start, '[');
+    if (!array_start) return data;
+    array_start++;
+
+    size_t cap = file_size / 2;
+    if (cap < 256) cap = 256;
+    uint8_t *decoded = malloc(cap);
+    if (!decoded) return data;
+
+    size_t count = 0;
+    const char *p = array_start;
+    while (*p && *p != ']') {
+        while (*p && (isspace((unsigned char)*p) || *p == ',')) p++;
+        if (*p == ']') break;
+        if (!isdigit((unsigned char)*p)) {
+            free(decoded);
+            return data;
+        }
+
+        char *end = NULL;
+        unsigned long value = strtoul(p, &end, 10);
+        if (end == p || value > 255) {
+            free(decoded);
+            return data;
+        }
+        if (count == cap) {
+            size_t next_cap = cap * 2;
+            uint8_t *next = realloc(decoded, next_cap);
+            if (!next) {
+                free(decoded);
+                return data;
+            }
+            decoded = next;
+            cap = next_cap;
+        }
+        decoded[count++] = (uint8_t)value;
+        p = end;
+
+        while (*p && isspace((unsigned char)*p)) p++;
+        if (*p && *p != ',' && *p != ']') {
+            free(decoded);
+            return data;
+        }
+    }
+
+    if (*p != ']' || count == 0) {
+        free(decoded);
+        return data;
+    }
+
+    free(data);
+    *out_size = count;
+    MB64_LOG("MB64_PARSE", "stage=json_buffer_unwrap decoded_size=%zu", count);
+    return decoded;
+}
+
 /* Public API */
 
 mb64_level_t *mb64_load(const char *path) {
@@ -213,6 +279,7 @@ mb64_level_t *mb64_load(const char *path) {
         return NULL;
     }
     MB64_LOG("MB64_PARSE", "stage=file_read file_size=%zu", file_size);
+    data = unwrap_json_buffer_payload(data, file_size, &file_size);
 
     /* Validate minimum size */
     if (file_size < (size_t)(MB64_DISK_HEADER_SIZE + TILE_SIZE)) {

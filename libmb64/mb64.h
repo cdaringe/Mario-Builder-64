@@ -156,6 +156,24 @@ typedef struct {
     uint16_t step_t;
 } mb64_material_texture_animation_t;
 
+typedef struct {
+    float thin_height;
+    float fat_height;
+    float stack_dist_epsilon;
+    float wall_hitbox_radius;
+    float gravity;
+    float buoyancy;
+    float water_probe_y;
+    float water_surface_offset;
+    float mario_weight_vel;
+    float ground_pound_weight_vel;
+    float water_drag;
+    float water_float_base;
+    float water_float_min;
+    float water_float_max;
+    int steep_slope_degrees;
+} mb64_woodplat_config_t;
+
 #define MB64_RENDER_MATERIAL_FENCE    240
 #define MB64_RENDER_MATERIAL_BARS     241
 #define MB64_RENDER_MATERIAL_BARS_TOP 242
@@ -450,6 +468,18 @@ const mb64_theme_special_t *mb64_theme_specials_for_level(const mb64_level_t *le
  * owns the MB64 palette constants and writes RGBA values into @rgba.
  */
 void mb64_water_vertex_color(const mb64_level_t *level, uint8_t wave, uint8_t rgba[4]);
+
+/**
+ * mb64_woodplat_config() - Return MB64 Wooden Platform behavior constants.
+ *
+ * These values mirror bhvWoodPlat in Mario Builder 64. Consumers still own
+ * engine-specific movement/collision calls, but should source the portable
+ * behavior constants here rather than duplicating magic numbers.
+ */
+const mb64_woodplat_config_t *mb64_woodplat_config(void);
+
+float mb64_woodplat_piece_height(uint8_t bparam);
+float mb64_woodplat_water_float_accel(float water_level, float platform_y);
 
 #ifdef __cplusplus
 }

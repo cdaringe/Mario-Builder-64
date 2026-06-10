@@ -142,11 +142,54 @@ static const uint8_t s_music_sequence_by_index[] = {
     SEQ_SMW_CASTLE,
 };
 
+static const mb64_woodplat_config_t s_woodplat_config = {
+    96.0f,   /* thin_height */
+    256.0f,  /* fat_height */
+    5.0f,    /* stack_dist_epsilon */
+    127.8f,  /* wall_hitbox_radius */
+    -4.0f,   /* gravity */
+    0.0f,    /* buoyancy */
+    80.0f,   /* water_probe_y */
+    64.0f,   /* water_surface_offset */
+    -1.0f,   /* mario_weight_vel */
+    -2.0f,   /* ground_pound_weight_vel */
+    0.9f,    /* water_drag */
+    4.0f,    /* water_float_base */
+    -2.0f,   /* water_float_min */
+    2.0f,    /* water_float_max */
+    -20,     /* steep_slope_degrees */
+};
+
+static float mb64_clampf(float value, float min, float max) {
+    if (value < min) {
+        return min;
+    }
+    if (value > max) {
+        return max;
+    }
+    return value;
+}
+
 uint8_t mb64_music_sequence_from_index(uint8_t music_index) {
     if (music_index >= sizeof(s_music_sequence_by_index) / sizeof(s_music_sequence_by_index[0])) {
         return 0;
     }
     return s_music_sequence_by_index[music_index];
+}
+
+const mb64_woodplat_config_t *mb64_woodplat_config(void) {
+    return &s_woodplat_config;
+}
+
+float mb64_woodplat_piece_height(uint8_t bparam) {
+    return bparam == 1 ? s_woodplat_config.fat_height : s_woodplat_config.thin_height;
+}
+
+float mb64_woodplat_water_float_accel(float water_level, float platform_y) {
+    return s_woodplat_config.water_float_base +
+        mb64_clampf((water_level - s_woodplat_config.water_surface_offset - platform_y) * 0.1f,
+                    s_woodplat_config.water_float_min,
+                    s_woodplat_config.water_float_max);
 }
 
 _Static_assert(offsetof(struct mb64_level_save_header, version) == 10,

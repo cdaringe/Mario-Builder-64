@@ -190,6 +190,14 @@ typedef struct {
     int rotate_step;
 } mb64_bullet_bill_config_t;
 
+typedef enum {
+    MB64_BULLET_BILL_ACT_IDLE_RESET = 0,
+    MB64_BULLET_BILL_ACT_WAIT_FOR_PLAYER = 1,
+    MB64_BULLET_BILL_ACT_FIRE = 2,
+    MB64_BULLET_BILL_ACT_RESET_AFTER_TIMEOUT = 3,
+    MB64_BULLET_BILL_ACT_EXPLODE = 4,
+} mb64_bullet_bill_action_t;
+
 #define MB64_RENDER_MATERIAL_FENCE    240
 #define MB64_RENDER_MATERIAL_BARS     241
 #define MB64_RENDER_MATERIAL_BARS_TOP 242

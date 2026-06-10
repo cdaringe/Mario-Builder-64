@@ -175,6 +175,21 @@ typedef struct {
     int steep_slope_degrees;
 } mb64_woodplat_config_t;
 
+typedef struct {
+    float wake_min_distance;
+    float wake_max_distance;
+    float shake_forward_speed;
+    float launch_forward_speed;
+    float floor_probe_offset_y;
+    float rotate_min_distance;
+    int wake_angle_threshold;
+    int shake_start_frame;
+    int launch_frame;
+    int timeout_frame;
+    int explosion_reset_frame;
+    int rotate_step;
+} mb64_bullet_bill_config_t;
+
 #define MB64_RENDER_MATERIAL_FENCE    240
 #define MB64_RENDER_MATERIAL_BARS     241
 #define MB64_RENDER_MATERIAL_BARS_TOP 242
@@ -489,6 +504,14 @@ uint8_t mb64_woodplat_should_use_simple_wall_checks(uint8_t floor_is_conveyor,
                                                     uint8_t on_ground);
 uint8_t mb64_woodplat_should_die_on_death_barrier(uint8_t has_floor, uint8_t floor_is_death_plane,
                                                   float platform_y, float floor_y);
+const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void);
+uint8_t mb64_bullet_bill_should_wake(int angle_diff, float distance);
+float mb64_bullet_bill_forward_velocity(int timer, float launch_speed);
+uint8_t mb64_bullet_bill_should_launch(int timer);
+uint8_t mb64_bullet_bill_should_floor_probe(int timer);
+uint8_t mb64_bullet_bill_should_rotate_toward_player(float distance);
+uint8_t mb64_bullet_bill_should_timeout(int timer);
+uint8_t mb64_bullet_bill_should_reset_after_explosion(int timer);
 
 #ifdef __cplusplus
 }

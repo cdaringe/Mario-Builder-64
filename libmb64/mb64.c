@@ -161,6 +161,21 @@ static const mb64_woodplat_config_t s_woodplat_config = {
     -20,     /* steep_slope_degrees */
 };
 
+static const mb64_bullet_bill_config_t s_bullet_bill_config = {
+    400.0f,  /* wake_min_distance */
+    1500.0f, /* wake_max_distance */
+    3.0f,    /* shake_forward_speed */
+    30.0f,   /* launch_forward_speed */
+    127.0f,  /* floor_probe_offset_y */
+    300.0f,  /* rotate_min_distance */
+    0x2000,  /* wake_angle_threshold */
+    40,      /* shake_start_frame */
+    50,      /* launch_frame */
+    150,     /* timeout_frame */
+    90,      /* explosion_reset_frame */
+    0x100,   /* rotate_step */
+};
+
 static float mb64_clampf(float value, float min, float max) {
     if (value < min) {
         return min;
@@ -222,6 +237,46 @@ uint8_t mb64_woodplat_should_die_on_death_barrier(uint8_t has_floor, uint8_t flo
         return 1;
     }
     return floor_is_death_plane && platform_y < floor_y + 100.0f;
+}
+
+const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void) {
+    return &s_bullet_bill_config;
+}
+
+uint8_t mb64_bullet_bill_should_wake(int angle_diff, float distance) {
+    return angle_diff < s_bullet_bill_config.wake_angle_threshold &&
+        s_bullet_bill_config.wake_min_distance < distance &&
+        distance < s_bullet_bill_config.wake_max_distance;
+}
+
+float mb64_bullet_bill_forward_velocity(int timer, float launch_speed) {
+    if (timer < s_bullet_bill_config.shake_start_frame) {
+        return s_bullet_bill_config.shake_forward_speed;
+    }
+    if (timer < s_bullet_bill_config.launch_frame) {
+        return (timer & 1) ? s_bullet_bill_config.shake_forward_speed : -s_bullet_bill_config.shake_forward_speed;
+    }
+    return launch_speed;
+}
+
+uint8_t mb64_bullet_bill_should_launch(int timer) {
+    return timer == s_bullet_bill_config.launch_frame;
+}
+
+uint8_t mb64_bullet_bill_should_floor_probe(int timer) {
+    return timer >= s_bullet_bill_config.launch_frame + 1;
+}
+
+uint8_t mb64_bullet_bill_should_rotate_toward_player(float distance) {
+    return distance > s_bullet_bill_config.rotate_min_distance;
+}
+
+uint8_t mb64_bullet_bill_should_timeout(int timer) {
+    return timer > s_bullet_bill_config.timeout_frame;
+}
+
+uint8_t mb64_bullet_bill_should_reset_after_explosion(int timer) {
+    return timer > s_bullet_bill_config.explosion_reset_frame;
 }
 
 _Static_assert(offsetof(struct mb64_level_save_header, version) == 10,

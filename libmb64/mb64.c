@@ -185,6 +185,18 @@ static const mb64_reinforced_box_config_t s_reinforced_box_config = {
     15,    /* clank_cooldown_timer */
 };
 
+static const mb64_podoboo_config_t s_podoboo_config = {
+    2.0f,    /* gravity */
+    1.5f,    /* launch_accel */
+    2500.0f, /* mario_activation_distance */
+    40.0f,   /* flame_y_offset */
+    35,      /* flame_warmup_frame */
+    50,      /* launch_frame */
+    0x7FFF,  /* landing_roll_angle */
+    0x0FFF,  /* roll_step */
+    3,       /* splash_flame_count */
+};
+
 static float mb64_clampf(float value, float min, float max) {
     if (value < min) {
         return min;
@@ -321,6 +333,32 @@ uint8_t mb64_reinforced_box_should_shake(int timer) {
 float mb64_reinforced_box_shake_offset(float random_unit) {
     return random_unit * s_reinforced_box_config.shake_amplitude -
         s_reinforced_box_config.shake_center_offset;
+}
+
+const mb64_podoboo_config_t *mb64_podoboo_config(void) {
+    return &s_podoboo_config;
+}
+
+float mb64_podoboo_launch_velocity(float rest_y, float peak_y) {
+    float y = rest_y;
+    float velocity = 0.0f;
+    while (y < peak_y) {
+        velocity += s_podoboo_config.launch_accel;
+        y += velocity;
+    }
+    return velocity;
+}
+
+uint8_t mb64_podoboo_should_reset_idle_timer(float distance_to_mario) {
+    return distance_to_mario > s_podoboo_config.mario_activation_distance;
+}
+
+uint8_t mb64_podoboo_should_spawn_warmup_flame(int timer) {
+    return timer > s_podoboo_config.flame_warmup_frame;
+}
+
+uint8_t mb64_podoboo_should_launch(int timer) {
+    return timer > s_podoboo_config.launch_frame;
 }
 
 _Static_assert(offsetof(struct mb64_level_save_header, version) == 10,

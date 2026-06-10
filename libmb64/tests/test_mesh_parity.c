@@ -242,6 +242,22 @@ static void verify_reinforced_box_helpers(void) {
     expect_float("rfbox positive shake edge", mb64_reinforced_box_shake_offset(1.0f), 3.0f);
 }
 
+static void verify_podoboo_helpers(void) {
+    const mb64_podoboo_config_t *config = mb64_podoboo_config();
+
+    expect_float("podoboo gravity", config->gravity, 2.0f);
+    expect_float("podoboo launch accel", config->launch_accel, 1.5f);
+    expect_int("podoboo landing roll", config->landing_roll_angle, 0x7FFF);
+    expect_int("podoboo roll step", config->roll_step, 0x0FFF);
+    expect_int("podoboo idle reset far", mb64_podoboo_should_reset_idle_timer(2500.1f), 1);
+    expect_int("podoboo idle no reset near", mb64_podoboo_should_reset_idle_timer(2500.0f), 0);
+    expect_int("podoboo no warmup flame at frame", mb64_podoboo_should_spawn_warmup_flame(35), 0);
+    expect_int("podoboo warmup flame after frame", mb64_podoboo_should_spawn_warmup_flame(36), 1);
+    expect_int("podoboo no launch at frame", mb64_podoboo_should_launch(50), 0);
+    expect_int("podoboo launch after frame", mb64_podoboo_should_launch(51), 1);
+    expect_float("podoboo launch velocity", mb64_podoboo_launch_velocity(0.0f, 150.0f), 21.0f);
+}
+
 int main(void) {
     static const int16_t front0[4][3] = {
         { 0, 40, 0 }, { 0, 32, 0 }, { 16, 40, 0 }, { 16, 32, 0 },
@@ -275,6 +291,7 @@ int main(void) {
     verify_shaped_tile_rotations();
     verify_woodplat_helpers();
     verify_reinforced_box_helpers();
+    verify_podoboo_helpers();
 
     if (g_failures != 0) {
         fprintf(stderr, "mesh parity tests failed: %d\n", g_failures);

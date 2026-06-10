@@ -199,6 +199,18 @@ typedef struct {
     int clank_cooldown_timer;
 } mb64_reinforced_box_config_t;
 
+typedef struct {
+    float gravity;
+    float launch_accel;
+    float mario_activation_distance;
+    float flame_y_offset;
+    int flame_warmup_frame;
+    int launch_frame;
+    int landing_roll_angle;
+    int roll_step;
+    int splash_flame_count;
+} mb64_podoboo_config_t;
+
 typedef enum {
     MB64_BULLET_BILL_ACT_IDLE_RESET = 0,
     MB64_BULLET_BILL_ACT_WAIT_FOR_PLAYER = 1,
@@ -206,6 +218,13 @@ typedef enum {
     MB64_BULLET_BILL_ACT_RESET_AFTER_TIMEOUT = 3,
     MB64_BULLET_BILL_ACT_EXPLODE = 4,
 } mb64_bullet_bill_action_t;
+
+typedef enum {
+    MB64_PODOBOO_ACT_INIT = 0,
+    MB64_PODOBOO_ACT_FALL_INTO_LAVA = 1,
+    MB64_PODOBOO_ACT_IDLE_IN_LAVA = 2,
+    MB64_PODOBOO_ACT_JUMP = 3,
+} mb64_podoboo_action_t;
 
 #define MB64_RENDER_MATERIAL_FENCE    240
 #define MB64_RENDER_MATERIAL_BARS     241
@@ -535,6 +554,11 @@ const mb64_reinforced_box_config_t *mb64_reinforced_box_config(void);
 uint8_t mb64_reinforced_box_should_clank(int timer);
 uint8_t mb64_reinforced_box_should_shake(int timer);
 float mb64_reinforced_box_shake_offset(float random_unit);
+const mb64_podoboo_config_t *mb64_podoboo_config(void);
+float mb64_podoboo_launch_velocity(float rest_y, float peak_y);
+uint8_t mb64_podoboo_should_reset_idle_timer(float distance_to_mario);
+uint8_t mb64_podoboo_should_spawn_warmup_flame(int timer);
+uint8_t mb64_podoboo_should_launch(int timer);
 
 #ifdef __cplusplus
 }

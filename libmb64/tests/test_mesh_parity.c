@@ -40,6 +40,49 @@ static void set_level(mb64_level_t *level, mb64_tile_t *tile, uint8_t rot) {
     tile->rot = rot;
 }
 
+static void set_tile_level(mb64_level_t *level, mb64_tile_t *tile, uint8_t type, uint8_t rot) {
+    set_level(level, tile, rot);
+    tile->type = type;
+}
+
+static uint8_t expected_rotated_direction(uint8_t direction, uint8_t rot) {
+    static const uint8_t dirs[4][6] = {
+        { MB64_MESH_FACE_TOP, MB64_MESH_FACE_BOTTOM, MB64_MESH_FACE_POS_X, MB64_MESH_FACE_NEG_X, MB64_MESH_FACE_POS_Z, MB64_MESH_FACE_NEG_Z },
+        { MB64_MESH_FACE_TOP, MB64_MESH_FACE_BOTTOM, MB64_MESH_FACE_NEG_Z, MB64_MESH_FACE_POS_Z, MB64_MESH_FACE_POS_X, MB64_MESH_FACE_NEG_X },
+        { MB64_MESH_FACE_TOP, MB64_MESH_FACE_BOTTOM, MB64_MESH_FACE_NEG_X, MB64_MESH_FACE_POS_X, MB64_MESH_FACE_NEG_Z, MB64_MESH_FACE_POS_Z },
+        { MB64_MESH_FACE_TOP, MB64_MESH_FACE_BOTTOM, MB64_MESH_FACE_POS_Z, MB64_MESH_FACE_NEG_Z, MB64_MESH_FACE_NEG_X, MB64_MESH_FACE_POS_X },
+    };
+    if (direction >= 6) {
+        return direction;
+    }
+    return dirs[rot & 3][direction];
+}
+
+static void expected_rotated_vertex(uint8_t rot, const int16_t in[3], int16_t out[3]) {
+    switch (rot & 3) {
+        case 1:
+            out[0] = in[2];
+            out[1] = in[1];
+            out[2] = (int16_t)(16 - in[0]);
+            break;
+        case 2:
+            out[0] = (int16_t)(16 - in[0]);
+            out[1] = in[1];
+            out[2] = (int16_t)(16 - in[2]);
+            break;
+        case 3:
+            out[0] = (int16_t)(16 - in[2]);
+            out[1] = in[1];
+            out[2] = in[0];
+            break;
+        default:
+            out[0] = in[0];
+            out[1] = in[1];
+            out[2] = in[2];
+            break;
+    }
+}
+
 static void verify_fence_rotation(uint8_t rot,
                                   uint8_t front_dir,
                                   uint8_t back_dir,
@@ -82,6 +125,87 @@ static void verify_fence_rotation(uint8_t rot,
     mb64_free_render_mesh(&mesh);
 }
 
+static void verify_shaped_tile_rotation(uint8_t type, uint8_t rot) {
+    mb64_level_t base_level;
+    mb64_level_t rotated_level;
+    mb64_tile_t base_tile;
+    mb64_tile_t rotated_tile;
+    mb64_mesh_t base_mesh = { 0 };
+    mb64_mesh_t rotated_mesh = { 0 };
+    char label[96];
+
+    set_tile_level(&base_level, &base_tile, type, 0);
+    set_tile_level(&rotated_level, &rotated_tile, type, rot);
+
+    if (!mb64_build_render_mesh(&base_level, &base_mesh)) {
+        fprintf(stderr, "tile %u rot 0: mb64_build_render_mesh failed\n", type);
+        g_failures++;
+        return;
+    }
+    if (!mb64_build_render_mesh(&rotated_level, &rotated_mesh)) {
+        fprintf(stderr, "tile %u rot %u: mb64_build_render_mesh failed\n", type, rot);
+        g_failures++;
+        mb64_free_render_mesh(&base_mesh);
+        return;
+    }
+
+    snprintf(label, sizeof(label), "tile %u rot %u face_count", type, rot);
+    expect_int(label, (int)rotated_mesh.face_count, (int)base_mesh.face_count);
+    snprintf(label, sizeof(label), "tile %u rot %u solid_tile_count", type, rot);
+    expect_int(label, (int)rotated_mesh.solid_tile_count, 1);
+
+    if (base_mesh.face_count == rotated_mesh.face_count) {
+        for (uint32_t face_idx = 0; face_idx < base_mesh.face_count; face_idx++) {
+            const mb64_mesh_face_t *base = &base_mesh.faces[face_idx];
+            const mb64_mesh_face_t *actual = &rotated_mesh.faces[face_idx];
+            snprintf(label, sizeof(label), "tile %u rot %u face %u tile_type", type, rot, face_idx);
+            expect_int(label, actual->tile_type, type);
+            snprintf(label, sizeof(label), "tile %u rot %u face %u vertex_count", type, rot, face_idx);
+            expect_int(label, actual->vertex_count, base->vertex_count);
+            snprintf(label, sizeof(label), "tile %u rot %u face %u direction", type, rot, face_idx);
+            expect_int(label, actual->direction, expected_rotated_direction(base->direction, rot));
+            for (uint8_t v = 0; v < base->vertex_count; v++) {
+                int16_t expected[3];
+                expected_rotated_vertex(rot, base->v[v], expected);
+                snprintf(label, sizeof(label), "tile %u rot %u face %u v%u", type, rot, face_idx, v);
+                expect_vertex(label, actual->v[v], expected[0], expected[1], expected[2]);
+            }
+        }
+    }
+
+    mb64_free_render_mesh(&base_mesh);
+    mb64_free_render_mesh(&rotated_mesh);
+}
+
+static void verify_shaped_tile_rotations(void) {
+    static const uint8_t shaped_types[] = {
+        TILE_TYPE_SLOPE,
+        TILE_TYPE_DSLOPE,
+        TILE_TYPE_SLAB,
+        TILE_TYPE_DSLAB,
+        TILE_TYPE_CORNER,
+        TILE_TYPE_DCORNER,
+        TILE_TYPE_ICORNER,
+        TILE_TYPE_DICORNER,
+        TILE_TYPE_SCORNER,
+        TILE_TYPE_DSCORNER,
+        TILE_TYPE_ISCORNER,
+        TILE_TYPE_DISCORNER,
+        TILE_TYPE_UGENTLE,
+        TILE_TYPE_DUGENTLE,
+        TILE_TYPE_LGENTLE,
+        TILE_TYPE_DLGENTLE,
+        TILE_TYPE_SSLOPE,
+        TILE_TYPE_SSLAB,
+    };
+
+    for (size_t i = 0; i < sizeof(shaped_types) / sizeof(shaped_types[0]); i++) {
+        for (uint8_t rot = 1; rot < 4; rot++) {
+            verify_shaped_tile_rotation(shaped_types[i], rot);
+        }
+    }
+}
+
 int main(void) {
     static const int16_t front0[4][3] = {
         { 0, 40, 0 }, { 0, 32, 0 }, { 16, 40, 0 }, { 16, 32, 0 },
@@ -112,6 +236,7 @@ int main(void) {
     verify_fence_rotation(1, MB64_MESH_FACE_POS_X, MB64_MESH_FACE_NEG_X, front1, back1);
     verify_fence_rotation(2, MB64_MESH_FACE_NEG_Z, MB64_MESH_FACE_POS_Z, front2, back2);
     verify_fence_rotation(3, MB64_MESH_FACE_NEG_X, MB64_MESH_FACE_POS_X, front3, back3);
+    verify_shaped_tile_rotations();
 
     if (g_failures != 0) {
         fprintf(stderr, "mesh parity tests failed: %d\n", g_failures);

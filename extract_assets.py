@@ -60,6 +60,17 @@ def remove_file(fname):
     except OSError:
         pass
 
+def is_git_tracked(fname):
+    try:
+        return subprocess.run(
+            ["git", "ls-files", "--error-unmatch", fname],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        ).returncode == 0
+    except Exception:
+        return False
+
 
 def clean_assets(local_asset_file):
     assets = set(read_asset_map().keys())
@@ -103,6 +114,11 @@ def main():
         usage()
         sys.exit(0)
 
+    romLUT = get_rom_candidates()
+
+    if not langs:
+        langs = romLUT.keys()
+
     asset_map = read_asset_map()
     all_assets = []
     any_missing_assets = False
@@ -120,11 +136,6 @@ def main():
         # Nothing to do, no need to read a ROM. For efficiency we don't check
         # the list of old assets either.
         return
-
-    romLUT = get_rom_candidates()
-
-    if not langs:
-        langs = romLUT.keys()
 
     # verify the correct rom
     for lang in langs:
@@ -309,7 +320,7 @@ def main():
 
     # Remove old assets
     for asset in previous_assets:
-        if asset not in new_assets:
+        if asset not in new_assets and not is_git_tracked(asset):
             try:
                 remove_file(asset)
             except FileNotFoundError:

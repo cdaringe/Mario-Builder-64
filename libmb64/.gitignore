@@ -1,3 +1,4 @@
 *.o
 *.a
 *.generated.inc.c
+test_mesh_parity

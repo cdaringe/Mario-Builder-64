@@ -7,8 +7,9 @@ OBJ    := $(SRC:.c=.o)
 LIB    := libmb64.a
 THEME_DATA := mb64_theme_data.generated.inc.c
 MESH_DATA := mb64_mesh_data.generated.inc.c
+TEST_BIN := test_mesh_parity
 
-.PHONY: all clean
+.PHONY: all clean test
 
 all: $(LIB)
 
@@ -30,8 +31,14 @@ $(MESH_DATA): ../tools/gen_libmb64_mesh_data.py ../src/mb64/data.c ../src/mb64/b
 
 mb64_mesh.o: $(THEME_DATA) $(MESH_DATA) mb64_faceshapes.h mb64_tile_types.h
 
+$(TEST_BIN): tests/test_mesh_parity.c $(LIB) mb64.h mb64_tile_types.h
+	$(CC) $(CFLAGS) tests/test_mesh_parity.c $(LIB) -o $@
+
+test: $(TEST_BIN)
+	./$(TEST_BIN)
+
 %.o: %.c mb64.h mb64_log.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ) $(LIB) $(THEME_DATA) $(MESH_DATA)
+	rm -f $(OBJ) $(LIB) $(THEME_DATA) $(MESH_DATA) $(TEST_BIN)

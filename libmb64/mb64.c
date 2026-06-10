@@ -192,6 +192,19 @@ float mb64_woodplat_water_float_accel(float water_level, float platform_y) {
                     s_woodplat_config.water_float_max);
 }
 
+float mb64_woodplat_water_velocity(float current_vel_y, float water_level, float platform_y,
+                                   uint8_t mario_on_platform, uint8_t ground_pound_landing) {
+    float vel_y = current_vel_y * s_woodplat_config.water_drag;
+    vel_y += mb64_woodplat_water_float_accel(water_level, platform_y);
+    if (mario_on_platform) {
+        vel_y += s_woodplat_config.mario_weight_vel;
+        if (ground_pound_landing) {
+            vel_y += s_woodplat_config.ground_pound_weight_vel;
+        }
+    }
+    return vel_y;
+}
+
 _Static_assert(offsetof(struct mb64_level_save_header, version) == 10,
                "MB64 disk header version offset changed");
 _Static_assert(offsetof(struct mb64_level_save_header, author) == 11,

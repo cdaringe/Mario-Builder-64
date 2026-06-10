@@ -480,6 +480,8 @@ const mb64_woodplat_config_t *mb64_woodplat_config(void);
 
 float mb64_woodplat_piece_height(uint8_t bparam);
 float mb64_woodplat_water_float_accel(float water_level, float platform_y);
+float mb64_woodplat_water_velocity(float current_vel_y, float water_level, float platform_y,
+                                   uint8_t mario_on_platform, uint8_t ground_pound_landing);
 
 #ifdef __cplusplus
 }

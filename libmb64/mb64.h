@@ -171,6 +171,7 @@ typedef struct {
     float water_float_base;
     float water_float_min;
     float water_float_max;
+    int death_drop_offset;
     int steep_slope_degrees;
 } mb64_woodplat_config_t;
 
@@ -482,6 +483,12 @@ float mb64_woodplat_piece_height(uint8_t bparam);
 float mb64_woodplat_water_float_accel(float water_level, float platform_y);
 float mb64_woodplat_water_velocity(float current_vel_y, float water_level, float platform_y,
                                    uint8_t mario_on_platform, uint8_t ground_pound_landing);
+int mb64_woodplat_death_drop_offset(void);
+uint8_t mb64_woodplat_should_use_simple_wall_checks(uint8_t floor_is_conveyor,
+                                                    uint8_t floor_object_has_vertical_push,
+                                                    uint8_t on_ground);
+uint8_t mb64_woodplat_should_die_on_death_barrier(uint8_t has_floor, uint8_t floor_is_death_plane,
+                                                  float platform_y, float floor_y);
 
 #ifdef __cplusplus
 }

@@ -157,6 +157,7 @@ static const mb64_woodplat_config_t s_woodplat_config = {
     4.0f,    /* water_float_base */
     -2.0f,   /* water_float_min */
     2.0f,    /* water_float_max */
+    384,     /* death_drop_offset */
     -20,     /* steep_slope_degrees */
 };
 
@@ -203,6 +204,24 @@ float mb64_woodplat_water_velocity(float current_vel_y, float water_level, float
         }
     }
     return vel_y;
+}
+
+int mb64_woodplat_death_drop_offset(void) {
+    return s_woodplat_config.death_drop_offset;
+}
+
+uint8_t mb64_woodplat_should_use_simple_wall_checks(uint8_t floor_is_conveyor,
+                                                    uint8_t floor_object_has_vertical_push,
+                                                    uint8_t on_ground) {
+    return !(floor_is_conveyor && floor_object_has_vertical_push && on_ground);
+}
+
+uint8_t mb64_woodplat_should_die_on_death_barrier(uint8_t has_floor, uint8_t floor_is_death_plane,
+                                                  float platform_y, float floor_y) {
+    if (!has_floor) {
+        return 1;
+    }
+    return floor_is_death_plane && platform_y < floor_y + 100.0f;
 }
 
 _Static_assert(offsetof(struct mb64_level_save_header, version) == 10,

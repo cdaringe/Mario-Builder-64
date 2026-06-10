@@ -176,6 +176,15 @@ static const mb64_bullet_bill_config_t s_bullet_bill_config = {
     0x100,   /* rotate_step */
 };
 
+static const mb64_reinforced_box_config_t s_reinforced_box_config = {
+    46.0f, /* break_coin_radius */
+    6.0f,  /* shake_amplitude */
+    3.0f,  /* shake_center_offset */
+    15,    /* init_timer */
+    10,    /* shake_timer_limit */
+    15,    /* clank_cooldown_timer */
+};
+
 static float mb64_clampf(float value, float min, float max) {
     if (value < min) {
         return min;
@@ -295,6 +304,23 @@ uint8_t mb64_bullet_bill_should_timeout(int timer) {
 
 uint8_t mb64_bullet_bill_should_reset_after_explosion(int timer) {
     return timer > s_bullet_bill_config.explosion_reset_frame;
+}
+
+const mb64_reinforced_box_config_t *mb64_reinforced_box_config(void) {
+    return &s_reinforced_box_config;
+}
+
+uint8_t mb64_reinforced_box_should_clank(int timer) {
+    return timer > s_reinforced_box_config.clank_cooldown_timer;
+}
+
+uint8_t mb64_reinforced_box_should_shake(int timer) {
+    return timer < s_reinforced_box_config.shake_timer_limit;
+}
+
+float mb64_reinforced_box_shake_offset(float random_unit) {
+    return random_unit * s_reinforced_box_config.shake_amplitude -
+        s_reinforced_box_config.shake_center_offset;
 }
 
 _Static_assert(offsetof(struct mb64_level_save_header, version) == 10,

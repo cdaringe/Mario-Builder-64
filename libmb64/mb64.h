@@ -190,6 +190,15 @@ typedef struct {
     int rotate_step;
 } mb64_bullet_bill_config_t;
 
+typedef struct {
+    float break_coin_radius;
+    float shake_amplitude;
+    float shake_center_offset;
+    int init_timer;
+    int shake_timer_limit;
+    int clank_cooldown_timer;
+} mb64_reinforced_box_config_t;
+
 typedef enum {
     MB64_BULLET_BILL_ACT_IDLE_RESET = 0,
     MB64_BULLET_BILL_ACT_WAIT_FOR_PLAYER = 1,
@@ -522,6 +531,10 @@ uint8_t mb64_bullet_bill_should_floor_probe(int timer);
 uint8_t mb64_bullet_bill_should_rotate_toward_player(float distance);
 uint8_t mb64_bullet_bill_should_timeout(int timer);
 uint8_t mb64_bullet_bill_should_reset_after_explosion(int timer);
+const mb64_reinforced_box_config_t *mb64_reinforced_box_config(void);
+uint8_t mb64_reinforced_box_should_clank(int timer);
+uint8_t mb64_reinforced_box_should_shake(int timer);
+float mb64_reinforced_box_shake_offset(float random_unit);
 
 #ifdef __cplusplus
 }

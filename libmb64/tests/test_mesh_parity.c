@@ -229,6 +229,19 @@ static void verify_woodplat_helpers(void) {
     expect_int("woodplat thin does not stack", mb64_woodplat_should_stack(0, 0.0f), 0);
 }
 
+static void verify_reinforced_box_helpers(void) {
+    const mb64_reinforced_box_config_t *config = mb64_reinforced_box_config();
+
+    expect_float("rfbox break coin radius", config->break_coin_radius, 46.0f);
+    expect_int("rfbox init timer", config->init_timer, 15);
+    expect_int("rfbox no clank at cooldown", mb64_reinforced_box_should_clank(15), 0);
+    expect_int("rfbox clank after cooldown", mb64_reinforced_box_should_clank(16), 1);
+    expect_int("rfbox shakes before limit", mb64_reinforced_box_should_shake(9), 1);
+    expect_int("rfbox no shake at limit", mb64_reinforced_box_should_shake(10), 0);
+    expect_float("rfbox negative shake edge", mb64_reinforced_box_shake_offset(0.0f), -3.0f);
+    expect_float("rfbox positive shake edge", mb64_reinforced_box_shake_offset(1.0f), 3.0f);
+}
+
 int main(void) {
     static const int16_t front0[4][3] = {
         { 0, 40, 0 }, { 0, 32, 0 }, { 16, 40, 0 }, { 16, 32, 0 },
@@ -261,6 +274,7 @@ int main(void) {
     verify_fence_rotation(3, MB64_MESH_FACE_NEG_X, MB64_MESH_FACE_POS_X, front3, back3);
     verify_shaped_tile_rotations();
     verify_woodplat_helpers();
+    verify_reinforced_box_helpers();
 
     if (g_failures != 0) {
         fprintf(stderr, "mesh parity tests failed: %d\n", g_failures);

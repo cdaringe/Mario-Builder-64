@@ -201,6 +201,24 @@ float mb64_woodplat_piece_height(uint8_t bparam) {
     return bparam == 1 ? s_woodplat_config.fat_height : s_woodplat_config.thin_height;
 }
 
+float mb64_woodplat_stack_height(const uint8_t *bparams, size_t count) {
+    float stack_height = 0.0f;
+
+    if (bparams == NULL) {
+        return 0.0f;
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        stack_height += mb64_woodplat_piece_height(bparams[i]);
+    }
+
+    return stack_height;
+}
+
+uint8_t mb64_woodplat_should_stack(uint8_t bparam, float nearest_distance) {
+    return bparam == 1 && nearest_distance < s_woodplat_config.stack_dist_epsilon;
+}
+
 float mb64_woodplat_water_float_accel(float water_level, float platform_y) {
     return s_woodplat_config.water_float_base +
         mb64_clampf((water_level - s_woodplat_config.water_surface_offset - platform_y) * 0.1f,

@@ -14,6 +14,17 @@ static void expect_int(const char *label, int actual, int expected) {
     }
 }
 
+static void expect_float(const char *label, float actual, float expected) {
+    float delta = actual - expected;
+    if (delta < 0.0f) {
+        delta = -delta;
+    }
+    if (delta > 0.001f) {
+        fprintf(stderr, "%s: expected %.3f, got %.3f\n", label, expected, actual);
+        g_failures++;
+    }
+}
+
 static void expect_vertex(const char *label,
                           const int16_t actual[3],
                           int16_t x,
@@ -206,6 +217,18 @@ static void verify_shaped_tile_rotations(void) {
     }
 }
 
+static void verify_woodplat_helpers(void) {
+    const uint8_t thin_fat_thin[] = { 0, 1, 0 };
+
+    expect_float("woodplat thin height", mb64_woodplat_piece_height(0), 96.0f);
+    expect_float("woodplat fat height", mb64_woodplat_piece_height(1), 256.0f);
+    expect_float("woodplat stack height", mb64_woodplat_stack_height(thin_fat_thin, 3), 448.0f);
+    expect_float("woodplat null stack height", mb64_woodplat_stack_height(NULL, 3), 0.0f);
+    expect_int("woodplat fat stacks within epsilon", mb64_woodplat_should_stack(1, 4.99f), 1);
+    expect_int("woodplat fat does not stack at epsilon", mb64_woodplat_should_stack(1, 5.0f), 0);
+    expect_int("woodplat thin does not stack", mb64_woodplat_should_stack(0, 0.0f), 0);
+}
+
 int main(void) {
     static const int16_t front0[4][3] = {
         { 0, 40, 0 }, { 0, 32, 0 }, { 16, 40, 0 }, { 16, 32, 0 },
@@ -237,6 +260,7 @@ int main(void) {
     verify_fence_rotation(2, MB64_MESH_FACE_NEG_Z, MB64_MESH_FACE_POS_Z, front2, back2);
     verify_fence_rotation(3, MB64_MESH_FACE_NEG_X, MB64_MESH_FACE_POS_X, front3, back3);
     verify_shaped_tile_rotations();
+    verify_woodplat_helpers();
 
     if (g_failures != 0) {
         fprintf(stderr, "mesh parity tests failed: %d\n", g_failures);

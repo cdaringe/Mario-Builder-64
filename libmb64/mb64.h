@@ -272,6 +272,38 @@ typedef struct {
 } mb64_fire_bro_config_t;
 
 typedef struct {
+    int anim_idle;
+    int anim_throw;
+    int anim_jump;
+    float scale;
+    float wall_hitbox_radius;
+    float gravity;
+    float bounciness;
+    float drag_strength;
+    float friction;
+    float buoyancy;
+    float mario_min_y_offset;
+    float activation_distance;
+    float projectile_y_offset;
+    float projectile_quicksand_y_scale;
+    float hammer_vel_y_min;
+    float hammer_vel_y_max;
+    float hammer_forward_vel_min;
+    float hammer_forward_vel_max;
+    float jump_vel_y;
+    float hammer_initial_y_offset;
+    int throw_start_frame;
+    int hold_frame_limit;
+    int repeat_frame_limit;
+    int landing_rearm_max_timer;
+    int quicksand_depth_step;
+    int hammer_ready_frame;
+    int hammer_pitch_start;
+    int hammer_pitch_step;
+    int hammer_timeout_frame;
+} mb64_hammer_bro_config_t;
+
+typedef struct {
     int health;
     int animation_index;
     float scale;
@@ -708,6 +740,16 @@ uint8_t mb64_fire_bro_should_leave_hold(int timer);
 uint8_t mb64_fire_bro_should_repeat_or_jump(int timer);
 uint8_t mb64_fire_bro_should_delete_fireball(int timer, uint8_t hit_wall);
 uint8_t mb64_fire_bro_should_bounce_fireball(uint32_t move_flags);
+const mb64_hammer_bro_config_t *mb64_hammer_bro_config(void);
+uint8_t mb64_hammer_bro_can_throw(float mario_y, float bro_y);
+uint8_t mb64_hammer_bro_should_start_throw(float distance_to_mario, int timer);
+uint8_t mb64_hammer_bro_should_leave_hold(int timer);
+uint8_t mb64_hammer_bro_should_repeat_or_jump(int timer);
+uint16_t mb64_hammer_bro_random_range(uint16_t random, uint16_t min, uint16_t max);
+int mb64_hammer_bro_hurt_quicksand_depth(int quicksand_depth);
+float mb64_hammer_bro_projectile_y_offset(float quicksand_depth);
+uint8_t mb64_hammer_should_arm_hitbox(int timer);
+uint8_t mb64_hammer_should_delete(int timer, uint32_t move_flags, uint8_t attacked, uint8_t interacted);
 const mb64_rex_config_t *mb64_rex_config(void);
 const mb64_npc_config_t *mb64_moleman_config(void);
 const mb64_npc_config_t *mb64_cobie_config(void);

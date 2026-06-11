@@ -303,6 +303,43 @@ static void verify_fire_bro_helpers(void) {
     expect_int("fireball ground bounce", mb64_fire_bro_should_bounce_fireball(1), 1);
 }
 
+static void verify_hammer_bro_helpers(void) {
+    const mb64_hammer_bro_config_t *config = mb64_hammer_bro_config();
+
+    expect_int("hammer bro idle anim", config->anim_idle, 0);
+    expect_int("hammer bro throw anim", config->anim_throw, 2);
+    expect_int("hammer bro jump anim", config->anim_jump, 3);
+    expect_float("hammer bro scale", config->scale, 1.0f);
+    expect_float("hammer bro wall hitbox", config->wall_hitbox_radius, 80.0f);
+    expect_float("hammer bro gravity", config->gravity, -4.0f);
+    expect_float("hammer bro projectile y offset", config->projectile_y_offset, 20.0f);
+    expect_float("hammer bro projectile quicksand scale", config->projectile_quicksand_y_scale, 2.0f);
+    expect_float("hammer bro hammer y min", config->hammer_vel_y_min, 30.0f);
+    expect_float("hammer bro hammer y max", config->hammer_vel_y_max, 50.0f);
+    expect_float("hammer bro hammer fvel min", config->hammer_forward_vel_min, 20.0f);
+    expect_float("hammer bro hammer fvel max", config->hammer_forward_vel_max, 50.0f);
+    expect_int("hammer bro cannot throw far below", mb64_hammer_bro_can_throw(0.0f, 200.0f), 0);
+    expect_int("hammer bro can throw above cutoff", mb64_hammer_bro_can_throw(0.1f, 200.0f), 1);
+    expect_int("hammer bro no throw far", mb64_hammer_bro_should_start_throw(1500.1f, 41), 0);
+    expect_int("hammer bro no throw at frame", mb64_hammer_bro_should_start_throw(1500.0f, 40), 0);
+    expect_int("hammer bro throw after frame", mb64_hammer_bro_should_start_throw(1500.0f, 41), 1);
+    expect_int("hammer bro hold frame", mb64_hammer_bro_should_leave_hold(15), 0);
+    expect_int("hammer bro leave hold", mb64_hammer_bro_should_leave_hold(16), 1);
+    expect_int("hammer bro repeat frame", mb64_hammer_bro_should_repeat_or_jump(25), 0);
+    expect_int("hammer bro repeat after", mb64_hammer_bro_should_repeat_or_jump(26), 1);
+    expect_int("hammer random min", mb64_hammer_bro_random_range(0, 30, 50), 30);
+    expect_int("hammer random max", mb64_hammer_bro_random_range(20, 30, 50), 50);
+    expect_int("hammer quicksand clamp", mb64_hammer_bro_hurt_quicksand_depth(10), 0);
+    expect_int("hammer quicksand step", mb64_hammer_bro_hurt_quicksand_depth(30), 15);
+    expect_float("hammer projectile quicksand offset", mb64_hammer_bro_projectile_y_offset(7.0f), 6.0f);
+    expect_int("hammer not armed before frame", mb64_hammer_should_arm_hitbox(19), 0);
+    expect_int("hammer armed at frame", mb64_hammer_should_arm_hitbox(20), 1);
+    expect_int("hammer timeout frame", mb64_hammer_should_delete(300, 0, 0, 0), 0);
+    expect_int("hammer timeout after", mb64_hammer_should_delete(301, 0, 0, 0), 1);
+    expect_int("hammer ground delete", mb64_hammer_should_delete(1, 1, 0, 0), 1);
+    expect_int("hammer wall delete", mb64_hammer_should_delete(1, 1u << 9, 0, 0), 1);
+}
+
 static void verify_crablet_helpers(void) {
     const mb64_crablet_config_t *config = mb64_crablet_config();
 
@@ -446,6 +483,7 @@ int main(void) {
     verify_chicken_helpers();
     verify_crablet_helpers();
     verify_fire_bro_helpers();
+    verify_hammer_bro_helpers();
     verify_rex_helpers();
     verify_npc_helpers();
     verify_podoboo_helpers();

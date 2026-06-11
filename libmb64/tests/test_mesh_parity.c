@@ -274,6 +274,35 @@ static void verify_chicken_helpers(void) {
     expect_float("chicken draw distance", config->draw_distance, 4000.0f);
 }
 
+static void verify_fire_bro_helpers(void) {
+    const mb64_fire_bro_config_t *config = mb64_fire_bro_config();
+
+    expect_int("fire bro bparam2", config->behavior_param_2, 1);
+    expect_int("fire bro idle anim", config->anim_idle, 0);
+    expect_int("fire bro throw anim", config->anim_throw, 2);
+    expect_int("fire bro jump anim", config->anim_jump, 3);
+    expect_float("fire bro scale", config->scale, 1.0f);
+    expect_float("fire bro wall hitbox", config->wall_hitbox_radius, 80.0f);
+    expect_float("fire bro gravity", config->gravity, -4.0f);
+    expect_float("fire bro projectile y offset", config->projectile_y_offset, 20.0f);
+    expect_float("fire bro projectile vel y", config->fireball_vel_y, 20.0f);
+    expect_float("fire bro projectile fvel", config->fireball_forward_vel, 30.0f);
+    expect_int("fire bro cannot throw far below", mb64_fire_bro_can_throw(0.0f, 200.0f), 0);
+    expect_int("fire bro can throw above cutoff", mb64_fire_bro_can_throw(0.1f, 200.0f), 1);
+    expect_int("fire bro no throw far", mb64_fire_bro_should_start_throw(1500.1f, 41), 0);
+    expect_int("fire bro no throw at frame", mb64_fire_bro_should_start_throw(1500.0f, 40), 0);
+    expect_int("fire bro throw after frame", mb64_fire_bro_should_start_throw(1500.0f, 41), 1);
+    expect_int("fire bro hold frame", mb64_fire_bro_should_leave_hold(15), 0);
+    expect_int("fire bro leave hold", mb64_fire_bro_should_leave_hold(16), 1);
+    expect_int("fire bro repeat frame", mb64_fire_bro_should_repeat_or_jump(25), 0);
+    expect_int("fire bro repeat after", mb64_fire_bro_should_repeat_or_jump(26), 1);
+    expect_int("fireball timeout frame", mb64_fire_bro_should_delete_fireball(300, 0), 0);
+    expect_int("fireball timeout after", mb64_fire_bro_should_delete_fireball(301, 0), 1);
+    expect_int("fireball wall delete", mb64_fire_bro_should_delete_fireball(1, 1), 1);
+    expect_int("fireball no bounce", mb64_fire_bro_should_bounce_fireball(0), 0);
+    expect_int("fireball ground bounce", mb64_fire_bro_should_bounce_fireball(1), 1);
+}
+
 static void verify_rex_helpers(void) {
     const mb64_rex_config_t *config = mb64_rex_config();
 
@@ -392,6 +421,7 @@ int main(void) {
     verify_reinforced_box_helpers();
     verify_badge_helpers();
     verify_chicken_helpers();
+    verify_fire_bro_helpers();
     verify_rex_helpers();
     verify_npc_helpers();
     verify_podoboo_helpers();

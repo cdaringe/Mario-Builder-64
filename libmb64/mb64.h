@@ -219,6 +219,32 @@ typedef struct {
 } mb64_chicken_config_t;
 
 typedef struct {
+    uint8_t behavior_param_2;
+    int anim_idle;
+    int anim_throw;
+    int anim_jump;
+    float scale;
+    float wall_hitbox_radius;
+    float gravity;
+    float bounciness;
+    float drag_strength;
+    float friction;
+    float buoyancy;
+    float mario_min_y_offset;
+    float activation_distance;
+    float projectile_y_offset;
+    float fireball_vel_y;
+    float fireball_forward_vel;
+    float fireball_move_forward_vel;
+    float jump_vel_y;
+    int throw_start_frame;
+    int hold_frame_limit;
+    int repeat_frame_limit;
+    int landing_rearm_max_timer;
+    int fireball_timeout_frame;
+} mb64_fire_bro_config_t;
+
+typedef struct {
     int health;
     int animation_index;
     float scale;
@@ -642,6 +668,13 @@ uint8_t mb64_badge_should_collect(uint8_t equipped, uint8_t overlaps_mario, uint
 float mb64_badge_next_collect_scale(float current_scale);
 uint8_t mb64_badge_should_delete(float current_scale);
 const mb64_chicken_config_t *mb64_chicken_config(void);
+const mb64_fire_bro_config_t *mb64_fire_bro_config(void);
+uint8_t mb64_fire_bro_can_throw(float mario_y, float bro_y);
+uint8_t mb64_fire_bro_should_start_throw(float distance_to_mario, int timer);
+uint8_t mb64_fire_bro_should_leave_hold(int timer);
+uint8_t mb64_fire_bro_should_repeat_or_jump(int timer);
+uint8_t mb64_fire_bro_should_delete_fireball(int timer, uint8_t hit_wall);
+uint8_t mb64_fire_bro_should_bounce_fireball(uint32_t move_flags);
 const mb64_rex_config_t *mb64_rex_config(void);
 const mb64_npc_config_t *mb64_moleman_config(void);
 const mb64_npc_config_t *mb64_cobie_config(void);

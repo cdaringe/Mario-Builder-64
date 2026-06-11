@@ -204,6 +204,32 @@ static const mb64_chicken_config_t s_chicken_config = {
     4000.0f, /* MB64_DRAWDIST_LOW */
 };
 
+static const mb64_fire_bro_config_t s_fire_bro_config = {
+    1,       /* behavior_param_2: Fire Bro texture/projectile variant */
+    0,       /* idle/land animation */
+    2,       /* throw animation */
+    3,       /* jump animation */
+    1.0f,    /* object table scale */
+    80.0f,   /* sHammerBroHitbox radius */
+    -4.0f,   /* SET_OBJ_PHYSICS_DEFAULT gravity */
+    -0.5f,   /* SET_OBJ_PHYSICS_DEFAULT bounciness */
+    10.0f,   /* SET_OBJ_PHYSICS_DEFAULT drag strength */
+    10.0f,   /* SET_OBJ_PHYSICS_DEFAULT friction */
+    2.0f,    /* SET_OBJ_PHYSICS_DEFAULT buoyancy */
+    -200.0f, /* do not throw if Mario is far below */
+    1500.0f, /* reset attack timer when Mario is outside this distance */
+    20.0f,   /* projectile y spawn offset */
+    20.0f,   /* fireball initial vertical velocity */
+    30.0f,   /* fireball initial forward velocity */
+    35.0f,   /* fireball loop forward velocity */
+    60.0f,   /* jump vertical velocity */
+    40,      /* start throw after this timer */
+    15,      /* leave hold pose after this timer */
+    25,      /* repeat/jump after this timer */
+    30,      /* random rearm timer max after landing */
+    300,     /* fireball timeout */
+};
+
 static const mb64_rex_config_t s_rex_config = {
     1,       /* health */
     0,       /* animation_index */
@@ -446,6 +472,35 @@ uint8_t mb64_badge_should_delete(float current_scale) {
 
 const mb64_chicken_config_t *mb64_chicken_config(void) {
     return &s_chicken_config;
+}
+
+const mb64_fire_bro_config_t *mb64_fire_bro_config(void) {
+    return &s_fire_bro_config;
+}
+
+uint8_t mb64_fire_bro_can_throw(float mario_y, float bro_y) {
+    return mario_y > bro_y + s_fire_bro_config.mario_min_y_offset;
+}
+
+uint8_t mb64_fire_bro_should_start_throw(float distance_to_mario, int timer) {
+    return distance_to_mario <= s_fire_bro_config.activation_distance &&
+        timer > s_fire_bro_config.throw_start_frame;
+}
+
+uint8_t mb64_fire_bro_should_leave_hold(int timer) {
+    return timer > s_fire_bro_config.hold_frame_limit;
+}
+
+uint8_t mb64_fire_bro_should_repeat_or_jump(int timer) {
+    return timer > s_fire_bro_config.repeat_frame_limit;
+}
+
+uint8_t mb64_fire_bro_should_delete_fireball(int timer, uint8_t hit_wall) {
+    return timer > s_fire_bro_config.fireball_timeout_frame || hit_wall;
+}
+
+uint8_t mb64_fire_bro_should_bounce_fireball(uint32_t move_flags) {
+    return (move_flags & 3u) != 0;
 }
 
 const mb64_rex_config_t *mb64_rex_config(void) {

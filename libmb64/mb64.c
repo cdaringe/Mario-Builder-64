@@ -281,6 +281,22 @@ static const mb64_showrunner_config_t s_showrunner_config = {
     400.0f,   /* spike home offset below floor */
     10.0f,    /* tennis movement speed */
     500.0f,   /* tennis projectile y offset */
+    400.0f,   /* spike rumble particle Y offset */
+    10,       /* spike rumble end timer */
+    20.0f,    /* spike rise step */
+    400.0f,   /* spike rise height */
+    200,      /* tennis turn rate */
+    1,        /* tennis initial damage/volley count */
+    20.0f,    /* tennis initial forward velocity */
+    100.0f,   /* tennis hitbox radius */
+    100.0f,   /* tennis hitbox height */
+    80.0f,    /* tennis hurtbox radius */
+    80.0f,    /* tennis hurtbox height */
+    400.0f,   /* tennis return contact distance */
+    10.0f,    /* tennis speed increase after parent return */
+    255,      /* tennis trail initial opacity */
+    10,       /* tennis trail fade step */
+    12,       /* tennis trail delete opacity */
     300.0f,   /* hitbox radius */
     800.0f,   /* hitbox height */
     0.0f,     /* normal damage */
@@ -808,6 +824,43 @@ uint8_t mb64_showrunner_should_shrink(int timer) {
 
 uint8_t mb64_showrunner_should_delete(float scale) {
     return scale < s_showrunner_config.delete_scale;
+}
+
+uint8_t mb64_showrunner_spike_should_lock_to_mario(uint8_t already_close, float distance_to_mario) {
+    return !already_close && distance_to_mario < s_showrunner_config.spike_close_distance;
+}
+
+uint8_t mb64_showrunner_spike_should_leave_rumble(int timer) {
+    return timer > s_showrunner_config.spike_rumble_end_timer;
+}
+
+uint8_t mb64_showrunner_spike_should_finish_rising(float pos_y, float home_y) {
+    return pos_y > home_y + s_showrunner_config.spike_rise_height;
+}
+
+uint8_t mb64_showrunner_spike_should_retract(int parent_action) {
+    return parent_action != MB64_SHOWRUNNER_ACT_SPIKE_ATTACK &&
+        parent_action != MB64_SHOWRUNNER_ACT_BALLERINA;
+}
+
+uint8_t mb64_showrunner_spike_should_delete(float pos_y, float home_y) {
+    return pos_y < home_y;
+}
+
+uint8_t mb64_showrunner_tennis_should_return_to_parent(uint8_t returning_to_parent) {
+    return returning_to_parent != 0;
+}
+
+uint8_t mb64_showrunner_tennis_should_reset_parent(float distance_to_parent) {
+    return distance_to_parent < s_showrunner_config.tennis_parent_hit_distance;
+}
+
+uint8_t mb64_showrunner_tennis_should_stun_parent(int parent_health, int tennis_damage) {
+    return mb64_showrunner_stun_from_tennis(parent_health, tennis_damage);
+}
+
+uint8_t mb64_showrunner_tennis_trail_should_delete(int opacity) {
+    return opacity <= s_showrunner_config.tennis_trail_delete_opacity;
 }
 
 const mb64_motos_config_t *mb64_motos_config(void) {

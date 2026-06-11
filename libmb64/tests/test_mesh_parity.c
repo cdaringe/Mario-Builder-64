@@ -560,6 +560,20 @@ static void verify_showrunner_helpers(void) {
     expect_int("showrunner shrink", mb64_showrunner_should_shrink(21), 1);
     expect_int("showrunner no delete at boundary", mb64_showrunner_should_delete(0.1f), 0);
     expect_int("showrunner delete below boundary", mb64_showrunner_should_delete(0.09f), 1);
+    expect_int("showrunner spike lock", mb64_showrunner_spike_should_lock_to_mario(0, 299.0f), 1);
+    expect_int("showrunner spike no relock", mb64_showrunner_spike_should_lock_to_mario(1, 100.0f), 0);
+    expect_int("showrunner spike rumble boundary", mb64_showrunner_spike_should_leave_rumble(10), 0);
+    expect_int("showrunner spike rumble done", mb64_showrunner_spike_should_leave_rumble(11), 1);
+    expect_int("showrunner spike rise done", mb64_showrunner_spike_should_finish_rising(401.0f, 0.0f), 1);
+    expect_int("showrunner spike kept during ballerina", mb64_showrunner_spike_should_retract(MB64_SHOWRUNNER_ACT_BALLERINA), 0);
+    expect_int("showrunner spike retract during tennis", mb64_showrunner_spike_should_retract(MB64_SHOWRUNNER_ACT_TENNIS), 1);
+    expect_int("showrunner spike delete below home", mb64_showrunner_spike_should_delete(-1.0f, 0.0f), 1);
+    expect_int("showrunner tennis outbound", mb64_showrunner_tennis_should_return_to_parent(0), 0);
+    expect_int("showrunner tennis return", mb64_showrunner_tennis_should_return_to_parent(1), 1);
+    expect_int("showrunner tennis parent hit", mb64_showrunner_tennis_should_reset_parent(399.0f), 1);
+    expect_int("showrunner tennis parent no hit", mb64_showrunner_tennis_should_reset_parent(400.0f), 0);
+    expect_int("showrunner tennis stun helper", mb64_showrunner_tennis_should_stun_parent(2, 5), 1);
+    expect_int("showrunner tennis trail delete", mb64_showrunner_tennis_trail_should_delete(12), 1);
 }
 
 int main(void) {

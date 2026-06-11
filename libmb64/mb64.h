@@ -292,6 +292,18 @@ typedef enum {
 } mb64_showrunner_action_t;
 
 typedef enum {
+    MB64_SHOWRUNNER_SPIKE_ACT_INIT = 0,
+    MB64_SHOWRUNNER_SPIKE_ACT_RUMBLE = 1,
+    MB64_SHOWRUNNER_SPIKE_ACT_RISE = 2,
+    MB64_SHOWRUNNER_SPIKE_ACT_WAIT = 3,
+} mb64_showrunner_spike_action_t;
+
+typedef enum {
+    MB64_SHOWRUNNER_TENNIS_ACT_INIT = 0,
+    MB64_SHOWRUNNER_TENNIS_ACT_ACTIVE = 1,
+} mb64_showrunner_tennis_action_t;
+
+typedef enum {
     MB64_SHOWRUNNER_ANIM_IDLE = 0,
     MB64_SHOWRUNNER_ANIM_SPIKE = 1,
     MB64_SHOWRUNNER_ANIM_BACK_AWAY = 2,
@@ -337,6 +349,22 @@ typedef struct {
     float spike_home_offset_y;
     float tennis_forward_vel;
     float tennis_projectile_y_offset;
+    float spike_rumble_offset_y;
+    int spike_rumble_end_timer;
+    float spike_rise_step;
+    float spike_rise_height;
+    int tennis_turn_rate;
+    int tennis_initial_damage;
+    float tennis_initial_forward_vel;
+    float tennis_hitbox_radius;
+    float tennis_hitbox_height;
+    float tennis_hurtbox_radius;
+    float tennis_hurtbox_height;
+    float tennis_parent_hit_distance;
+    float tennis_return_speed_bonus;
+    int tennis_trail_initial_opacity;
+    int tennis_trail_fade_step;
+    int tennis_trail_delete_opacity;
     float hitbox_radius;
     float hitbox_height;
     float damage_or_coin_value;
@@ -945,6 +973,15 @@ uint8_t mb64_showrunner_should_leave_damaged(int timer);
 uint8_t mb64_showrunner_should_drop_items(int timer);
 uint8_t mb64_showrunner_should_shrink(int timer);
 uint8_t mb64_showrunner_should_delete(float scale);
+uint8_t mb64_showrunner_spike_should_lock_to_mario(uint8_t already_close, float distance_to_mario);
+uint8_t mb64_showrunner_spike_should_leave_rumble(int timer);
+uint8_t mb64_showrunner_spike_should_finish_rising(float pos_y, float home_y);
+uint8_t mb64_showrunner_spike_should_retract(int parent_action);
+uint8_t mb64_showrunner_spike_should_delete(float pos_y, float home_y);
+uint8_t mb64_showrunner_tennis_should_return_to_parent(uint8_t returning_to_parent);
+uint8_t mb64_showrunner_tennis_should_reset_parent(float distance_to_parent);
+uint8_t mb64_showrunner_tennis_should_stun_parent(int parent_health, int tennis_damage);
+uint8_t mb64_showrunner_tennis_trail_should_delete(int opacity);
 const mb64_motos_config_t *mb64_motos_config(void);
 uint8_t mb64_motos_should_search(float distance_to_mario);
 uint8_t mb64_motos_should_stop_searching(float distance_to_mario);

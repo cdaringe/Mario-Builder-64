@@ -204,6 +204,33 @@ static const mb64_chicken_config_t s_chicken_config = {
     4000.0f, /* MB64_DRAWDIST_LOW */
 };
 
+static const mb64_crablet_config_t s_crablet_config = {
+    0,        /* crab_anims_anims walk animation */
+    1.0f,     /* object table scale */
+    130.0f,   /* sScuttlebugHitbox radius */
+    -4.0f,    /* SET_OBJ_PHYSICS_DEFAULT gravity */
+    -0.5f,    /* SET_OBJ_PHYSICS_DEFAULT bounciness */
+    10.0f,    /* SET_OBJ_PHYSICS_DEFAULT drag strength */
+    10.0f,    /* SET_OBJ_PHYSICS_DEFAULT friction */
+    2.0f,     /* SET_OBJ_PHYSICS_DEFAULT buoyancy */
+    5.0f,     /* patrol forward velocity */
+    30.0f,    /* attack forward velocity */
+    50.0f,    /* attack jump velocity */
+    -10.0f,   /* hurt knockback forward velocity */
+    30.0f,    /* hurt knockback vertical velocity */
+    2.0f,     /* recover forward velocity */
+    1000.0f,  /* attack distance */
+    0x2000,   /* attack angle threshold */
+    200.0f,   /* head grab distance */
+    30.0f,    /* crablet must be above Mario by this offset */
+    60.0f,    /* carried x/z offset from Mario */
+    100.0f,   /* carried y offset from Mario */
+    50,       /* attack timer */
+    30,       /* recover timer */
+    15,       /* quicksand stun depth reduction */
+    384,      /* MB64_STAR_HEIGHT */
+};
+
 static const mb64_fire_bro_config_t s_fire_bro_config = {
     1,       /* behavior_param_2: Fire Bro texture/projectile variant */
     0,       /* idle/land animation */
@@ -472,6 +499,40 @@ uint8_t mb64_badge_should_delete(float current_scale) {
 
 const mb64_chicken_config_t *mb64_chicken_config(void) {
     return &s_chicken_config;
+}
+
+const mb64_crablet_config_t *mb64_crablet_config(void) {
+    return &s_crablet_config;
+}
+
+uint8_t mb64_crablet_should_attack(int angle_diff, float distance_to_mario) {
+    return angle_diff < s_crablet_config.attack_angle_threshold &&
+        distance_to_mario < s_crablet_config.attack_distance;
+}
+
+uint8_t mb64_crablet_should_end_attack(int timer) {
+    return timer > s_crablet_config.attack_timer_limit;
+}
+
+uint8_t mb64_crablet_should_finish_recovery(int timer) {
+    return timer > s_crablet_config.recover_timer_limit;
+}
+
+uint8_t mb64_crablet_should_grab_head(float distance_to_mario, float crablet_y, float mario_y, uint8_t already_grabbed) {
+    return !already_grabbed &&
+        distance_to_mario < s_crablet_config.head_grab_distance &&
+        crablet_y - s_crablet_config.head_grab_y_offset > mario_y;
+}
+
+int mb64_crablet_hurt_quicksand_depth(int quicksand_depth) {
+    int next_depth = quicksand_depth - s_crablet_config.hurt_quicksand_depth_step;
+    if (next_depth < 0) {
+        return 0;
+    }
+    if (next_depth > 255) {
+        return 255;
+    }
+    return next_depth;
 }
 
 const mb64_fire_bro_config_t *mb64_fire_bro_config(void) {

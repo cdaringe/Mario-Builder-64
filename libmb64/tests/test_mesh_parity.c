@@ -303,6 +303,29 @@ static void verify_fire_bro_helpers(void) {
     expect_int("fireball ground bounce", mb64_fire_bro_should_bounce_fireball(1), 1);
 }
 
+static void verify_crablet_helpers(void) {
+    const mb64_crablet_config_t *config = mb64_crablet_config();
+
+    expect_int("crablet anim", config->animation_index, 0);
+    expect_float("crablet scale", config->scale, 1.0f);
+    expect_float("crablet wall hitbox", config->wall_hitbox_radius, 130.0f);
+    expect_float("crablet walk speed", config->walk_forward_vel, 5.0f);
+    expect_float("crablet attack speed", config->attack_forward_vel, 30.0f);
+    expect_float("crablet attack jump", config->attack_jump_vel_y, 50.0f);
+    expect_int("crablet no attack angle", mb64_crablet_should_attack(0x2000, 999.0f), 0);
+    expect_int("crablet no attack distance", mb64_crablet_should_attack(0x1fff, 1000.0f), 0);
+    expect_int("crablet attack", mb64_crablet_should_attack(0x1fff, 999.0f), 1);
+    expect_int("crablet attack timer frame", mb64_crablet_should_end_attack(50), 0);
+    expect_int("crablet attack timer after", mb64_crablet_should_end_attack(51), 1);
+    expect_int("crablet recover timer frame", mb64_crablet_should_finish_recovery(30), 0);
+    expect_int("crablet recover timer after", mb64_crablet_should_finish_recovery(31), 1);
+    expect_int("crablet no grab if held", mb64_crablet_should_grab_head(100.0f, 100.0f, 0.0f, 1), 0);
+    expect_int("crablet no grab low", mb64_crablet_should_grab_head(100.0f, 30.0f, 0.0f, 0), 0);
+    expect_int("crablet grab", mb64_crablet_should_grab_head(199.0f, 31.0f, 0.0f, 0), 1);
+    expect_int("crablet quicksand clamp low", mb64_crablet_hurt_quicksand_depth(10), 0);
+    expect_int("crablet quicksand step", mb64_crablet_hurt_quicksand_depth(40), 25);
+}
+
 static void verify_rex_helpers(void) {
     const mb64_rex_config_t *config = mb64_rex_config();
 
@@ -421,6 +444,7 @@ int main(void) {
     verify_reinforced_box_helpers();
     verify_badge_helpers();
     verify_chicken_helpers();
+    verify_crablet_helpers();
     verify_fire_bro_helpers();
     verify_rex_helpers();
     verify_npc_helpers();

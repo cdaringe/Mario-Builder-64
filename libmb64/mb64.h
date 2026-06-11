@@ -219,6 +219,33 @@ typedef struct {
 } mb64_chicken_config_t;
 
 typedef struct {
+    int animation_index;
+    float scale;
+    float wall_hitbox_radius;
+    float gravity;
+    float bounciness;
+    float drag_strength;
+    float friction;
+    float buoyancy;
+    float walk_forward_vel;
+    float attack_forward_vel;
+    float attack_jump_vel_y;
+    float knockback_forward_vel;
+    float knockback_vel_y;
+    float recover_forward_vel;
+    float attack_distance;
+    float attack_angle_threshold;
+    float head_grab_distance;
+    float head_grab_y_offset;
+    float carried_forward_offset;
+    float carried_y_offset;
+    int attack_timer_limit;
+    int recover_timer_limit;
+    int hurt_quicksand_depth_step;
+    int death_drop_height;
+} mb64_crablet_config_t;
+
+typedef struct {
     uint8_t behavior_param_2;
     int anim_idle;
     int anim_throw;
@@ -668,6 +695,12 @@ uint8_t mb64_badge_should_collect(uint8_t equipped, uint8_t overlaps_mario, uint
 float mb64_badge_next_collect_scale(float current_scale);
 uint8_t mb64_badge_should_delete(float current_scale);
 const mb64_chicken_config_t *mb64_chicken_config(void);
+const mb64_crablet_config_t *mb64_crablet_config(void);
+uint8_t mb64_crablet_should_attack(int angle_diff, float distance_to_mario);
+uint8_t mb64_crablet_should_end_attack(int timer);
+uint8_t mb64_crablet_should_finish_recovery(int timer);
+uint8_t mb64_crablet_should_grab_head(float distance_to_mario, float crablet_y, float mario_y, uint8_t already_grabbed);
+int mb64_crablet_hurt_quicksand_depth(int quicksand_depth);
 const mb64_fire_bro_config_t *mb64_fire_bro_config(void);
 uint8_t mb64_fire_bro_can_throw(float mario_y, float bro_y);
 uint8_t mb64_fire_bro_should_start_throw(float distance_to_mario, int timer);

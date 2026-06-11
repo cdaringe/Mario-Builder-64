@@ -274,6 +274,22 @@ static void verify_chicken_helpers(void) {
     expect_float("chicken draw distance", config->draw_distance, 4000.0f);
 }
 
+static void verify_rex_helpers(void) {
+    const mb64_rex_config_t *config = mb64_rex_config();
+
+    expect_int("rex health", config->health, 1);
+    expect_int("rex animation", config->animation_index, 0);
+    expect_float("rex scale", config->scale, 1.5f);
+    expect_float("rex graph y offset", config->graph_y_offset, -30.0f);
+    expect_float("rex draw distance", config->draw_distance, 4000.0f);
+    expect_float("rex wall hitbox", config->wall_hitbox_radius, 40.0f);
+    expect_float("rex gravity", config->gravity, -4.0f);
+    expect_float("rex bounciness", config->bounciness, -0.5f);
+    expect_float("rex drag", config->drag_strength, 10.0f);
+    expect_float("rex friction", config->friction, 10.0f);
+    expect_float("rex buoyancy", config->buoyancy, 2.0f);
+}
+
 static void verify_podoboo_helpers(void) {
     const mb64_podoboo_config_t *config = mb64_podoboo_config();
 
@@ -355,6 +371,7 @@ int main(void) {
     verify_reinforced_box_helpers();
     verify_badge_helpers();
     verify_chicken_helpers();
+    verify_rex_helpers();
     verify_podoboo_helpers();
     verify_pokey_helpers();
 

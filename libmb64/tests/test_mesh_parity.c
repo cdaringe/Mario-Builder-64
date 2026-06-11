@@ -259,6 +259,30 @@ static void verify_badge_helpers(void) {
     expect_int("badge keep at threshold", mb64_badge_should_delete(0.2f), 0);
 }
 
+static void verify_powerup_helpers(void) {
+    const mb64_powerup_config_t *config = mb64_powerup_config();
+
+    expect_int("powerup crowbar bit", config->crowbar_power_bit, 1);
+    expect_int("powerup mask bit", config->mask_power_bit, 2);
+    expect_int("powerup sparkle mask", config->sparkle_timer_mask, 3);
+    expect_int("powerup face pitch", config->face_pitch, 0x1A00);
+    expect_int("powerup yaw step", config->yaw_step, 0x400);
+    expect_int("powerup respawn frames", config->respawn_frames, 150);
+    expect_float("powerup sparkle distance", config->sparkle_distance, 4000.0f);
+    expect_float("powerup drawing distance", config->drawing_distance, 6000.0f);
+    expect_float("powerup hitbox radius", config->hitbox_radius, 80.0f);
+    expect_float("powerup hitbox height", config->hitbox_height, 160.0f);
+    expect_float("powerup hitbox offset", config->hitbox_down_offset, 80.0f);
+    expect_float("powerup mask graph offset", config->mask_graph_y_offset, -80.0f);
+    expect_int("powerup bparam crowbar", mb64_powerup_bit_for_bparam(0), 1);
+    expect_int("powerup bparam mask", mb64_powerup_bit_for_bparam(1), 2);
+    expect_int("powerup sparkle near on cadence", mb64_powerup_should_sparkle(3999.0f, 4), 1);
+    expect_int("powerup no sparkle far", mb64_powerup_should_sparkle(4000.0f, 4), 0);
+    expect_int("powerup no sparkle off cadence", mb64_powerup_should_sparkle(3999.0f, 5), 0);
+    expect_int("powerup no respawn at frame", mb64_powerup_should_respawn(150), 0);
+    expect_int("powerup respawn after frame", mb64_powerup_should_respawn(151), 1);
+}
+
 static void verify_chicken_helpers(void) {
     const mb64_chicken_config_t *config = mb64_chicken_config();
 
@@ -502,6 +526,7 @@ int main(void) {
     verify_woodplat_helpers();
     verify_reinforced_box_helpers();
     verify_badge_helpers();
+    verify_powerup_helpers();
     verify_chicken_helpers();
     verify_crablet_helpers();
     verify_fire_bro_helpers();

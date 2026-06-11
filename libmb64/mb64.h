@@ -206,6 +206,21 @@ typedef struct {
 } mb64_badge_config_t;
 
 typedef struct {
+    uint8_t crowbar_power_bit;
+    uint8_t mask_power_bit;
+    uint8_t sparkle_timer_mask;
+    int face_pitch;
+    int yaw_step;
+    int respawn_frames;
+    float sparkle_distance;
+    float drawing_distance;
+    float hitbox_radius;
+    float hitbox_height;
+    float hitbox_down_offset;
+    float mask_graph_y_offset;
+} mb64_powerup_config_t;
+
+typedef struct {
     uint8_t behavior_param_2;
     int animation_index;
     float scale;
@@ -726,6 +741,10 @@ uint8_t mb64_badge_is_equipped(uint32_t equipped_badges, uint8_t badge_id);
 uint8_t mb64_badge_should_collect(uint8_t equipped, uint8_t overlaps_mario, uint8_t mario_levelup_dance);
 float mb64_badge_next_collect_scale(float current_scale);
 uint8_t mb64_badge_should_delete(float current_scale);
+const mb64_powerup_config_t *mb64_powerup_config(void);
+uint8_t mb64_powerup_bit_for_bparam(uint8_t behavior_param_2);
+uint8_t mb64_powerup_should_sparkle(float distance_to_mario, int global_timer);
+uint8_t mb64_powerup_should_respawn(int timer);
 const mb64_chicken_config_t *mb64_chicken_config(void);
 const mb64_crablet_config_t *mb64_crablet_config(void);
 uint8_t mb64_crablet_should_attack(int angle_diff, float distance_to_mario);

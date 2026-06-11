@@ -191,6 +191,21 @@ static const mb64_badge_config_t s_badge_config = {
     0.2f,  /* delete_scale */
 };
 
+static const mb64_powerup_config_t s_powerup_config = {
+    1u,       /* Crowbar power bit: 1 << 0 */
+    2u,       /* Bullet Bill Mask power bit: 1 << 1 */
+    3u,       /* sparkle every fourth frame */
+    0x1A00,   /* pickup face pitch */
+    0x400,    /* pickup yaw spin step */
+    30 * 5,   /* hidden respawn delay */
+    4000.0f,  /* MB64_DRAWDIST_LOW */
+    6000.0f,  /* MB64_DRAWDIST_HIGH */
+    80.0f,    /* hitbox radius */
+    160.0f,   /* hitbox height */
+    80.0f,    /* hitbox downward offset */
+    -80.0f,   /* bhvBMask graph y offset */
+};
+
 static const mb64_chicken_config_t s_chicken_config = {
     1,       /* behavior_param_2 */
     0,       /* animation_index */
@@ -557,6 +572,25 @@ float mb64_badge_next_collect_scale(float current_scale) {
 
 uint8_t mb64_badge_should_delete(float current_scale) {
     return current_scale < s_badge_config.delete_scale;
+}
+
+const mb64_powerup_config_t *mb64_powerup_config(void) {
+    return &s_powerup_config;
+}
+
+uint8_t mb64_powerup_bit_for_bparam(uint8_t behavior_param_2) {
+    return behavior_param_2 == 0 ?
+        s_powerup_config.crowbar_power_bit :
+        s_powerup_config.mask_power_bit;
+}
+
+uint8_t mb64_powerup_should_sparkle(float distance_to_mario, int global_timer) {
+    return distance_to_mario < s_powerup_config.sparkle_distance &&
+        (global_timer & s_powerup_config.sparkle_timer_mask) == 0;
+}
+
+uint8_t mb64_powerup_should_respawn(int timer) {
+    return timer > s_powerup_config.respawn_frames;
 }
 
 const mb64_chicken_config_t *mb64_chicken_config(void) {

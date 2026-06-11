@@ -277,6 +277,77 @@ typedef struct {
 } mb64_phantasm_config_t;
 
 typedef enum {
+    MB64_SHOWRUNNER_ACT_INIT = 0,
+    MB64_SHOWRUNNER_ACT_WAIT = 1,
+    MB64_SHOWRUNNER_ACT_BACK_AWAY = 2,
+    MB64_SHOWRUNNER_ACT_SPIKE_ATTACK = 3,
+    MB64_SHOWRUNNER_ACT_TENNIS = 10,
+    MB64_SHOWRUNNER_ACT_STUNNED = 11,
+    MB64_SHOWRUNNER_ACT_DAMAGED = 12,
+    MB64_SHOWRUNNER_ACT_BATTLE_END = 13,
+    MB64_SHOWRUNNER_ACT_DROP_ITEMS = 14,
+    MB64_SHOWRUNNER_ACT_DIE = 15,
+    MB64_SHOWRUNNER_ACT_BALLERINA = 16,
+    MB64_SHOWRUNNER_ACT_PHANTASM_RELEASE = 17,
+} mb64_showrunner_action_t;
+
+typedef enum {
+    MB64_SHOWRUNNER_ANIM_IDLE = 0,
+    MB64_SHOWRUNNER_ANIM_SPIKE = 1,
+    MB64_SHOWRUNNER_ANIM_BACK_AWAY = 2,
+    MB64_SHOWRUNNER_ANIM_WIND_UP = 3,
+    MB64_SHOWRUNNER_ANIM_BLOCK = 4,
+    MB64_SHOWRUNNER_ANIM_SHOCKED = 5,
+    MB64_SHOWRUNNER_ANIM_HURT = 6,
+    MB64_SHOWRUNNER_ANIM_DEAD = 7,
+    MB64_SHOWRUNNER_ANIM_CANE_SLAP = 8,
+    MB64_SHOWRUNNER_ANIM_BALLERINA = 9,
+    MB64_SHOWRUNNER_ANIM_FLOAT = 10,
+    MB64_SHOWRUNNER_ANIM_FACEPALM = 11,
+    MB64_SHOWRUNNER_ANIM_FACEPALM2 = 12,
+} mb64_showrunner_anim_t;
+
+typedef struct {
+    int health;
+    int spike_attacks_initial;
+    int spike_attacks_after_phantasm_release;
+    int spike_spawn_start_timer;
+    int spike_spawn_end_timer;
+    int spike_spawn_interval;
+    int spike_attack_end_timer;
+    int back_away_recover_timer;
+    int tennis_spawn_timer;
+    int tennis_turns_by_health[4];
+    int stunned_recover_timer;
+    int damaged_recover_timer;
+    int battle_end_timer;
+    int shrink_sound_timer;
+    int ballerina_end_timer;
+    int ballerina_spin_accel;
+    int ballerina_spin_max;
+    float trigger_distance;
+    float scale;
+    float back_away_forward_vel;
+    float back_away_friction;
+    float back_away_end_speed;
+    float spike_initial_offset;
+    float spike_step_offset;
+    float spike_close_distance;
+    float spike_floor_probe_offset_y;
+    float spike_home_offset_y;
+    float tennis_forward_vel;
+    float tennis_projectile_y_offset;
+    float hitbox_radius;
+    float hitbox_height;
+    float damage_or_coin_value;
+    float ballerina_damage_or_coin_value;
+    float shrink_step;
+    float delete_scale;
+    int loot_coins;
+    float death_barrier_drop_height;
+} mb64_showrunner_config_t;
+
+typedef enum {
     MB64_MOTOS_ACT_WAIT = 0,
     MB64_MOTOS_ACT_PLAYER_SEARCH = 1,
     MB64_MOTOS_ACT_PLAYER_CARRY = 2,
@@ -862,6 +933,18 @@ uint8_t mb64_phantasm_should_die_after_hit(int timer, int health);
 uint8_t mb64_phantasm_should_recover_after_hit(int timer);
 float mb64_phantasm_kick_forward_vel(float distance_to_mario);
 uint8_t mb64_phantasm_should_prevent_ledge_drop(float old_floor_y, float current_floor_y);
+const mb64_showrunner_config_t *mb64_showrunner_config(void);
+uint8_t mb64_showrunner_should_trigger(float distance_to_mario);
+uint8_t mb64_showrunner_back_away_finished(float forward_vel);
+uint8_t mb64_showrunner_should_spawn_spike(int timer);
+uint8_t mb64_showrunner_spike_attack_finished(int timer);
+uint8_t mb64_showrunner_should_start_tennis_projectile(int timer);
+uint8_t mb64_showrunner_stun_from_tennis(int health, int tennis_damage);
+uint8_t mb64_showrunner_should_recover_from_stun(int timer);
+uint8_t mb64_showrunner_should_leave_damaged(int timer);
+uint8_t mb64_showrunner_should_drop_items(int timer);
+uint8_t mb64_showrunner_should_shrink(int timer);
+uint8_t mb64_showrunner_should_delete(float scale);
 const mb64_motos_config_t *mb64_motos_config(void);
 uint8_t mb64_motos_should_search(float distance_to_mario);
 uint8_t mb64_motos_should_stop_searching(float distance_to_mario);

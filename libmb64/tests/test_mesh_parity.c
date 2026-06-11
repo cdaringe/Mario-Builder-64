@@ -536,6 +536,32 @@ static void verify_pokey_helpers(void) {
     expect_int("pokey quicksand middle part lives", mb64_pokey_should_die_in_quicksand(3, 5, 200.0f), 0);
 }
 
+static void verify_showrunner_helpers(void) {
+    const mb64_showrunner_config_t *config = mb64_showrunner_config();
+
+    expect_int("showrunner health", config->health, 3);
+    expect_int("showrunner initial spike volleys", config->spike_attacks_initial, 2);
+    expect_int("showrunner ballerina timer", config->ballerina_end_timer, 400);
+    expect_int("showrunner ballerina spin max", config->ballerina_spin_max, 0x2000);
+    expect_int("showrunner no trigger at boundary", mb64_showrunner_should_trigger(1500.0f), 0);
+    expect_int("showrunner trigger below boundary", mb64_showrunner_should_trigger(1499.0f), 1);
+    expect_int("showrunner back away boundary", mb64_showrunner_back_away_finished(-5.0f), 0);
+    expect_int("showrunner back away done", mb64_showrunner_back_away_finished(-4.9f), 1);
+    expect_int("showrunner no spike before window", mb64_showrunner_should_spawn_spike(15), 0);
+    expect_int("showrunner spike cadence", mb64_showrunner_should_spawn_spike(20), 1);
+    expect_int("showrunner no spike after window", mb64_showrunner_should_spawn_spike(90), 0);
+    expect_int("showrunner spike attack done", mb64_showrunner_spike_attack_finished(111), 1);
+    expect_int("showrunner tennis projectile", mb64_showrunner_should_start_tennis_projectile(60), 1);
+    expect_int("showrunner tennis stun health 2", mb64_showrunner_stun_from_tennis(2, 5), 1);
+    expect_int("showrunner tennis no stun invalid health", mb64_showrunner_stun_from_tennis(4, 1), 0);
+    expect_int("showrunner stunned recover", mb64_showrunner_should_recover_from_stun(161), 1);
+    expect_int("showrunner damaged recover", mb64_showrunner_should_leave_damaged(61), 1);
+    expect_int("showrunner drop items", mb64_showrunner_should_drop_items(61), 1);
+    expect_int("showrunner shrink", mb64_showrunner_should_shrink(21), 1);
+    expect_int("showrunner no delete at boundary", mb64_showrunner_should_delete(0.1f), 0);
+    expect_int("showrunner delete below boundary", mb64_showrunner_should_delete(0.09f), 1);
+}
+
 int main(void) {
     static const int16_t front0[4][3] = {
         { 0, 40, 0 }, { 0, 32, 0 }, { 16, 40, 0 }, { 16, 32, 0 },
@@ -572,6 +598,7 @@ int main(void) {
     verify_badge_helpers();
     verify_powerup_helpers();
     verify_phantasm_helpers();
+    verify_showrunner_helpers();
     verify_motos_helpers();
     verify_chicken_helpers();
     verify_crablet_helpers();

@@ -251,6 +251,46 @@ static const mb64_phantasm_config_t s_phantasm_config = {
     100.0f,   /* MB64_STAR_HEIGHT */
 };
 
+static const mb64_showrunner_config_t s_showrunner_config = {
+    3,        /* battle health */
+    2,        /* first spike volley count */
+    1,        /* post-phantasm-release spike volley count */
+    20,       /* spike spawn window start */
+    90,       /* spike spawn window end */
+    5,        /* spike spawn interval */
+    110,      /* spike attack end timer */
+    1,        /* back-away friction starts after this timer */
+    60,       /* tennis projectile spawn timer */
+    {0, 8, 5, 3}, /* tennis_turns[] indexed by health */
+    160,      /* stunned recovery timer */
+    60,       /* damaged recovery timer */
+    60,       /* battle-end timer */
+    20,       /* shrink sound timer */
+    400,      /* ballerina attack end timer */
+    0x20,     /* ballerina spin acceleration */
+    0x2000,   /* ballerina spin max */
+    1500.0f,  /* MB64_BOSS_TRIGGER_DIST */
+    1.0f,     /* scale */
+    -70.0f,   /* back-away velocity */
+    0.94f,    /* back-away friction */
+    -5.0f,    /* back-away finished once faster than this */
+    400.0f,   /* first spike target offset */
+    350.0f,   /* spike chain target step */
+    300.0f,   /* close spike lock distance */
+    500.0f,   /* spike floor probe offset */
+    400.0f,   /* spike home offset below floor */
+    10.0f,    /* tennis movement speed */
+    500.0f,   /* tennis projectile y offset */
+    300.0f,   /* hitbox radius */
+    800.0f,   /* hitbox height */
+    0.0f,     /* normal damage */
+    3.0f,     /* ballerina damage */
+    0.01f,    /* death shrink step */
+    0.1f,     /* delete below this scale */
+    50,       /* loot coins */
+    384.0f,   /* MB64_STAR_HEIGHT */
+};
+
 static const mb64_motos_config_t s_motos_config = {
     2.0f,     /* object scale */
     -70.0f,   /* hand relative X */
@@ -715,6 +755,59 @@ float mb64_phantasm_kick_forward_vel(float distance_to_mario) {
 
 uint8_t mb64_phantasm_should_prevent_ledge_drop(float old_floor_y, float current_floor_y) {
     return current_floor_y < old_floor_y - s_phantasm_config.ledge_drop_guard_height;
+}
+
+const mb64_showrunner_config_t *mb64_showrunner_config(void) {
+    return &s_showrunner_config;
+}
+
+uint8_t mb64_showrunner_should_trigger(float distance_to_mario) {
+    return distance_to_mario < s_showrunner_config.trigger_distance;
+}
+
+uint8_t mb64_showrunner_back_away_finished(float forward_vel) {
+    return forward_vel > s_showrunner_config.back_away_end_speed;
+}
+
+uint8_t mb64_showrunner_should_spawn_spike(int timer) {
+    return timer >= s_showrunner_config.spike_spawn_start_timer &&
+        timer < s_showrunner_config.spike_spawn_end_timer &&
+        timer % s_showrunner_config.spike_spawn_interval == 0;
+}
+
+uint8_t mb64_showrunner_spike_attack_finished(int timer) {
+    return timer > s_showrunner_config.spike_attack_end_timer;
+}
+
+uint8_t mb64_showrunner_should_start_tennis_projectile(int timer) {
+    return timer == s_showrunner_config.tennis_spawn_timer;
+}
+
+uint8_t mb64_showrunner_stun_from_tennis(int health, int tennis_damage) {
+    if (health < 0 || health >= 4) {
+        return 0;
+    }
+    return tennis_damage == s_showrunner_config.tennis_turns_by_health[health];
+}
+
+uint8_t mb64_showrunner_should_recover_from_stun(int timer) {
+    return timer > s_showrunner_config.stunned_recover_timer;
+}
+
+uint8_t mb64_showrunner_should_leave_damaged(int timer) {
+    return timer > s_showrunner_config.damaged_recover_timer;
+}
+
+uint8_t mb64_showrunner_should_drop_items(int timer) {
+    return timer > s_showrunner_config.battle_end_timer;
+}
+
+uint8_t mb64_showrunner_should_shrink(int timer) {
+    return timer > s_showrunner_config.shrink_sound_timer;
+}
+
+uint8_t mb64_showrunner_should_delete(float scale) {
+    return scale < s_showrunner_config.delete_scale;
 }
 
 const mb64_motos_config_t *mb64_motos_config(void) {

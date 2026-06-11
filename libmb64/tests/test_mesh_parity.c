@@ -242,6 +242,23 @@ static void verify_reinforced_box_helpers(void) {
     expect_float("rfbox positive shake edge", mb64_reinforced_box_shake_offset(1.0f), 3.0f);
 }
 
+static void verify_badge_helpers(void) {
+    const mb64_badge_config_t *config = mb64_badge_config();
+
+    expect_int("badge spin accel", config->spin_accel, 0x70);
+    expect_float("badge shrink factor", config->shrink_factor, 0.95f);
+    expect_float("badge delete scale", config->delete_scale, 0.2f);
+    expect_int("badge equipped bit set", mb64_badge_is_equipped(1u << 4, 4), 1);
+    expect_int("badge equipped bit clear", mb64_badge_is_equipped(1u << 4, 3), 0);
+    expect_int("badge rejects out of range id", mb64_badge_is_equipped(0xffffffffu, 32), 0);
+    expect_int("badge collects if already equipped", mb64_badge_should_collect(1, 0, 0), 1);
+    expect_int("badge collects on touch", mb64_badge_should_collect(0, 1, 0), 1);
+    expect_int("badge waits during levelup", mb64_badge_should_collect(0, 1, 1), 0);
+    expect_float("badge next scale", mb64_badge_next_collect_scale(1.0f), 0.95f);
+    expect_int("badge delete under threshold", mb64_badge_should_delete(0.19f), 1);
+    expect_int("badge keep at threshold", mb64_badge_should_delete(0.2f), 0);
+}
+
 static void verify_podoboo_helpers(void) {
     const mb64_podoboo_config_t *config = mb64_podoboo_config();
 
@@ -321,6 +338,7 @@ int main(void) {
     verify_shaped_tile_rotations();
     verify_woodplat_helpers();
     verify_reinforced_box_helpers();
+    verify_badge_helpers();
     verify_podoboo_helpers();
     verify_pokey_helpers();
 

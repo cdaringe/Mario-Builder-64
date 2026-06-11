@@ -200,6 +200,12 @@ typedef struct {
 } mb64_reinforced_box_config_t;
 
 typedef struct {
+    int spin_accel;
+    float shrink_factor;
+    float delete_scale;
+} mb64_badge_config_t;
+
+typedef struct {
     float gravity;
     float launch_accel;
     float mario_activation_distance;
@@ -593,6 +599,11 @@ const mb64_reinforced_box_config_t *mb64_reinforced_box_config(void);
 uint8_t mb64_reinforced_box_should_clank(int timer);
 uint8_t mb64_reinforced_box_should_shake(int timer);
 float mb64_reinforced_box_shake_offset(float random_unit);
+const mb64_badge_config_t *mb64_badge_config(void);
+uint8_t mb64_badge_is_equipped(uint32_t equipped_badges, uint8_t badge_id);
+uint8_t mb64_badge_should_collect(uint8_t equipped, uint8_t overlaps_mario, uint8_t mario_levelup_dance);
+float mb64_badge_next_collect_scale(float current_scale);
+uint8_t mb64_badge_should_delete(float current_scale);
 const mb64_podoboo_config_t *mb64_podoboo_config(void);
 float mb64_podoboo_launch_velocity(float rest_y, float peak_y);
 uint8_t mb64_podoboo_should_reset_idle_timer(float distance_to_mario);

@@ -185,6 +185,12 @@ static const mb64_reinforced_box_config_t s_reinforced_box_config = {
     15,    /* clank_cooldown_timer */
 };
 
+static const mb64_badge_config_t s_badge_config = {
+    0x70,  /* spin_accel */
+    0.95f, /* shrink_factor */
+    0.2f,  /* delete_scale */
+};
+
 static const mb64_podoboo_config_t s_podoboo_config = {
     2.0f,    /* gravity */
     1.5f,    /* launch_accel */
@@ -366,6 +372,29 @@ uint8_t mb64_reinforced_box_should_shake(int timer) {
 float mb64_reinforced_box_shake_offset(float random_unit) {
     return random_unit * s_reinforced_box_config.shake_amplitude -
         s_reinforced_box_config.shake_center_offset;
+}
+
+const mb64_badge_config_t *mb64_badge_config(void) {
+    return &s_badge_config;
+}
+
+uint8_t mb64_badge_is_equipped(uint32_t equipped_badges, uint8_t badge_id) {
+    if (badge_id >= 32) {
+        return 0;
+    }
+    return (equipped_badges & (1u << badge_id)) != 0;
+}
+
+uint8_t mb64_badge_should_collect(uint8_t equipped, uint8_t overlaps_mario, uint8_t mario_levelup_dance) {
+    return equipped || (overlaps_mario && !mario_levelup_dance);
+}
+
+float mb64_badge_next_collect_scale(float current_scale) {
+    return current_scale * s_badge_config.shrink_factor;
+}
+
+uint8_t mb64_badge_should_delete(float current_scale) {
+    return current_scale < s_badge_config.delete_scale;
 }
 
 const mb64_podoboo_config_t *mb64_podoboo_config(void) {

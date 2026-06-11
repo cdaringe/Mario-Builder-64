@@ -258,6 +258,36 @@ static void verify_podoboo_helpers(void) {
     expect_float("podoboo launch velocity", mb64_podoboo_launch_velocity(0.0f, 150.0f), 21.0f);
 }
 
+static void verify_pokey_helpers(void) {
+    const mb64_pokey_config_t *config = mb64_pokey_config();
+
+    expect_int("pokey segment count", config->segment_count, 5);
+    expect_int("pokey head index", config->head_part_index, 0);
+    expect_float("pokey scale", config->scale, 3.0f);
+    expect_float("pokey body step", config->body_step, 120.0f);
+    expect_float("pokey head spawn y", mb64_pokey_part_spawn_y(0), 480.0f);
+    expect_float("pokey bottom spawn y", mb64_pokey_part_spawn_y(4), 0.0f);
+    expect_int("pokey alive flags", (int)mb64_pokey_alive_flags(5), 31);
+    expect_int("pokey offset angle", mb64_pokey_part_offset_angle(2, 3), 0x8000 + 0x1800);
+    expect_float("pokey base height subtracts quicksand", mb64_pokey_part_base_height(1000.0f, 5, 2, 1.0f, 30.0f), 1210.0f);
+    expect_float("pokey graph y offset", mb64_pokey_part_graph_y_offset(3.0f), 66.0f);
+    expect_int("pokey death delay", mb64_pokey_part_death_delay(3), 32);
+    expect_int("pokey shift part", mb64_pokey_should_shift_part(3, 0x13), 1);
+    expect_int("pokey no shift head", mb64_pokey_should_shift_part(0, 0), 0);
+    expect_int("pokey expand bottom", mb64_pokey_should_expand_bottom(0.5f, 2, 3), 1);
+    expect_int("pokey no expand middle", mb64_pokey_should_expand_bottom(0.5f, 1, 3), 0);
+    expect_int("pokey spawn near", mb64_pokey_should_spawn_parts(999.0f, 1000.0f), 1);
+    expect_int("pokey no spawn at draw distance", mb64_pokey_should_spawn_parts(1000.0f, 1000.0f), 0);
+    expect_int("pokey unload beyond margin", mb64_pokey_should_unload(1500.1f, 1000.0f), 1);
+    expect_int("pokey no unload at margin", mb64_pokey_should_unload(1500.0f, 1000.0f), 0);
+    expect_int("pokey regrow after timer", mb64_pokey_should_regrow(4, 101, 0), 1);
+    expect_int("pokey no regrow on quicksand", mb64_pokey_should_regrow(4, 101, 1), 0);
+    expect_int("pokey target angle left", mb64_pokey_target_angle_offset(200.0f, 0x100, 0), -0x4000);
+    expect_int("pokey target angle far", mb64_pokey_target_angle_offset(3000.0f, 0, 0), 0);
+    expect_int("pokey quicksand top part dies", mb64_pokey_should_die_in_quicksand(4, 5, 120.1f), 1);
+    expect_int("pokey quicksand middle part lives", mb64_pokey_should_die_in_quicksand(3, 5, 200.0f), 0);
+}
+
 int main(void) {
     static const int16_t front0[4][3] = {
         { 0, 40, 0 }, { 0, 32, 0 }, { 16, 40, 0 }, { 16, 32, 0 },
@@ -292,6 +322,7 @@ int main(void) {
     verify_woodplat_helpers();
     verify_reinforced_box_helpers();
     verify_podoboo_helpers();
+    verify_pokey_helpers();
 
     if (g_failures != 0) {
         fprintf(stderr, "mesh parity tests failed: %d\n", g_failures);

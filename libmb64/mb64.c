@@ -197,6 +197,39 @@ static const mb64_podoboo_config_t s_podoboo_config = {
     3,       /* splash_flame_count */
 };
 
+static const mb64_pokey_config_t s_pokey_config = {
+    5,        /* segment_count */
+    0,        /* head_part_index */
+    3.0f,     /* scale */
+    120.0f,   /* body_step */
+    480.0f,   /* head_start_y */
+    6.0f,     /* sway_radius */
+    0.1f,     /* expand_step */
+    3.0f,     /* standard_action_scale */
+    22.0f,    /* graph_y_offset_scale */
+    4.0f,     /* gravity */
+    500.0f,   /* unload_distance_margin */
+    5.0f,     /* forward_speed */
+    25000.0f, /* far_mario_distance */
+    2000.0f,  /* random_wander_distance */
+    200.0f,   /* shy_min_distance */
+    10.0f,    /* shy_angle_scale */
+    120.0f,   /* quicksand_part_death_depth */
+    30,       /* blink_min_frames */
+    60,       /* blink_max_frames */
+    4,        /* blink_random_frames */
+    100,      /* regrow_frame */
+    0x2000,   /* random_turn_step */
+    30,       /* random_timer_min */
+    50,       /* random_timer_range */
+    0x200,    /* turn_step */
+    -78,      /* steep_slope_degrees */
+    20,       /* death_delay_base */
+    2,        /* death_delay_shift */
+    254,      /* quicksand_depth_to_die */
+    384,      /* star_drop_height */
+};
+
 static float mb64_clampf(float value, float min, float max) {
     if (value < min) {
         return min;
@@ -359,6 +392,90 @@ uint8_t mb64_podoboo_should_spawn_warmup_flame(int timer) {
 
 uint8_t mb64_podoboo_should_launch(int timer) {
     return timer > s_podoboo_config.launch_frame;
+}
+
+const mb64_pokey_config_t *mb64_pokey_config(void) {
+    return &s_pokey_config;
+}
+
+uint32_t mb64_pokey_alive_flags(uint8_t segment_count) {
+    if (segment_count >= 32) {
+        return UINT32_MAX;
+    }
+    return ((uint32_t)1 << segment_count) - 1u;
+}
+
+float mb64_pokey_part_spawn_y(uint8_t part_index) {
+    return s_pokey_config.head_start_y - (float)part_index * s_pokey_config.body_step;
+}
+
+int mb64_pokey_part_offset_angle(uint8_t part_index, int timer) {
+    return part_index * 0x4000 + timer * 0x800;
+}
+
+float mb64_pokey_part_base_height(float parent_y,
+                                  uint8_t alive_parts,
+                                  uint8_t part_index,
+                                  float bottom_size,
+                                  float quicksand_depth) {
+    return parent_y
+        + (s_pokey_config.body_step * (float)(alive_parts - part_index) - (s_pokey_config.body_step * 2.0f))
+        + s_pokey_config.body_step * bottom_size
+        - quicksand_depth;
+}
+
+float mb64_pokey_part_graph_y_offset(float scale_y) {
+    return scale_y * s_pokey_config.graph_y_offset_scale;
+}
+
+int mb64_pokey_part_death_delay(uint8_t part_index) {
+    return (part_index << s_pokey_config.death_delay_shift) + s_pokey_config.death_delay_base;
+}
+
+uint8_t mb64_pokey_should_shift_part(uint8_t part_index, uint32_t alive_flags) {
+    return part_index > 1 && !(alive_flags & ((uint32_t)1 << (part_index - 1)));
+}
+
+uint8_t mb64_pokey_should_expand_bottom(float bottom_size,
+                                        uint8_t part_index,
+                                        uint8_t alive_parts) {
+    return bottom_size < 1.0f && (uint8_t)(part_index + 1) == alive_parts;
+}
+
+uint8_t mb64_pokey_should_spawn_parts(float distance_to_mario, float drawing_distance) {
+    return distance_to_mario < drawing_distance;
+}
+
+uint8_t mb64_pokey_should_unload(float distance_to_mario, float drawing_distance) {
+    return distance_to_mario > drawing_distance + s_pokey_config.unload_distance_margin;
+}
+
+uint8_t mb64_pokey_should_regrow(uint8_t alive_parts, int timer, uint8_t floor_is_instant_quicksand) {
+    return alive_parts < s_pokey_config.segment_count
+        && timer > s_pokey_config.regrow_frame
+        && !floor_is_instant_quicksand;
+}
+
+int mb64_pokey_target_angle_offset(float distance_to_mario, int angle_to_mario, int move_angle_yaw) {
+    int target_angle_offset = (int)(0x4000 - (distance_to_mario - s_pokey_config.shy_min_distance) * s_pokey_config.shy_angle_scale);
+    if (target_angle_offset < 0) {
+        target_angle_offset = 0;
+    } else if (target_angle_offset > 0x4000) {
+        target_angle_offset = 0x4000;
+    }
+
+    if ((int16_t)(angle_to_mario - move_angle_yaw) > 0) {
+        target_angle_offset = -target_angle_offset;
+    }
+
+    return target_angle_offset;
+}
+
+uint8_t mb64_pokey_should_die_in_quicksand(uint8_t part_index,
+                                           uint8_t alive_parts,
+                                           float quicksand_depth) {
+    return part_index == (uint8_t)(alive_parts - 1)
+        && quicksand_depth > s_pokey_config.quicksand_part_death_depth;
 }
 
 _Static_assert(offsetof(struct mb64_level_save_header, version) == 10,

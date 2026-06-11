@@ -211,6 +211,39 @@ typedef struct {
     int splash_flame_count;
 } mb64_podoboo_config_t;
 
+typedef struct {
+    uint8_t segment_count;
+    uint8_t head_part_index;
+    float scale;
+    float body_step;
+    float head_start_y;
+    float sway_radius;
+    float expand_step;
+    float standard_action_scale;
+    float graph_y_offset_scale;
+    float gravity;
+    float unload_distance_margin;
+    float forward_speed;
+    float far_mario_distance;
+    float random_wander_distance;
+    float shy_min_distance;
+    float shy_angle_scale;
+    float quicksand_part_death_depth;
+    int blink_min_frames;
+    int blink_max_frames;
+    int blink_random_frames;
+    int regrow_frame;
+    int random_turn_step;
+    int random_timer_min;
+    int random_timer_range;
+    int turn_step;
+    int steep_slope_degrees;
+    int death_delay_base;
+    int death_delay_shift;
+    int quicksand_depth_to_die;
+    int star_drop_height;
+} mb64_pokey_config_t;
+
 typedef enum {
     MB64_BULLET_BILL_ACT_IDLE_RESET = 0,
     MB64_BULLET_BILL_ACT_WAIT_FOR_PLAYER = 1,
@@ -225,6 +258,12 @@ typedef enum {
     MB64_PODOBOO_ACT_IDLE_IN_LAVA = 2,
     MB64_PODOBOO_ACT_JUMP = 3,
 } mb64_podoboo_action_t;
+
+typedef enum {
+    MB64_POKEY_ACT_UNINITIALIZED = 0,
+    MB64_POKEY_ACT_WANDER = 1,
+    MB64_POKEY_ACT_UNLOAD_PARTS = 2,
+} mb64_pokey_action_t;
 
 #define MB64_RENDER_MATERIAL_FENCE    240
 #define MB64_RENDER_MATERIAL_BARS     241
@@ -559,6 +598,28 @@ float mb64_podoboo_launch_velocity(float rest_y, float peak_y);
 uint8_t mb64_podoboo_should_reset_idle_timer(float distance_to_mario);
 uint8_t mb64_podoboo_should_spawn_warmup_flame(int timer);
 uint8_t mb64_podoboo_should_launch(int timer);
+const mb64_pokey_config_t *mb64_pokey_config(void);
+uint32_t mb64_pokey_alive_flags(uint8_t segment_count);
+float mb64_pokey_part_spawn_y(uint8_t part_index);
+int mb64_pokey_part_offset_angle(uint8_t part_index, int timer);
+float mb64_pokey_part_base_height(float parent_y,
+                                  uint8_t alive_parts,
+                                  uint8_t part_index,
+                                  float bottom_size,
+                                  float quicksand_depth);
+float mb64_pokey_part_graph_y_offset(float scale_y);
+int mb64_pokey_part_death_delay(uint8_t part_index);
+uint8_t mb64_pokey_should_shift_part(uint8_t part_index, uint32_t alive_flags);
+uint8_t mb64_pokey_should_expand_bottom(float bottom_size,
+                                        uint8_t part_index,
+                                        uint8_t alive_parts);
+uint8_t mb64_pokey_should_spawn_parts(float distance_to_mario, float drawing_distance);
+uint8_t mb64_pokey_should_unload(float distance_to_mario, float drawing_distance);
+uint8_t mb64_pokey_should_regrow(uint8_t alive_parts, int timer, uint8_t floor_is_instant_quicksand);
+int mb64_pokey_target_angle_offset(float distance_to_mario, int angle_to_mario, int move_angle_yaw);
+uint8_t mb64_pokey_should_die_in_quicksand(uint8_t part_index,
+                                           uint8_t alive_parts,
+                                           float quicksand_depth);
 
 #ifdef __cplusplus
 }

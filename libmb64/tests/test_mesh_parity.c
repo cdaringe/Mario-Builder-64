@@ -259,6 +259,21 @@ static void verify_badge_helpers(void) {
     expect_int("badge keep at threshold", mb64_badge_should_delete(0.2f), 0);
 }
 
+static void verify_chicken_helpers(void) {
+    const mb64_chicken_config_t *config = mb64_chicken_config();
+
+    expect_int("chicken bparam2", config->behavior_param_2, 1);
+    expect_int("chicken animation", config->animation_index, 0);
+    expect_float("chicken scale", config->scale, 1.0f);
+    expect_float("chicken wall hitbox", config->wall_hitbox_radius, 50.0f);
+    expect_float("chicken gravity", config->gravity, 0.0f);
+    expect_float("chicken bounciness", config->bounciness, 0.0f);
+    expect_float("chicken drag", config->drag_strength, 1000.0f);
+    expect_float("chicken friction", config->friction, 1000.0f);
+    expect_float("chicken buoyancy", config->buoyancy, 0.0f);
+    expect_float("chicken draw distance", config->draw_distance, 4000.0f);
+}
+
 static void verify_podoboo_helpers(void) {
     const mb64_podoboo_config_t *config = mb64_podoboo_config();
 
@@ -339,6 +354,7 @@ int main(void) {
     verify_woodplat_helpers();
     verify_reinforced_box_helpers();
     verify_badge_helpers();
+    verify_chicken_helpers();
     verify_podoboo_helpers();
     verify_pokey_helpers();
 

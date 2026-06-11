@@ -191,6 +191,19 @@ static const mb64_badge_config_t s_badge_config = {
     0.2f,  /* delete_scale */
 };
 
+static const mb64_chicken_config_t s_chicken_config = {
+    1,       /* behavior_param_2 */
+    0,       /* animation_index */
+    1.0f,    /* scale */
+    50.0f,   /* wall_hitbox_radius */
+    0.0f,    /* SET_OBJ_PHYSICS_AIR gravity */
+    0.0f,    /* SET_OBJ_PHYSICS_AIR bounciness */
+    1000.0f, /* MB64_DRAG_DEFAULT */
+    1000.0f, /* MB64_FRICTION_DEFAULT */
+    0.0f,    /* SET_OBJ_PHYSICS_AIR buoyancy */
+    4000.0f, /* MB64_DRAWDIST_LOW */
+};
+
 static const mb64_podoboo_config_t s_podoboo_config = {
     2.0f,    /* gravity */
     1.5f,    /* launch_accel */
@@ -395,6 +408,10 @@ float mb64_badge_next_collect_scale(float current_scale) {
 
 uint8_t mb64_badge_should_delete(float current_scale) {
     return current_scale < s_badge_config.delete_scale;
+}
+
+const mb64_chicken_config_t *mb64_chicken_config(void) {
+    return &s_chicken_config;
 }
 
 const mb64_podoboo_config_t *mb64_podoboo_config(void) {

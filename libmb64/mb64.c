@@ -251,6 +251,31 @@ static const mb64_phantasm_config_t s_phantasm_config = {
     100.0f,   /* MB64_STAR_HEIGHT */
 };
 
+static const mb64_motos_config_t s_motos_config = {
+    2.0f,     /* object scale */
+    -70.0f,   /* hand relative X */
+    -30.0f,   /* hand relative Y */
+    50.0f,    /* anchor throw forward velocity */
+    30.0f,    /* anchor throw vertical velocity */
+    64,       /* anchor throw status arg */
+    1000.0f,  /* distance to begin player search */
+    1500.0f,  /* distance to stop player search */
+    5.0f,     /* search forward speed */
+    800,      /* search yaw turn speed */
+    45,       /* throw timer */
+    20,       /* escape actions before dropped */
+    15.0f,    /* carry-run speed */
+    14,       /* pitch throw animation frame */
+    35,       /* recover wait timer */
+    15.0f,    /* thrown/placed forward velocity */
+    35.0f,    /* thrown/placed vertical velocity */
+    10.0f,    /* blue coin forward velocity */
+    100.0f,   /* blue coin vertical velocity */
+    310.0f,   /* blue coin Y offset */
+    100.0f,   /* MB64_STAR_HEIGHT */
+    150,      /* quicksand depth to die */
+};
+
 static const mb64_chicken_config_t s_chicken_config = {
     1,       /* behavior_param_2 */
     0,       /* animation_index */
@@ -690,6 +715,30 @@ float mb64_phantasm_kick_forward_vel(float distance_to_mario) {
 
 uint8_t mb64_phantasm_should_prevent_ledge_drop(float old_floor_y, float current_floor_y) {
     return current_floor_y < old_floor_y - s_phantasm_config.ledge_drop_guard_height;
+}
+
+const mb64_motos_config_t *mb64_motos_config(void) {
+    return &s_motos_config;
+}
+
+uint8_t mb64_motos_should_search(float distance_to_mario) {
+    return distance_to_mario < s_motos_config.wait_search_distance;
+}
+
+uint8_t mb64_motos_should_stop_searching(float distance_to_mario) {
+    return distance_to_mario > s_motos_config.search_drop_distance;
+}
+
+uint8_t mb64_motos_should_throw(int timer, uint8_t hit_edge) {
+    return timer > s_motos_config.throw_timer || hit_edge;
+}
+
+uint8_t mb64_motos_escape_succeeds(int escape_actions) {
+    return escape_actions > s_motos_config.escape_actions;
+}
+
+uint8_t mb64_motos_should_leave_recover_wait(int timer) {
+    return timer > s_motos_config.recover_wait_timer;
 }
 
 const mb64_chicken_config_t *mb64_chicken_config(void) {

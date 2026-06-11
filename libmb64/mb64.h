@@ -276,6 +276,56 @@ typedef struct {
     float death_barrier_drop_height;
 } mb64_phantasm_config_t;
 
+typedef enum {
+    MB64_MOTOS_ACT_WAIT = 0,
+    MB64_MOTOS_ACT_PLAYER_SEARCH = 1,
+    MB64_MOTOS_ACT_PLAYER_CARRY = 2,
+    MB64_MOTOS_ACT_PLAYER_PITCH = 3,
+    MB64_MOTOS_ACT_CARRY_RUN = 4,
+    MB64_MOTOS_ACT_THROWN = 5,
+    MB64_MOTOS_ACT_RECOVER = 6,
+    MB64_MOTOS_ACT_DEATH = 7,
+} mb64_motos_action_t;
+
+typedef enum {
+    MB64_MOTOS_ANIM_BASE = 0,
+    MB64_MOTOS_ANIM_CARRY = 1,
+    MB64_MOTOS_ANIM_CARRY_RUN = 2,
+    MB64_MOTOS_ANIM_CARRY_START = 3,
+    MB64_MOTOS_ANIM_DOWN_RECOVER = 4,
+    MB64_MOTOS_ANIM_DOWN_STOP = 5,
+    MB64_MOTOS_ANIM_PITCH = 6,
+    MB64_MOTOS_ANIM_SAFE_DOWN = 7,
+    MB64_MOTOS_ANIM_WAIT = 8,
+    MB64_MOTOS_ANIM_WALK = 9,
+    MB64_MOTOS_ANIM_END = 10,
+} mb64_motos_anim_t;
+
+typedef struct {
+    float scale;
+    float hand_relative_x;
+    float hand_relative_y;
+    float anchor_throw_forward_vel;
+    float anchor_throw_vel_y;
+    int anchor_throw_status_arg;
+    float wait_search_distance;
+    float search_drop_distance;
+    float search_forward_vel;
+    int search_turn_speed;
+    int throw_timer;
+    int escape_actions;
+    float carry_run_forward_vel;
+    int pitch_throw_frame;
+    int recover_wait_timer;
+    float placed_forward_vel;
+    float placed_vel_y;
+    float blue_coin_forward_vel;
+    float blue_coin_vel_y;
+    float blue_coin_y_offset;
+    float death_barrier_drop_height;
+    int quicksand_depth_to_die;
+} mb64_motos_config_t;
+
 typedef struct {
     uint8_t behavior_param_2;
     int animation_index;
@@ -812,6 +862,12 @@ uint8_t mb64_phantasm_should_die_after_hit(int timer, int health);
 uint8_t mb64_phantasm_should_recover_after_hit(int timer);
 float mb64_phantasm_kick_forward_vel(float distance_to_mario);
 uint8_t mb64_phantasm_should_prevent_ledge_drop(float old_floor_y, float current_floor_y);
+const mb64_motos_config_t *mb64_motos_config(void);
+uint8_t mb64_motos_should_search(float distance_to_mario);
+uint8_t mb64_motos_should_stop_searching(float distance_to_mario);
+uint8_t mb64_motos_should_throw(int timer, uint8_t hit_edge);
+uint8_t mb64_motos_escape_succeeds(int escape_actions);
+uint8_t mb64_motos_should_leave_recover_wait(int timer);
 const mb64_chicken_config_t *mb64_chicken_config(void);
 const mb64_crablet_config_t *mb64_crablet_config(void);
 uint8_t mb64_crablet_should_attack(int angle_diff, float distance_to_mario);

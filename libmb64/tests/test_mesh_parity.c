@@ -307,6 +307,26 @@ static void verify_phantasm_helpers(void) {
     expect_int("phantasm ledge guard", mb64_phantasm_should_prevent_ledge_drop(1000.0f, 699.0f), 1);
 }
 
+static void verify_motos_helpers(void) {
+    const mb64_motos_config_t *config = mb64_motos_config();
+
+    expect_float("motos scale", config->scale, 2.0f);
+    expect_float("motos hand relative x", config->hand_relative_x, -70.0f);
+    expect_float("motos hand relative y", config->hand_relative_y, -30.0f);
+    expect_float("motos search speed", config->search_forward_vel, 5.0f);
+    expect_int("motos turn speed", config->search_turn_speed, 800);
+    expect_int("motos no search at boundary", mb64_motos_should_search(1000.0f), 0);
+    expect_int("motos search below boundary", mb64_motos_should_search(999.0f), 1);
+    expect_int("motos no stop at boundary", mb64_motos_should_stop_searching(1500.0f), 0);
+    expect_int("motos stop above boundary", mb64_motos_should_stop_searching(1501.0f), 1);
+    expect_int("motos no timed throw at boundary", mb64_motos_should_throw(45, 0), 0);
+    expect_int("motos timed throw after boundary", mb64_motos_should_throw(46, 0), 1);
+    expect_int("motos edge throw", mb64_motos_should_throw(0, 1), 1);
+    expect_int("motos no escape at boundary", mb64_motos_escape_succeeds(20), 0);
+    expect_int("motos escape after boundary", mb64_motos_escape_succeeds(21), 1);
+    expect_int("motos recover wait", mb64_motos_should_leave_recover_wait(36), 1);
+}
+
 static void verify_chicken_helpers(void) {
     const mb64_chicken_config_t *config = mb64_chicken_config();
 
@@ -552,6 +572,7 @@ int main(void) {
     verify_badge_helpers();
     verify_powerup_helpers();
     verify_phantasm_helpers();
+    verify_motos_helpers();
     verify_chicken_helpers();
     verify_crablet_helpers();
     verify_fire_bro_helpers();

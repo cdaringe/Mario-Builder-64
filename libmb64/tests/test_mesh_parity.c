@@ -290,6 +290,27 @@ static void verify_rex_helpers(void) {
     expect_float("rex buoyancy", config->buoyancy, 2.0f);
 }
 
+static void verify_npc_helpers(void) {
+    const mb64_npc_config_t *moleman = mb64_moleman_config();
+    const mb64_npc_config_t *cobie = mb64_cobie_config();
+
+    expect_int("moleman animation", moleman->animation_index, 0);
+    expect_int("moleman role", moleman->bobomb_buddy_role, 0);
+    expect_int("moleman no forced anim", moleman->forced_anim_state, -1);
+    expect_float("moleman graph y offset", moleman->graph_y_offset, 65.0f);
+    expect_float("moleman hitbox radius", moleman->hitbox_radius, 100.0f);
+    expect_float("moleman hitbox height", moleman->hitbox_height, 60.0f);
+    expect_float("moleman draw distance", moleman->draw_distance, 4000.0f);
+
+    expect_int("cobie animation", cobie->animation_index, 0);
+    expect_int("cobie role", cobie->bobomb_buddy_role, 0);
+    expect_int("cobie forced anim", cobie->forced_anim_state, 0);
+    expect_float("cobie graph y offset", cobie->graph_y_offset, 0.0f);
+    expect_float("cobie hitbox radius", cobie->hitbox_radius, 130.0f);
+    expect_float("cobie hitbox height", cobie->hitbox_height, 60.0f);
+    expect_float("cobie draw distance", cobie->draw_distance, 4000.0f);
+}
+
 static void verify_podoboo_helpers(void) {
     const mb64_podoboo_config_t *config = mb64_podoboo_config();
 
@@ -372,6 +393,7 @@ int main(void) {
     verify_badge_helpers();
     verify_chicken_helpers();
     verify_rex_helpers();
+    verify_npc_helpers();
     verify_podoboo_helpers();
     verify_pokey_helpers();
 

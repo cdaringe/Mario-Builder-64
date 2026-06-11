@@ -218,6 +218,26 @@ static const mb64_rex_config_t s_rex_config = {
     2.0f,    /* SET_OBJ_PHYSICS_DEFAULT buoyancy */
 };
 
+static const mb64_npc_config_t s_moleman_config = {
+    0,       /* animation_index */
+    0,       /* oBobombBuddyRole */
+    -1,      /* no forced anim state */
+    65.0f,   /* graph_y_offset */
+    100.0f,  /* hitbox_radius */
+    60.0f,   /* hitbox_height */
+    4000.0f, /* MB64_DRAWDIST_LOW */
+};
+
+static const mb64_npc_config_t s_cobie_config = {
+    0,       /* animation_index */
+    0,       /* oBobombBuddyRole */
+    0,       /* force oAnimState every frame */
+    0.0f,    /* graph_y_offset */
+    130.0f,  /* hitbox_radius */
+    60.0f,   /* hitbox_height */
+    4000.0f, /* MB64_DRAWDIST_LOW */
+};
+
 static const mb64_podoboo_config_t s_podoboo_config = {
     2.0f,    /* gravity */
     1.5f,    /* launch_accel */
@@ -430,6 +450,14 @@ const mb64_chicken_config_t *mb64_chicken_config(void) {
 
 const mb64_rex_config_t *mb64_rex_config(void) {
     return &s_rex_config;
+}
+
+const mb64_npc_config_t *mb64_moleman_config(void) {
+    return &s_moleman_config;
+}
+
+const mb64_npc_config_t *mb64_cobie_config(void) {
+    return &s_cobie_config;
 }
 
 const mb64_podoboo_config_t *mb64_podoboo_config(void) {

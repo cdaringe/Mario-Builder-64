@@ -233,6 +233,16 @@ typedef struct {
 } mb64_rex_config_t;
 
 typedef struct {
+    int animation_index;
+    int bobomb_buddy_role;
+    int forced_anim_state;
+    float graph_y_offset;
+    float hitbox_radius;
+    float hitbox_height;
+    float draw_distance;
+} mb64_npc_config_t;
+
+typedef struct {
     float gravity;
     float launch_accel;
     float mario_activation_distance;
@@ -633,6 +643,8 @@ float mb64_badge_next_collect_scale(float current_scale);
 uint8_t mb64_badge_should_delete(float current_scale);
 const mb64_chicken_config_t *mb64_chicken_config(void);
 const mb64_rex_config_t *mb64_rex_config(void);
+const mb64_npc_config_t *mb64_moleman_config(void);
+const mb64_npc_config_t *mb64_cobie_config(void);
 const mb64_podoboo_config_t *mb64_podoboo_config(void);
 float mb64_podoboo_launch_velocity(float rest_y, float peak_y);
 uint8_t mb64_podoboo_should_reset_idle_timer(float distance_to_mario);

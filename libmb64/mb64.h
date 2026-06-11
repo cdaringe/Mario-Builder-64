@@ -753,6 +753,9 @@ uint8_t mb64_hammer_should_delete(int timer, uint32_t move_flags, uint8_t attack
 const mb64_rex_config_t *mb64_rex_config(void);
 const mb64_npc_config_t *mb64_moleman_config(void);
 const mb64_npc_config_t *mb64_cobie_config(void);
+const mb64_npc_config_t *mb64_toad_config(void);
+const mb64_npc_config_t *mb64_tuxie_config(void);
+const mb64_npc_config_t *mb64_ukiki_config(void);
 const mb64_podoboo_config_t *mb64_podoboo_config(void);
 float mb64_podoboo_launch_velocity(float rest_y, float peak_y);
 uint8_t mb64_podoboo_should_reset_idle_timer(float distance_to_mario);

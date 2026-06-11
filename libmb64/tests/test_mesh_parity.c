@@ -382,6 +382,9 @@ static void verify_rex_helpers(void) {
 static void verify_npc_helpers(void) {
     const mb64_npc_config_t *moleman = mb64_moleman_config();
     const mb64_npc_config_t *cobie = mb64_cobie_config();
+    const mb64_npc_config_t *toad = mb64_toad_config();
+    const mb64_npc_config_t *tuxie = mb64_tuxie_config();
+    const mb64_npc_config_t *ukiki = mb64_ukiki_config();
 
     expect_int("moleman animation", moleman->animation_index, 0);
     expect_int("moleman role", moleman->bobomb_buddy_role, 0);
@@ -398,6 +401,25 @@ static void verify_npc_helpers(void) {
     expect_float("cobie hitbox radius", cobie->hitbox_radius, 130.0f);
     expect_float("cobie hitbox height", cobie->hitbox_height, 60.0f);
     expect_float("cobie draw distance", cobie->draw_distance, 4000.0f);
+
+    expect_int("toad animation", toad->animation_index, 6);
+    expect_int("toad role", toad->bobomb_buddy_role, 0);
+    expect_int("toad no forced anim", toad->forced_anim_state, -1);
+    expect_float("toad hitbox radius", toad->hitbox_radius, 100.0f);
+    expect_float("toad hitbox height", toad->hitbox_height, 60.0f);
+    expect_float("toad draw distance", toad->draw_distance, 6000.0f);
+
+    expect_int("tuxie animation", tuxie->animation_index, 0);
+    expect_int("tuxie role", tuxie->bobomb_buddy_role, 0);
+    expect_float("tuxie hitbox radius", tuxie->hitbox_radius, 100.0f);
+    expect_float("tuxie hitbox height", tuxie->hitbox_height, 60.0f);
+    expect_float("tuxie draw distance", tuxie->draw_distance, 6000.0f);
+
+    expect_int("ukiki animation", ukiki->animation_index, 4);
+    expect_int("ukiki role", ukiki->bobomb_buddy_role, 0);
+    expect_float("ukiki hitbox radius", ukiki->hitbox_radius, 100.0f);
+    expect_float("ukiki hitbox height", ukiki->hitbox_height, 60.0f);
+    expect_float("ukiki draw distance", ukiki->draw_distance, 6000.0f);
 }
 
 static void verify_podoboo_helpers(void) {

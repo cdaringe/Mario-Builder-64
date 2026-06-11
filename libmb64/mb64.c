@@ -323,6 +323,36 @@ static const mb64_npc_config_t s_cobie_config = {
     4000.0f, /* MB64_DRAWDIST_LOW */
 };
 
+static const mb64_npc_config_t s_toad_config = {
+    6,       /* TOAD_ANIM_WEST_WAVING_BOTH_ARMS */
+    0,       /* oBobombBuddyRole */
+    -1,      /* no forced anim state */
+    0.0f,    /* graph_y_offset */
+    100.0f,  /* hitbox_radius */
+    60.0f,   /* hitbox_height */
+    6000.0f, /* MB64_DRAWDIST_MEDIUM */
+};
+
+static const mb64_npc_config_t s_tuxie_config = {
+    0,       /* PENGUIN_ANIM_WALK */
+    0,       /* oBobombBuddyRole */
+    -1,      /* no forced anim state */
+    0.0f,    /* graph_y_offset */
+    100.0f,  /* hitbox_radius */
+    60.0f,   /* hitbox_height */
+    6000.0f, /* MB64_DRAWDIST_MEDIUM */
+};
+
+static const mb64_npc_config_t s_ukiki_config = {
+    4,       /* UKIKI_ANIM_SCREECH */
+    0,       /* oBobombBuddyRole */
+    -1,      /* no forced anim state */
+    0.0f,    /* graph_y_offset */
+    100.0f,  /* hitbox_radius */
+    60.0f,   /* hitbox_height */
+    6000.0f, /* MB64_DRAWDIST_MEDIUM */
+};
+
 static const mb64_podoboo_config_t s_podoboo_config = {
     2.0f,    /* gravity */
     1.5f,    /* launch_accel */
@@ -661,6 +691,18 @@ const mb64_npc_config_t *mb64_moleman_config(void) {
 
 const mb64_npc_config_t *mb64_cobie_config(void) {
     return &s_cobie_config;
+}
+
+const mb64_npc_config_t *mb64_toad_config(void) {
+    return &s_toad_config;
+}
+
+const mb64_npc_config_t *mb64_tuxie_config(void) {
+    return &s_tuxie_config;
+}
+
+const mb64_npc_config_t *mb64_ukiki_config(void) {
+    return &s_ukiki_config;
 }
 
 const mb64_podoboo_config_t *mb64_podoboo_config(void) {

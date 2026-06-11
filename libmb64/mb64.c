@@ -206,6 +206,51 @@ static const mb64_powerup_config_t s_powerup_config = {
     -80.0f,   /* bhvBMask graph y offset */
 };
 
+static const mb64_phantasm_config_t s_phantasm_config = {
+    3,        /* default health */
+    2,        /* behavior param 2: Showrunner-dispensed health */
+    5,        /* default loot coins */
+    0,        /* Showrunner-dispensed loot coins */
+    100,      /* idle timer before wandering */
+    100,      /* wander timer before idle */
+    60,       /* alert timer before attacking */
+    40,       /* alert turn/back-up timer */
+    125,      /* fireball throw window */
+    160,      /* fireball attack end */
+    25,       /* fireball interval */
+    30,       /* attacked death check */
+    50,       /* attacked recover */
+    0x2000,   /* facing angle range */
+    1000.0f,  /* attack distance when facing Mario */
+    400.0f,   /* close attack distance */
+    100.0f,   /* hitbox radius */
+    100.0f,   /* hitbox height */
+    100.0f,   /* hurtbox radius */
+    80.0f,    /* hurtbox height */
+    150.0f,   /* invincible hurtbox radius */
+    120.0f,   /* invincible hurtbox height */
+    3.0f,     /* damage */
+    -4.0f,    /* default gravity */
+    -0.5f,    /* alert gravity down */
+    0.5f,     /* alert gravity up */
+    300.0f,   /* desired height above Mario */
+    10.0f,    /* wander speed */
+    -20.0f,   /* alert back-up speed clamp */
+    -20.0f,   /* alert back-up min */
+    40.0f,    /* kick base speed */
+    3.0f,     /* kick distance divisor */
+    75.0f,    /* kick max speed */
+    -3.0f,    /* kick velY */
+    0.95f,    /* kick deceleration */
+    1.0f,     /* vulnerable below this speed */
+    -10.0f,   /* fireball back-up speed */
+    30.0f,    /* fireball forward velocity */
+    20.0f,    /* fireball vertical velocity */
+    20.0f,    /* fireball y offset */
+    300.0f,   /* floor drop guard */
+    100.0f,   /* MB64_STAR_HEIGHT */
+};
+
 static const mb64_chicken_config_t s_chicken_config = {
     1,       /* behavior_param_2 */
     0,       /* animation_index */
@@ -591,6 +636,60 @@ uint8_t mb64_powerup_should_sparkle(float distance_to_mario, int global_timer) {
 
 uint8_t mb64_powerup_should_respawn(int timer) {
     return timer > s_powerup_config.respawn_frames;
+}
+
+const mb64_phantasm_config_t *mb64_phantasm_config(void) {
+    return &s_phantasm_config;
+}
+
+int mb64_phantasm_initial_health(uint8_t behavior_param_2) {
+    return behavior_param_2 == 2 ?
+        s_phantasm_config.health_boss_dispensed :
+        s_phantasm_config.health_default;
+}
+
+int mb64_phantasm_initial_loot_coins(uint8_t behavior_param_2) {
+    return behavior_param_2 == 2 ?
+        s_phantasm_config.loot_coins_boss_dispensed :
+        s_phantasm_config.loot_coins_default;
+}
+
+uint8_t mb64_phantasm_should_wander(int timer) {
+    return timer > s_phantasm_config.idle_timer;
+}
+
+uint8_t mb64_phantasm_should_attack(uint8_t facing_mario, float distance_to_mario) {
+    return (facing_mario && distance_to_mario < s_phantasm_config.facing_attack_distance) ||
+        distance_to_mario < s_phantasm_config.close_attack_distance;
+}
+
+uint8_t mb64_phantasm_should_throw_fireball(int timer) {
+    return timer <= s_phantasm_config.fireball_attack_timer &&
+        timer % s_phantasm_config.fireball_interval == 0;
+}
+
+uint8_t mb64_phantasm_should_end_fireball_attack(int timer) {
+    return timer > s_phantasm_config.fireball_end_timer;
+}
+
+uint8_t mb64_phantasm_should_die_after_hit(int timer, int health) {
+    return timer == s_phantasm_config.attacked_death_check_timer && health < 1;
+}
+
+uint8_t mb64_phantasm_should_recover_after_hit(int timer) {
+    return timer > s_phantasm_config.attacked_recover_timer;
+}
+
+float mb64_phantasm_kick_forward_vel(float distance_to_mario) {
+    float speed = (distance_to_mario / s_phantasm_config.kick_distance_divisor) +
+        s_phantasm_config.kick_base_speed;
+    return speed > s_phantasm_config.kick_speed_max ?
+        s_phantasm_config.kick_speed_max :
+        speed;
+}
+
+uint8_t mb64_phantasm_should_prevent_ledge_drop(float old_floor_y, float current_floor_y) {
+    return current_floor_y < old_floor_y - s_phantasm_config.ledge_drop_guard_height;
 }
 
 const mb64_chicken_config_t *mb64_chicken_config(void) {

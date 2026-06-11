@@ -220,6 +220,62 @@ typedef struct {
     float mask_graph_y_offset;
 } mb64_powerup_config_t;
 
+typedef enum {
+    MB64_PHANTASM_ACT_INIT = 0,
+    MB64_PHANTASM_ACT_IDLE = 1,
+    MB64_PHANTASM_ACT_WANDER = 2,
+    MB64_PHANTASM_ACT_ATTACKED = 3,
+    MB64_PHANTASM_ACT_ALERT = 4,
+    MB64_PHANTASM_ACT_KICK = 5,
+    MB64_PHANTASM_ACT_FIREBALLS = 6,
+    MB64_PHANTASM_ACT_DISPENSED = 7,
+} mb64_phantasm_action_t;
+
+typedef struct {
+    int health_default;
+    int health_boss_dispensed;
+    int loot_coins_default;
+    int loot_coins_boss_dispensed;
+    int idle_timer;
+    int wander_timer;
+    int alert_timer;
+    int alert_track_timer;
+    int fireball_attack_timer;
+    int fireball_end_timer;
+    int fireball_interval;
+    int attacked_death_check_timer;
+    int attacked_recover_timer;
+    int facing_angle_range;
+    float facing_attack_distance;
+    float close_attack_distance;
+    float hitbox_radius;
+    float hitbox_height;
+    float hurtbox_radius;
+    float hurtbox_height;
+    float invincible_hurtbox_radius;
+    float invincible_hurtbox_height;
+    float damage_or_coin_value;
+    float gravity_default;
+    float gravity_alert_down;
+    float gravity_alert_up;
+    float mario_height_target_offset;
+    float wander_speed;
+    float alert_back_speed;
+    float alert_back_speed_min;
+    float kick_base_speed;
+    float kick_distance_divisor;
+    float kick_speed_max;
+    float kick_vel_y;
+    float kick_deceleration;
+    float kick_recover_speed;
+    float fireball_back_speed;
+    float fireball_forward_vel;
+    float fireball_vel_y;
+    float fireball_y_offset;
+    float ledge_drop_guard_height;
+    float death_barrier_drop_height;
+} mb64_phantasm_config_t;
+
 typedef struct {
     uint8_t behavior_param_2;
     int animation_index;
@@ -745,6 +801,17 @@ const mb64_powerup_config_t *mb64_powerup_config(void);
 uint8_t mb64_powerup_bit_for_bparam(uint8_t behavior_param_2);
 uint8_t mb64_powerup_should_sparkle(float distance_to_mario, int global_timer);
 uint8_t mb64_powerup_should_respawn(int timer);
+const mb64_phantasm_config_t *mb64_phantasm_config(void);
+int mb64_phantasm_initial_health(uint8_t behavior_param_2);
+int mb64_phantasm_initial_loot_coins(uint8_t behavior_param_2);
+uint8_t mb64_phantasm_should_wander(int timer);
+uint8_t mb64_phantasm_should_attack(uint8_t facing_mario, float distance_to_mario);
+uint8_t mb64_phantasm_should_throw_fireball(int timer);
+uint8_t mb64_phantasm_should_end_fireball_attack(int timer);
+uint8_t mb64_phantasm_should_die_after_hit(int timer, int health);
+uint8_t mb64_phantasm_should_recover_after_hit(int timer);
+float mb64_phantasm_kick_forward_vel(float distance_to_mario);
+uint8_t mb64_phantasm_should_prevent_ledge_drop(float old_floor_y, float current_floor_y);
 const mb64_chicken_config_t *mb64_chicken_config(void);
 const mb64_crablet_config_t *mb64_crablet_config(void);
 uint8_t mb64_crablet_should_attack(int angle_diff, float distance_to_mario);

@@ -283,6 +283,30 @@ static void verify_powerup_helpers(void) {
     expect_int("powerup respawn after frame", mb64_powerup_should_respawn(151), 1);
 }
 
+static void verify_phantasm_helpers(void) {
+    const mb64_phantasm_config_t *config = mb64_phantasm_config();
+
+    expect_int("phantasm default health", mb64_phantasm_initial_health(0), 3);
+    expect_int("phantasm dispensed health", mb64_phantasm_initial_health(2), 2);
+    expect_int("phantasm default coins", mb64_phantasm_initial_loot_coins(0), 5);
+    expect_int("phantasm dispensed coins", mb64_phantasm_initial_loot_coins(2), 0);
+    expect_int("phantasm facing range", config->facing_angle_range, 0x2000);
+    expect_float("phantasm facing attack distance", config->facing_attack_distance, 1000.0f);
+    expect_float("phantasm close attack distance", config->close_attack_distance, 400.0f);
+    expect_int("phantasm no wander at timer", mb64_phantasm_should_wander(100), 0);
+    expect_int("phantasm wander after timer", mb64_phantasm_should_wander(101), 1);
+    expect_int("phantasm attack facing near", mb64_phantasm_should_attack(1, 999.0f), 1);
+    expect_int("phantasm no attack facing far", mb64_phantasm_should_attack(1, 1000.0f), 0);
+    expect_int("phantasm attack close", mb64_phantasm_should_attack(0, 399.0f), 1);
+    expect_int("phantasm fireball interval", mb64_phantasm_should_throw_fireball(25), 1);
+    expect_int("phantasm fireball outside window", mb64_phantasm_should_throw_fireball(150), 0);
+    expect_int("phantasm end fireballs", mb64_phantasm_should_end_fireball_attack(161), 1);
+    expect_int("phantasm death check", mb64_phantasm_should_die_after_hit(30, 0), 1);
+    expect_int("phantasm recover", mb64_phantasm_should_recover_after_hit(51), 1);
+    expect_float("phantasm kick capped", mb64_phantasm_kick_forward_vel(1000.0f), 75.0f);
+    expect_int("phantasm ledge guard", mb64_phantasm_should_prevent_ledge_drop(1000.0f, 699.0f), 1);
+}
+
 static void verify_chicken_helpers(void) {
     const mb64_chicken_config_t *config = mb64_chicken_config();
 
@@ -527,6 +551,7 @@ int main(void) {
     verify_reinforced_box_helpers();
     verify_badge_helpers();
     verify_powerup_helpers();
+    verify_phantasm_helpers();
     verify_chicken_helpers();
     verify_crablet_helpers();
     verify_fire_bro_helpers();

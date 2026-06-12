@@ -34,6 +34,11 @@ extern "C" {
 #define MB64_TRAJ_COUNT (MB64_MAX_TRAJECTORIES * MB64_TRAJECTORY_LENGTH)
 #define MB64_EXCLAMATION_BOX_TYPE_COUNT 7
 
+enum {
+    MB64_GAME_VANILLA = 0,
+    MB64_GAME_BTCM = 1,
+};
+
 /* Custom theme */
 typedef struct {
     uint8_t mats[10];
@@ -213,6 +218,56 @@ typedef struct {
     float graph_y_offset_factor;
     float model_scale;
 } mb64_exclamation_box_config_t;
+
+typedef enum {
+    MB64_EXCLAMATION_BOX_ACT_INIT = 0,
+    MB64_EXCLAMATION_BOX_ACT_OUTLINE = 1,
+    MB64_EXCLAMATION_BOX_ACT_ACTIVE = 2,
+    MB64_EXCLAMATION_BOX_ACT_SCALING = 3,
+    MB64_EXCLAMATION_BOX_ACT_EXPLODE = 4,
+    MB64_EXCLAMATION_BOX_ACT_WAIT_FOR_RESPAWN = 5,
+} mb64_exclamation_box_action_t;
+
+typedef enum {
+    MB64_EXCLAMATION_BOX_ANIM_RED = 0,
+    MB64_EXCLAMATION_BOX_ANIM_GREEN = 1,
+    MB64_EXCLAMATION_BOX_ANIM_BLUE = 2,
+    MB64_EXCLAMATION_BOX_ANIM_YELLOW = 3,
+    MB64_EXCLAMATION_BOX_ANIM_GREEN_COIN = 4,
+} mb64_exclamation_box_anim_t;
+
+typedef enum {
+    MB64_EXCLAMATION_BOX_MODEL_NONE = 0,
+    MB64_EXCLAMATION_BOX_MODEL_WING_CAP,
+    MB64_EXCLAMATION_BOX_MODEL_METAL_CAP,
+    MB64_EXCLAMATION_BOX_MODEL_VANISH_CAP,
+    MB64_EXCLAMATION_BOX_MODEL_KOOPA_SHELL,
+    MB64_EXCLAMATION_BOX_MODEL_YELLOW_COIN,
+    MB64_EXCLAMATION_BOX_MODEL_GREEN_COIN,
+    MB64_EXCLAMATION_BOX_MODEL_ROCKET_BOOTS,
+    MB64_EXCLAMATION_BOX_MODEL_VANETAL_CAP,
+} mb64_exclamation_box_model_t;
+
+typedef enum {
+    MB64_EXCLAMATION_BOX_BEHAVIOR_NONE = 0,
+    MB64_EXCLAMATION_BOX_BEHAVIOR_WING_CAP,
+    MB64_EXCLAMATION_BOX_BEHAVIOR_METAL_CAP,
+    MB64_EXCLAMATION_BOX_BEHAVIOR_VANISH_CAP,
+    MB64_EXCLAMATION_BOX_BEHAVIOR_KOOPA_SHELL,
+    MB64_EXCLAMATION_BOX_BEHAVIOR_SINGLE_COIN,
+    MB64_EXCLAMATION_BOX_BEHAVIOR_THREE_COINS,
+    MB64_EXCLAMATION_BOX_BEHAVIOR_TEN_COINS,
+    MB64_EXCLAMATION_BOX_BEHAVIOR_GREEN_COIN,
+} mb64_exclamation_box_behavior_t;
+
+typedef struct {
+    uint8_t beh_params;
+    uint8_t model;
+    uint8_t behavior;
+    uint8_t anim_state;
+    uint8_t do_respawn;
+    uint8_t num_coins;
+} mb64_exclamation_box_content_t;
 
 typedef struct {
     int scale_frames;
@@ -1046,6 +1101,7 @@ uint8_t mb64_reinforced_box_should_clank(int timer);
 uint8_t mb64_reinforced_box_should_shake(int timer);
 float mb64_reinforced_box_shake_offset(float random_unit);
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void);
+const mb64_exclamation_box_content_t *mb64_exclamation_box_content(uint8_t game, uint8_t bparam);
 uint8_t mb64_exclamation_box_should_explode(int timer);
 uint8_t mb64_exclamation_box_should_respawn(int timer);
 const mb64_floor_switch_config_t *mb64_floor_switch_config(void);

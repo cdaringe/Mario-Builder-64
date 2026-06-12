@@ -252,8 +252,16 @@ static void verify_reinforced_box_helpers(void) {
 
 static void verify_exclamation_box_helpers(void) {
     const mb64_exclamation_box_config_t *config = mb64_exclamation_box_config();
+    const mb64_exclamation_box_content_t *vanilla_metal =
+        mb64_exclamation_box_content(MB64_GAME_VANILLA, 1);
+    const mb64_exclamation_box_content_t *vanilla_ten =
+        mb64_exclamation_box_content(MB64_GAME_VANILLA, 6);
+    const mb64_exclamation_box_content_t *btcm_green =
+        mb64_exclamation_box_content(MB64_GAME_BTCM, 3);
 
     expect_int("exclamation box content count", MB64_EXCLAMATION_BOX_TYPE_COUNT, 7);
+    expect_int("exclamation box init action", MB64_EXCLAMATION_BOX_ACT_INIT, 0);
+    expect_int("exclamation box active action", MB64_EXCLAMATION_BOX_ACT_ACTIVE, 2);
     expect_int("exclamation box scale angle start", config->scale_angle_start, 0x4000);
     expect_int("exclamation box scale angle step", config->scale_angle_step, 0x1000);
     expect_int("exclamation box no explode before frame", mb64_exclamation_box_should_explode(6), 0);
@@ -267,6 +275,18 @@ static void verify_exclamation_box_helpers(void) {
     expect_float("exclamation box stretch offset", config->stretch_scale_offset, 1.0f);
     expect_float("exclamation box graph y offset factor", config->graph_y_offset_factor, 26.0f);
     expect_float("exclamation box model scale", config->model_scale, 2.0f);
+    expect_int("exclamation box invalid content", mb64_exclamation_box_content(MB64_GAME_VANILLA, 7) == NULL, 1);
+    expect_int("vanilla metal box beh param", vanilla_metal->beh_params, 6);
+    expect_int("vanilla metal box model", vanilla_metal->model, MB64_EXCLAMATION_BOX_MODEL_METAL_CAP);
+    expect_int("vanilla metal box behavior", vanilla_metal->behavior, MB64_EXCLAMATION_BOX_BEHAVIOR_METAL_CAP);
+    expect_int("vanilla metal box anim", vanilla_metal->anim_state, MB64_EXCLAMATION_BOX_ANIM_GREEN);
+    expect_int("vanilla metal box respawns", vanilla_metal->do_respawn, 1);
+    expect_int("vanilla ten coin count", vanilla_ten->num_coins, 10);
+    expect_int("vanilla ten coin behavior", vanilla_ten->behavior, MB64_EXCLAMATION_BOX_BEHAVIOR_TEN_COINS);
+    expect_int("btcm green box model", btcm_green->model, MB64_EXCLAMATION_BOX_MODEL_GREEN_COIN);
+    expect_int("btcm green box behavior", btcm_green->behavior, MB64_EXCLAMATION_BOX_BEHAVIOR_GREEN_COIN);
+    expect_int("btcm green box anim", btcm_green->anim_state, MB64_EXCLAMATION_BOX_ANIM_GREEN_COIN);
+    expect_int("btcm green coin count", btcm_green->num_coins, 3);
 }
 
 static void verify_floor_switch_helpers(void) {

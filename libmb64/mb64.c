@@ -199,6 +199,26 @@ static const mb64_exclamation_box_config_t s_exclamation_box_config = {
     2.0f,   /* model_scale */
 };
 
+static const mb64_exclamation_box_content_t s_exclamation_box_contents_btcm[MB64_EXCLAMATION_BOX_TYPE_COUNT] = {
+    { 0, MB64_EXCLAMATION_BOX_MODEL_ROCKET_BOOTS, MB64_EXCLAMATION_BOX_BEHAVIOR_WING_CAP,  MB64_EXCLAMATION_BOX_ANIM_RED,        1, 0 },
+    { 0, MB64_EXCLAMATION_BOX_MODEL_VANETAL_CAP,  MB64_EXCLAMATION_BOX_BEHAVIOR_VANISH_CAP, MB64_EXCLAMATION_BOX_ANIM_BLUE,       1, 0 },
+    { 0, MB64_EXCLAMATION_BOX_MODEL_KOOPA_SHELL,  MB64_EXCLAMATION_BOX_BEHAVIOR_KOOPA_SHELL, MB64_EXCLAMATION_BOX_ANIM_YELLOW,    1, 0 },
+    { 0, MB64_EXCLAMATION_BOX_MODEL_GREEN_COIN,   MB64_EXCLAMATION_BOX_BEHAVIOR_GREEN_COIN, MB64_EXCLAMATION_BOX_ANIM_GREEN_COIN, 0, 3 },
+    { 0, MB64_EXCLAMATION_BOX_MODEL_YELLOW_COIN,  MB64_EXCLAMATION_BOX_BEHAVIOR_SINGLE_COIN, MB64_EXCLAMATION_BOX_ANIM_GREEN_COIN, 0, 1 },
+    { 0, MB64_EXCLAMATION_BOX_MODEL_NONE,         MB64_EXCLAMATION_BOX_BEHAVIOR_THREE_COINS, MB64_EXCLAMATION_BOX_ANIM_GREEN_COIN, 0, 3 },
+    { 0, MB64_EXCLAMATION_BOX_MODEL_NONE,         MB64_EXCLAMATION_BOX_BEHAVIOR_TEN_COINS, MB64_EXCLAMATION_BOX_ANIM_GREEN_COIN, 0, 10 },
+};
+
+static const mb64_exclamation_box_content_t s_exclamation_box_contents_vanilla[MB64_EXCLAMATION_BOX_TYPE_COUNT] = {
+    { 0, MB64_EXCLAMATION_BOX_MODEL_WING_CAP,    MB64_EXCLAMATION_BOX_BEHAVIOR_WING_CAP,    MB64_EXCLAMATION_BOX_ANIM_RED,    1, 0 },
+    { 6, MB64_EXCLAMATION_BOX_MODEL_METAL_CAP,   MB64_EXCLAMATION_BOX_BEHAVIOR_METAL_CAP,   MB64_EXCLAMATION_BOX_ANIM_GREEN,  1, 0 },
+    { 0, MB64_EXCLAMATION_BOX_MODEL_VANISH_CAP,  MB64_EXCLAMATION_BOX_BEHAVIOR_VANISH_CAP,  MB64_EXCLAMATION_BOX_ANIM_BLUE,   1, 0 },
+    { 0, MB64_EXCLAMATION_BOX_MODEL_KOOPA_SHELL, MB64_EXCLAMATION_BOX_BEHAVIOR_KOOPA_SHELL, MB64_EXCLAMATION_BOX_ANIM_YELLOW, 1, 0 },
+    { 0, MB64_EXCLAMATION_BOX_MODEL_YELLOW_COIN, MB64_EXCLAMATION_BOX_BEHAVIOR_SINGLE_COIN, MB64_EXCLAMATION_BOX_ANIM_YELLOW, 0, 1 },
+    { 0, MB64_EXCLAMATION_BOX_MODEL_NONE,        MB64_EXCLAMATION_BOX_BEHAVIOR_THREE_COINS, MB64_EXCLAMATION_BOX_ANIM_YELLOW, 0, 3 },
+    { 0, MB64_EXCLAMATION_BOX_MODEL_NONE,        MB64_EXCLAMATION_BOX_BEHAVIOR_TEN_COINS,   MB64_EXCLAMATION_BOX_ANIM_YELLOW, 0, 10 },
+};
+
 static const mb64_floor_switch_config_t s_floor_switch_config = {
     3,      /* scale_frames */
     400,    /* timer_frames */
@@ -775,6 +795,16 @@ float mb64_reinforced_box_shake_offset(float random_unit) {
 
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void) {
     return &s_exclamation_box_config;
+}
+
+const mb64_exclamation_box_content_t *mb64_exclamation_box_content(uint8_t game, uint8_t bparam) {
+    if (bparam >= MB64_EXCLAMATION_BOX_TYPE_COUNT) {
+        return NULL;
+    }
+    if (game == MB64_GAME_BTCM) {
+        return &s_exclamation_box_contents_btcm[bparam];
+    }
+    return &s_exclamation_box_contents_vanilla[bparam];
 }
 
 uint8_t mb64_exclamation_box_should_explode(int timer) {

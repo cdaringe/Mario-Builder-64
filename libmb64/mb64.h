@@ -182,6 +182,13 @@ typedef struct {
 } mb64_woodplat_config_t;
 
 typedef struct {
+    float forward_vel;
+    uint8_t activates_immediately;
+    uint8_t returns_to_start;
+    uint8_t does_not_disappear;
+} mb64_looping_platform_config_t;
+
+typedef struct {
     float wake_min_distance;
     float wake_max_distance;
     float shake_forward_speed;
@@ -1114,6 +1121,7 @@ uint8_t mb64_woodplat_should_use_simple_wall_checks(uint8_t floor_is_conveyor,
                                                     uint8_t on_ground);
 uint8_t mb64_woodplat_should_die_on_death_barrier(uint8_t has_floor, uint8_t floor_is_death_plane,
                                                   float platform_y, float floor_y);
+const mb64_looping_platform_config_t *mb64_looping_platform_config(void);
 const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void);
 const mb64_object_hitbox_t *mb64_bullet_bill_hitbox(void);
 uint8_t mb64_bullet_bill_should_wake(int angle_diff, float distance);

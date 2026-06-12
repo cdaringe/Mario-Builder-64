@@ -161,6 +161,13 @@ static const mb64_woodplat_config_t s_woodplat_config = {
     -20,     /* steep_slope_degrees */
 };
 
+static const mb64_looping_platform_config_t s_looping_platform_config = {
+    15.0f, /* forward_vel */
+    1,     /* activates_immediately */
+    1,     /* returns_to_start */
+    1,     /* does_not_disappear */
+};
+
 static const mb64_bullet_bill_config_t s_bullet_bill_config = {
     400.0f,  /* wake_min_distance */
     1500.0f, /* wake_max_distance */
@@ -775,6 +782,10 @@ uint8_t mb64_woodplat_should_die_on_death_barrier(uint8_t has_floor, uint8_t flo
         return 1;
     }
     return floor_is_death_plane && platform_y < floor_y + 100.0f;
+}
+
+const mb64_looping_platform_config_t *mb64_looping_platform_config(void) {
+    return &s_looping_platform_config;
 }
 
 const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void) {

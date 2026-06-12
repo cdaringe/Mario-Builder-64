@@ -237,6 +237,15 @@ static void verify_woodplat_helpers(void) {
                mb64_woodplat_should_use_simple_wall_checks(1, 1, 0), 1);
 }
 
+static void verify_looping_platform_helpers(void) {
+    const mb64_looping_platform_config_t *config = mb64_looping_platform_config();
+
+    expect_float("looping platform speed", config->forward_vel, 15.0f);
+    expect_int("looping platform immediate activation", config->activates_immediately, 1);
+    expect_int("looping platform returns to start", config->returns_to_start, 1);
+    expect_int("looping platform does not disappear", config->does_not_disappear, 1);
+}
+
 static void verify_reinforced_box_helpers(void) {
     const mb64_reinforced_box_config_t *config = mb64_reinforced_box_config();
     const mb64_object_hitbox_t *hitbox = mb64_reinforced_box_hitbox();
@@ -851,6 +860,7 @@ int main(void) {
     verify_fence_rotation(3, MB64_MESH_FACE_NEG_X, MB64_MESH_FACE_POS_X, front3, back3);
     verify_shaped_tile_rotations();
     verify_woodplat_helpers();
+    verify_looping_platform_helpers();
     verify_reinforced_box_helpers();
     verify_fire_spinner_helpers();
     verify_goomba_helpers();

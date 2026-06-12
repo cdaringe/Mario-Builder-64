@@ -141,6 +141,17 @@ uint8_t mb64_tile_has_collision(const mb64_tile_t *tile) {
     return tile_is_solid(tile) && tile->type != TILE_TYPE_TROLL;
 }
 
+uint8_t mb64_tile_has_terrain_collision(const mb64_tile_t *tile) {
+    return mb64_tile_has_collision(tile) && tile->type != TILE_TYPE_POLE;
+}
+
+uint8_t mb64_mesh_face_has_terrain_collision(const mb64_mesh_face_t *face) {
+    if (face == NULL || face->is_water) {
+        return 0;
+    }
+    return face->tile_type != TILE_TYPE_TROLL && face->tile_type != TILE_TYPE_POLE;
+}
+
 static int tile_is_water(const mb64_tile_t *t) {
     return tile_in_range(t) &&
            (t->type == TILE_TYPE_WATER || t->waterlogged);
@@ -923,7 +934,7 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
 
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
-        if (tile_is_solid(t)) {
+        if ((collision_mesh ? mb64_tile_has_terrain_collision(t) : tile_is_solid(t))) {
             s_solid_grid[t->z][t->y][t->x] = 1;
             s_tile_grid[t->z][t->y][t->x] = t;
             mesh->solid_tile_count++;
@@ -947,7 +958,7 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
     }
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
-        if (!tile_is_solid(t)) { continue; }
+        if (!(collision_mesh ? mb64_tile_has_terrain_collision(t) : tile_is_solid(t))) { continue; }
         const mb64_shape_t *shape = shape_for_tile(t, collision_mesh);
         if (tile_uses_shaped_mesh(t, collision_mesh) && shape != NULL) {
             face_count += shape->face_count;
@@ -975,7 +986,7 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
     emit_boundary_floor_faces(mesh, &out, level);
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
-        if (!tile_is_solid(t)) { continue; }
+        if (!(collision_mesh ? mb64_tile_has_terrain_collision(t) : tile_is_solid(t))) { continue; }
         const mb64_shape_t *shape = shape_for_tile(t, collision_mesh);
         if (tile_uses_shaped_mesh(t, collision_mesh) && shape != NULL) {
             for (uint8_t j = 0; j < shape->face_count; j++) {

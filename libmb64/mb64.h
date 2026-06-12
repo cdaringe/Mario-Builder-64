@@ -213,6 +213,12 @@ typedef struct {
     int rotation_speed;
 } mb64_fire_spinner_config_t;
 
+enum {
+    MB64_GOOMBA_SIZE_REGULAR = 0,
+    MB64_GOOMBA_SIZE_HUGE = 1,
+    MB64_GOOMBA_SIZE_TINY = 2,
+};
+
 typedef struct {
     int scale_angle_start;
     int scale_angle_step;
@@ -1117,6 +1123,7 @@ uint8_t mb64_reinforced_box_should_shake(int timer);
 float mb64_reinforced_box_shake_offset(float random_unit);
 const mb64_fire_spinner_config_t *mb64_fire_spinner_config(void);
 uint8_t mb64_fire_spinner_flames_per_arm(uint8_t behavior_param_2);
+uint8_t mb64_goomba_size_param_for_type(uint8_t object_type);
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void);
 const mb64_exclamation_box_content_t *mb64_exclamation_box_content(uint8_t game, uint8_t bparam);
 uint8_t mb64_exclamation_box_should_explode(int timer);

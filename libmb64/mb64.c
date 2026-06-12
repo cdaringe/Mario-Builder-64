@@ -850,6 +850,18 @@ uint8_t mb64_fire_spinner_flames_per_arm(uint8_t behavior_param_2) {
     return (uint8_t)(behavior_param_2 + 2);
 }
 
+uint8_t mb64_goomba_size_param_for_type(uint8_t object_type) {
+    switch (object_type) {
+        case MB64_OBJECT_TYPE_BIG_GOOMBA:
+            return MB64_GOOMBA_SIZE_HUGE;
+        case MB64_OBJECT_TYPE_TINY_GOOMBA:
+            return MB64_GOOMBA_SIZE_TINY;
+        case MB64_OBJECT_TYPE_GOOMBA:
+        default:
+            return MB64_GOOMBA_SIZE_REGULAR;
+    }
+}
+
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void) {
     return &s_exclamation_box_config;
 }

@@ -266,6 +266,18 @@ static void verify_fire_spinner_helpers(void) {
     expect_int("fire spinner bparam five flames", mb64_fire_spinner_flames_per_arm(5), 7);
 }
 
+static void verify_goomba_helpers(void) {
+    expect_int("goomba regular size param",
+               mb64_goomba_size_param_for_type(MB64_OBJECT_TYPE_GOOMBA),
+               MB64_GOOMBA_SIZE_REGULAR);
+    expect_int("goomba big size param",
+               mb64_goomba_size_param_for_type(MB64_OBJECT_TYPE_BIG_GOOMBA),
+               MB64_GOOMBA_SIZE_HUGE);
+    expect_int("goomba tiny size param",
+               mb64_goomba_size_param_for_type(MB64_OBJECT_TYPE_TINY_GOOMBA),
+               MB64_GOOMBA_SIZE_TINY);
+}
+
 static void verify_bullet_bill_helpers(void) {
     const mb64_bullet_bill_config_t *config = mb64_bullet_bill_config();
     const mb64_object_hitbox_t *hitbox = mb64_bullet_bill_hitbox();
@@ -829,6 +841,7 @@ int main(void) {
     verify_woodplat_helpers();
     verify_reinforced_box_helpers();
     verify_fire_spinner_helpers();
+    verify_goomba_helpers();
     verify_bullet_bill_helpers();
     verify_exclamation_box_helpers();
     verify_floor_switch_helpers();

@@ -217,6 +217,12 @@ static const mb64_noteblock_config_t s_noteblock_config = {
     95.0f, /* bounce_mario_vel_y */
 };
 
+static const mb64_onoff_config_t s_onoff_config = {
+    0.1f,  /* pressed_scale_factor */
+    0.1f,  /* scale_step_factor */
+    0.11f, /* collision_min_scale_y */
+};
+
 static const mb64_badge_config_t s_badge_config = {
     0x70,  /* spin_accel */
     0.95f, /* shrink_factor */
@@ -843,6 +849,42 @@ float mb64_noteblock_next_velocity(float vel_y) {
 
 uint8_t mb64_noteblock_should_bounce(uint8_t intangible, uint8_t swimming, int health, uint8_t mario_on_platform) {
     return !intangible && !swimming && health > s_noteblock_config.min_health && mario_on_platform;
+}
+
+const mb64_onoff_config_t *mb64_onoff_config(void) {
+    return &s_onoff_config;
+}
+
+float mb64_onoff_button_pressed_scale(float base_scale) {
+    return base_scale * s_onoff_config.pressed_scale_factor;
+}
+
+float mb64_onoff_button_scale_step(float base_scale) {
+    return base_scale * s_onoff_config.scale_step_factor;
+}
+
+float mb64_onoff_button_collision_min_scale(float base_scale) {
+    return base_scale * s_onoff_config.collision_min_scale_y;
+}
+
+uint8_t mb64_onoff_button_initial_anim_state(uint8_t bparam) {
+    return bparam != 0;
+}
+
+uint8_t mb64_onoff_button_is_pressed(uint8_t anim_state, uint8_t play_onoff) {
+    return (anim_state == 0 && !play_onoff) || (anim_state != 0 && play_onoff);
+}
+
+uint8_t mb64_onoff_button_should_rise(uint8_t bparam, uint8_t play_onoff) {
+    return (bparam == 0 && play_onoff) || (bparam != 0 && !play_onoff);
+}
+
+uint8_t mb64_onoff_state_from_bparam(uint8_t bparam) {
+    return bparam != 0;
+}
+
+uint8_t mb64_onoff_block_is_active(uint8_t bparam, uint8_t play_onoff) {
+    return bparam != 0 ? play_onoff : !play_onoff;
 }
 
 const mb64_badge_config_t *mb64_badge_config(void) {

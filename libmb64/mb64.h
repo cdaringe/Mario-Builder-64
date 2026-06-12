@@ -232,6 +232,12 @@ typedef struct {
     float bounce_mario_vel_y;
 } mb64_noteblock_config_t;
 
+typedef struct {
+    float pressed_scale_factor;
+    float scale_step_factor;
+    float collision_min_scale_y;
+} mb64_onoff_config_t;
+
 enum {
     MB64_CONVEYOR_SHAPE_HALF = 0,
     MB64_CONVEYOR_SHAPE_FLAT = 1,
@@ -1035,6 +1041,15 @@ const mb64_noteblock_config_t *mb64_noteblock_config(void);
 int mb64_noteblock_graph_angle(int timer);
 float mb64_noteblock_next_velocity(float vel_y);
 uint8_t mb64_noteblock_should_bounce(uint8_t intangible, uint8_t swimming, int health, uint8_t mario_on_platform);
+const mb64_onoff_config_t *mb64_onoff_config(void);
+float mb64_onoff_button_pressed_scale(float base_scale);
+float mb64_onoff_button_scale_step(float base_scale);
+float mb64_onoff_button_collision_min_scale(float base_scale);
+uint8_t mb64_onoff_button_initial_anim_state(uint8_t bparam);
+uint8_t mb64_onoff_button_is_pressed(uint8_t anim_state, uint8_t play_onoff);
+uint8_t mb64_onoff_button_should_rise(uint8_t bparam, uint8_t play_onoff);
+uint8_t mb64_onoff_state_from_bparam(uint8_t bparam);
+uint8_t mb64_onoff_block_is_active(uint8_t bparam, uint8_t play_onoff);
 const mb64_badge_config_t *mb64_badge_config(void);
 const mb64_green_coin_config_t *mb64_green_coin_config(void);
 uint8_t mb64_badge_is_equipped(uint32_t equipped_badges, uint8_t badge_id);

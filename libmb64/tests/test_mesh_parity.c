@@ -336,6 +336,28 @@ static void verify_noteblock_helpers(void) {
     expect_int("noteblock no bounce off platform", mb64_noteblock_should_bounce(0, 0, 0x101, 0), 0);
 }
 
+static void verify_onoff_helpers(void) {
+    const mb64_onoff_config_t *config = mb64_onoff_config();
+
+    expect_float("onoff pressed scale factor", config->pressed_scale_factor, 0.1f);
+    expect_float("onoff scale step factor", config->scale_step_factor, 0.1f);
+    expect_float("onoff collision min scale", config->collision_min_scale_y, 0.11f);
+    expect_float("onoff pressed scale", mb64_onoff_button_pressed_scale(2.0f), 0.2f);
+    expect_float("onoff scale step", mb64_onoff_button_scale_step(2.0f), 0.2f);
+    expect_float("onoff collision min", mb64_onoff_button_collision_min_scale(2.0f), 0.22f);
+    expect_int("onoff red initial anim", mb64_onoff_button_initial_anim_state(0), 0);
+    expect_int("onoff blue initial anim", mb64_onoff_button_initial_anim_state(1), 1);
+    expect_int("onoff red pressed when off", mb64_onoff_button_is_pressed(0, 0), 1);
+    expect_int("onoff red up when on", mb64_onoff_button_is_pressed(0, 1), 0);
+    expect_int("onoff blue pressed when on", mb64_onoff_button_is_pressed(1, 1), 1);
+    expect_int("onoff red should rise when on", mb64_onoff_button_should_rise(0, 1), 1);
+    expect_int("onoff blue should rise when off", mb64_onoff_button_should_rise(1, 0), 1);
+    expect_int("onoff state from red", mb64_onoff_state_from_bparam(0), 0);
+    expect_int("onoff state from blue", mb64_onoff_state_from_bparam(1), 1);
+    expect_int("onoff red block active when off", mb64_onoff_block_is_active(0, 0), 1);
+    expect_int("onoff blue block active when on", mb64_onoff_block_is_active(1, 1), 1);
+}
+
 static void verify_badge_helpers(void) {
     const mb64_badge_config_t *config = mb64_badge_config();
 
@@ -731,6 +753,7 @@ int main(void) {
     verify_floor_switch_helpers();
     verify_conveyor_helpers();
     verify_noteblock_helpers();
+    verify_onoff_helpers();
     verify_badge_helpers();
     verify_green_coin_helpers();
     verify_powerup_helpers();

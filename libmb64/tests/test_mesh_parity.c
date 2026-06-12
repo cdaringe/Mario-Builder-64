@@ -254,6 +254,18 @@ static void verify_reinforced_box_helpers(void) {
     expect_float("rfbox positive shake edge", mb64_reinforced_box_shake_offset(1.0f), 3.0f);
 }
 
+static void verify_fire_spinner_helpers(void) {
+    const mb64_fire_spinner_config_t *config = mb64_fire_spinner_config();
+
+    expect_float("fire spinner first flame distance", config->first_flame_distance, 200.0f);
+    expect_float("fire spinner flame spacing", config->flame_spacing, 150.0f);
+    expect_float("fire spinner flame y offset", config->flame_y_offset, 100.0f);
+    expect_float("fire spinner flame scale", config->flame_scale, 6.0f);
+    expect_int("fire spinner rotation speed", config->rotation_speed, -0x100);
+    expect_int("fire spinner bparam zero flames", mb64_fire_spinner_flames_per_arm(0), 2);
+    expect_int("fire spinner bparam five flames", mb64_fire_spinner_flames_per_arm(5), 7);
+}
+
 static void verify_bullet_bill_helpers(void) {
     const mb64_bullet_bill_config_t *config = mb64_bullet_bill_config();
     const mb64_object_hitbox_t *hitbox = mb64_bullet_bill_hitbox();
@@ -816,6 +828,7 @@ int main(void) {
     verify_shaped_tile_rotations();
     verify_woodplat_helpers();
     verify_reinforced_box_helpers();
+    verify_fire_spinner_helpers();
     verify_bullet_bill_helpers();
     verify_exclamation_box_helpers();
     verify_floor_switch_helpers();

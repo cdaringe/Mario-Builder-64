@@ -207,6 +207,14 @@ static const mb64_object_hitbox_t s_reinforced_box_hitbox = {
     200, /* hurtboxHeight */
 };
 
+static const mb64_fire_spinner_config_t s_fire_spinner_config = {
+    200.0f, /* first_flame_distance */
+    150.0f, /* flame_spacing */
+    100.0f, /* flame_y_offset */
+    6.0f,   /* flame_scale */
+    -0x100, /* rotation_speed */
+};
+
 static const mb64_exclamation_box_config_t s_exclamation_box_config = {
     0x4000, /* scale_angle_start */
     0x1000, /* scale_angle_step */
@@ -832,6 +840,14 @@ uint8_t mb64_reinforced_box_should_shake(int timer) {
 float mb64_reinforced_box_shake_offset(float random_unit) {
     return random_unit * s_reinforced_box_config.shake_amplitude -
         s_reinforced_box_config.shake_center_offset;
+}
+
+const mb64_fire_spinner_config_t *mb64_fire_spinner_config(void) {
+    return &s_fire_spinner_config;
+}
+
+uint8_t mb64_fire_spinner_flames_per_arm(uint8_t behavior_param_2) {
+    return (uint8_t)(behavior_param_2 + 2);
 }
 
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void) {

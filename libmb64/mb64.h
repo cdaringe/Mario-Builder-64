@@ -206,6 +206,14 @@ typedef struct {
 } mb64_reinforced_box_config_t;
 
 typedef struct {
+    float first_flame_distance;
+    float flame_spacing;
+    float flame_y_offset;
+    float flame_scale;
+    int rotation_speed;
+} mb64_fire_spinner_config_t;
+
+typedef struct {
     int scale_angle_start;
     int scale_angle_step;
     int explode_frame;
@@ -1107,6 +1115,8 @@ const mb64_object_hitbox_t *mb64_reinforced_box_hitbox(void);
 uint8_t mb64_reinforced_box_should_clank(int timer);
 uint8_t mb64_reinforced_box_should_shake(int timer);
 float mb64_reinforced_box_shake_offset(float random_unit);
+const mb64_fire_spinner_config_t *mb64_fire_spinner_config(void);
+uint8_t mb64_fire_spinner_flames_per_arm(uint8_t behavior_param_2);
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void);
 const mb64_exclamation_box_content_t *mb64_exclamation_box_content(uint8_t game, uint8_t bparam);
 uint8_t mb64_exclamation_box_should_explode(int timer);

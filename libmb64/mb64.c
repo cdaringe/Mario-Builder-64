@@ -472,6 +472,17 @@ static const mb64_fire_bro_config_t s_fire_bro_config = {
     300,     /* fireball timeout */
 };
 
+static const mb64_object_hitbox_t s_fire_bro_hitbox = {
+    2,   /* damageOrCoinValue */
+    1,   /* health */
+    6,   /* numLootCoins */
+    0,   /* downOffset */
+    80,  /* radius */
+    140, /* height */
+    90,  /* hurtboxRadius */
+    130, /* hurtboxHeight */
+};
+
 static const mb64_hammer_bro_config_t s_hammer_bro_config = {
     0,       /* idle/land animation */
     2,       /* throw animation */
@@ -502,6 +513,17 @@ static const mb64_hammer_bro_config_t s_hammer_bro_config = {
     -0x2000, /* hammer pitch before hitbox arms */
     0x2000,  /* hammer pitch spin step */
     300,     /* hammer timeout */
+};
+
+static const mb64_object_hitbox_t s_hammer_projectile_hitbox = {
+    2,  /* damageOrCoinValue */
+    1,  /* health */
+    7,  /* numLootCoins */
+    40, /* downOffset */
+    40, /* radius */
+    80, /* height */
+    40, /* hurtboxRadius */
+    80, /* hurtboxHeight */
 };
 
 static const mb64_rex_config_t s_rex_config = {
@@ -1194,6 +1216,10 @@ const mb64_fire_bro_config_t *mb64_fire_bro_config(void) {
     return &s_fire_bro_config;
 }
 
+const mb64_object_hitbox_t *mb64_fire_bro_hitbox(void) {
+    return &s_fire_bro_hitbox;
+}
+
 uint8_t mb64_fire_bro_can_throw(float mario_y, float bro_y) {
     return mario_y > bro_y + s_fire_bro_config.mario_min_y_offset;
 }
@@ -1221,6 +1247,10 @@ uint8_t mb64_fire_bro_should_bounce_fireball(uint32_t move_flags) {
 
 const mb64_hammer_bro_config_t *mb64_hammer_bro_config(void) {
     return &s_hammer_bro_config;
+}
+
+const mb64_object_hitbox_t *mb64_hammer_projectile_hitbox(void) {
+    return &s_hammer_projectile_hitbox;
 }
 
 uint8_t mb64_hammer_bro_can_throw(float mario_y, float bro_y) {

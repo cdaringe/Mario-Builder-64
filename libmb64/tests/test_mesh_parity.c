@@ -468,6 +468,7 @@ static void verify_chicken_helpers(void) {
 
 static void verify_fire_bro_helpers(void) {
     const mb64_fire_bro_config_t *config = mb64_fire_bro_config();
+    const mb64_object_hitbox_t *hitbox = mb64_fire_bro_hitbox();
 
     expect_int("fire bro bparam2", config->behavior_param_2, 1);
     expect_int("fire bro idle anim", config->anim_idle, 0);
@@ -479,6 +480,13 @@ static void verify_fire_bro_helpers(void) {
     expect_float("fire bro projectile y offset", config->projectile_y_offset, 20.0f);
     expect_float("fire bro projectile vel y", config->fireball_vel_y, 20.0f);
     expect_float("fire bro projectile fvel", config->fireball_forward_vel, 30.0f);
+    expect_int("fire bro hitbox damage", hitbox->damage_or_coin_value, 2);
+    expect_int("fire bro hitbox health", hitbox->health, 1);
+    expect_int("fire bro loot coins", hitbox->num_loot_coins, 6);
+    expect_int("fire bro hitbox radius", hitbox->radius, 80);
+    expect_int("fire bro hitbox height", hitbox->height, 140);
+    expect_int("fire bro hurtbox radius", hitbox->hurtbox_radius, 90);
+    expect_int("fire bro hurtbox height", hitbox->hurtbox_height, 130);
     expect_int("fire bro cannot throw far below", mb64_fire_bro_can_throw(0.0f, 200.0f), 0);
     expect_int("fire bro can throw above cutoff", mb64_fire_bro_can_throw(0.1f, 200.0f), 1);
     expect_int("fire bro no throw far", mb64_fire_bro_should_start_throw(1500.1f, 41), 0);
@@ -497,6 +505,7 @@ static void verify_fire_bro_helpers(void) {
 
 static void verify_hammer_bro_helpers(void) {
     const mb64_hammer_bro_config_t *config = mb64_hammer_bro_config();
+    const mb64_object_hitbox_t *hammer_hitbox = mb64_hammer_projectile_hitbox();
 
     expect_int("hammer bro idle anim", config->anim_idle, 0);
     expect_int("hammer bro throw anim", config->anim_throw, 2);
@@ -510,6 +519,11 @@ static void verify_hammer_bro_helpers(void) {
     expect_float("hammer bro hammer y max", config->hammer_vel_y_max, 50.0f);
     expect_float("hammer bro hammer fvel min", config->hammer_forward_vel_min, 20.0f);
     expect_float("hammer bro hammer fvel max", config->hammer_forward_vel_max, 50.0f);
+    expect_int("hammer projectile hitbox damage", hammer_hitbox->damage_or_coin_value, 2);
+    expect_int("hammer projectile loot coins", hammer_hitbox->num_loot_coins, 7);
+    expect_int("hammer projectile down offset", hammer_hitbox->down_offset, 40);
+    expect_int("hammer projectile radius", hammer_hitbox->radius, 40);
+    expect_int("hammer projectile height", hammer_hitbox->height, 80);
     expect_int("hammer bro cannot throw far below", mb64_hammer_bro_can_throw(0.0f, 200.0f), 0);
     expect_int("hammer bro can throw above cutoff", mb64_hammer_bro_can_throw(0.1f, 200.0f), 1);
     expect_int("hammer bro no throw far", mb64_hammer_bro_should_start_throw(1500.1f, 41), 0);

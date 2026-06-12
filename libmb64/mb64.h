@@ -417,6 +417,11 @@ typedef enum {
 } mb64_showrunner_tennis_action_t;
 
 typedef enum {
+    MB64_SHOWRUNNER_FLAME_ACT_EXIST = 0,
+    MB64_SHOWRUNNER_FLAME_ACT_DELETE = 1,
+} mb64_showrunner_flame_action_t;
+
+typedef enum {
     MB64_SHOWRUNNER_ANIM_IDLE = 0,
     MB64_SHOWRUNNER_ANIM_SPIKE = 1,
     MB64_SHOWRUNNER_ANIM_BACK_AWAY = 2,

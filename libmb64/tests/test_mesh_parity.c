@@ -739,6 +739,8 @@ static void verify_showrunner_helpers(void) {
     expect_int("showrunner spike delete below home", mb64_showrunner_spike_should_delete(-1.0f, 0.0f), 1);
     expect_int("showrunner tennis outbound", mb64_showrunner_tennis_should_return_to_parent(0), 0);
     expect_int("showrunner tennis return", mb64_showrunner_tennis_should_return_to_parent(1), 1);
+    expect_int("showrunner flame exist action", MB64_SHOWRUNNER_FLAME_ACT_EXIST, 0);
+    expect_int("showrunner flame delete action", MB64_SHOWRUNNER_FLAME_ACT_DELETE, 1);
     expect_int("showrunner tennis parent hit", mb64_showrunner_tennis_should_reset_parent(399.0f), 1);
     expect_int("showrunner tennis parent no hit", mb64_showrunner_tennis_should_reset_parent(400.0f), 0);
     expect_int("showrunner tennis stun helper", mb64_showrunner_tennis_should_stun_parent(2, 5), 1);

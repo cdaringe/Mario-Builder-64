@@ -191,6 +191,12 @@ static const mb64_badge_config_t s_badge_config = {
     0.2f,  /* delete_scale */
 };
 
+static const mb64_green_coin_config_t s_green_coin_config = {
+    3.0f,   /* damage_or_coin_value */
+    100.0f, /* hitbox_radius */
+    64.0f,  /* hitbox_height */
+};
+
 static const mb64_powerup_config_t s_powerup_config = {
     1u,       /* Crowbar power bit: 1 << 0 */
     2u,       /* Bullet Bill Mask power bit: 1 << 1 */
@@ -679,6 +685,10 @@ float mb64_reinforced_box_shake_offset(float random_unit) {
 
 const mb64_badge_config_t *mb64_badge_config(void) {
     return &s_badge_config;
+}
+
+const mb64_green_coin_config_t *mb64_green_coin_config(void) {
+    return &s_green_coin_config;
 }
 
 uint8_t mb64_badge_is_equipped(uint32_t equipped_badges, uint8_t badge_id) {

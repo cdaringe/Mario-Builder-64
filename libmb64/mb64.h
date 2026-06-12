@@ -206,6 +206,12 @@ typedef struct {
 } mb64_badge_config_t;
 
 typedef struct {
+    float damage_or_coin_value;
+    float hitbox_radius;
+    float hitbox_height;
+} mb64_green_coin_config_t;
+
+typedef struct {
     uint8_t crowbar_power_bit;
     uint8_t mask_power_bit;
     uint8_t sparkle_timer_mask;
@@ -942,6 +948,7 @@ uint8_t mb64_reinforced_box_should_clank(int timer);
 uint8_t mb64_reinforced_box_should_shake(int timer);
 float mb64_reinforced_box_shake_offset(float random_unit);
 const mb64_badge_config_t *mb64_badge_config(void);
+const mb64_green_coin_config_t *mb64_green_coin_config(void);
 uint8_t mb64_badge_is_equipped(uint32_t equipped_badges, uint8_t badge_id);
 uint8_t mb64_badge_should_collect(uint8_t equipped, uint8_t overlaps_mario, uint8_t mario_levelup_dance);
 float mb64_badge_next_collect_scale(float current_scale);

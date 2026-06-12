@@ -259,6 +259,14 @@ static void verify_badge_helpers(void) {
     expect_int("badge keep at threshold", mb64_badge_should_delete(0.2f), 0);
 }
 
+static void verify_green_coin_helpers(void) {
+    const mb64_green_coin_config_t *config = mb64_green_coin_config();
+
+    expect_float("green coin value", config->damage_or_coin_value, 3.0f);
+    expect_float("green coin hitbox radius", config->hitbox_radius, 100.0f);
+    expect_float("green coin hitbox height", config->hitbox_height, 64.0f);
+}
+
 static void verify_powerup_helpers(void) {
     const mb64_powerup_config_t *config = mb64_powerup_config();
 
@@ -610,6 +618,7 @@ int main(void) {
     verify_woodplat_helpers();
     verify_reinforced_box_helpers();
     verify_badge_helpers();
+    verify_green_coin_helpers();
     verify_powerup_helpers();
     verify_phantasm_helpers();
     verify_showrunner_helpers();

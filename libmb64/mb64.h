@@ -516,6 +516,31 @@ typedef struct {
 } mb64_chicken_config_t;
 
 typedef struct {
+    uint8_t damage_or_coin_value;
+    uint8_t health;
+    uint8_t num_loot_coins;
+    int16_t down_offset;
+    int16_t radius;
+    int16_t height;
+    int16_t hurtbox_radius;
+    int16_t hurtbox_height;
+} mb64_object_hitbox_t;
+
+enum {
+    MB64_CRABLET_ACT_SPAWN = 0,
+    MB64_CRABLET_ACT_PATROL = 1,
+    MB64_CRABLET_ACT_TURN = 2,
+    MB64_CRABLET_ACT_KNOCKBACK_START = 3,
+    MB64_CRABLET_ACT_KNOCKBACK_AIR = 4,
+    MB64_CRABLET_ACT_RECOVER = 5,
+};
+
+enum {
+    MB64_CRABLET_ATTACK_READY = 0,
+    MB64_CRABLET_ATTACK_ACTIVE = 1,
+};
+
+typedef struct {
     int animation_index;
     float scale;
     float wall_hitbox_radius;
@@ -1106,6 +1131,7 @@ uint8_t mb64_motos_escape_succeeds(int escape_actions);
 uint8_t mb64_motos_should_leave_recover_wait(int timer);
 const mb64_chicken_config_t *mb64_chicken_config(void);
 const mb64_crablet_config_t *mb64_crablet_config(void);
+const mb64_object_hitbox_t *mb64_crablet_hitbox(void);
 uint8_t mb64_crablet_should_attack(int angle_diff, float distance_to_mario);
 uint8_t mb64_crablet_should_end_attack(int timer);
 uint8_t mb64_crablet_should_finish_recovery(int timer);

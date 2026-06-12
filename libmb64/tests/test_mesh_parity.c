@@ -534,6 +534,7 @@ static void verify_hammer_bro_helpers(void) {
 
 static void verify_crablet_helpers(void) {
     const mb64_crablet_config_t *config = mb64_crablet_config();
+    const mb64_object_hitbox_t *hitbox = mb64_crablet_hitbox();
 
     expect_int("crablet anim", config->animation_index, 0);
     expect_float("crablet scale", config->scale, 1.0f);
@@ -541,6 +542,16 @@ static void verify_crablet_helpers(void) {
     expect_float("crablet walk speed", config->walk_forward_vel, 5.0f);
     expect_float("crablet attack speed", config->attack_forward_vel, 30.0f);
     expect_float("crablet attack jump", config->attack_jump_vel_y, 50.0f);
+    expect_int("crablet spawn action", MB64_CRABLET_ACT_SPAWN, 0);
+    expect_int("crablet patrol action", MB64_CRABLET_ACT_PATROL, 1);
+    expect_int("crablet attack active state", MB64_CRABLET_ATTACK_ACTIVE, 1);
+    expect_int("crablet hitbox damage", hitbox->damage_or_coin_value, 1);
+    expect_int("crablet hitbox health", hitbox->health, 1);
+    expect_int("crablet loot coins", hitbox->num_loot_coins, 3);
+    expect_int("crablet hitbox radius", hitbox->radius, 130);
+    expect_int("crablet hitbox height", hitbox->height, 70);
+    expect_int("crablet hurtbox radius", hitbox->hurtbox_radius, 90);
+    expect_int("crablet hurtbox height", hitbox->hurtbox_height, 60);
     expect_int("crablet no attack angle", mb64_crablet_should_attack(0x2000, 999.0f), 0);
     expect_int("crablet no attack distance", mb64_crablet_should_attack(0x1fff, 1000.0f), 0);
     expect_int("crablet attack", mb64_crablet_should_attack(0x1fff, 999.0f), 1);

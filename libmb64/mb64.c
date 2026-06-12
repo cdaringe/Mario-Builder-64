@@ -435,6 +435,17 @@ static const mb64_crablet_config_t s_crablet_config = {
     384,      /* MB64_STAR_HEIGHT */
 };
 
+static const mb64_object_hitbox_t s_crablet_hitbox = {
+    1,   /* damageOrCoinValue */
+    1,   /* health */
+    3,   /* numLootCoins */
+    0,   /* downOffset */
+    130, /* radius */
+    70,  /* height */
+    90,  /* hurtboxRadius */
+    60,  /* hurtboxHeight */
+};
+
 static const mb64_fire_bro_config_t s_fire_bro_config = {
     1,       /* behavior_param_2: Fire Bro texture/projectile variant */
     0,       /* idle/land animation */
@@ -1143,6 +1154,10 @@ const mb64_chicken_config_t *mb64_chicken_config(void) {
 
 const mb64_crablet_config_t *mb64_crablet_config(void) {
     return &s_crablet_config;
+}
+
+const mb64_object_hitbox_t *mb64_crablet_hitbox(void) {
+    return &s_crablet_hitbox;
 }
 
 uint8_t mb64_crablet_should_attack(int angle_diff, float distance_to_mario) {

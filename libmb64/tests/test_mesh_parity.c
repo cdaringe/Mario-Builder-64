@@ -319,6 +319,23 @@ static void verify_conveyor_helpers(void) {
     expect_int("conveyor flips when state changes", mb64_conveyor_should_flip_state(2, 0), 1);
 }
 
+static void verify_noteblock_helpers(void) {
+    const mb64_noteblock_config_t *config = mb64_noteblock_config();
+
+    expect_int("noteblock graph angle step", config->graph_angle_step, 5000);
+    expect_int("noteblock min health", config->min_health, 0x100);
+    expect_float("noteblock velocity decay", config->velocity_decay, 0.95f);
+    expect_float("noteblock graph bounce velocity", config->bounce_graph_vel_y, 50.0f);
+    expect_float("noteblock mario bounce velocity", config->bounce_mario_vel_y, 95.0f);
+    expect_int("noteblock graph angle", mb64_noteblock_graph_angle(2), 10000);
+    expect_float("noteblock velocity decay helper", mb64_noteblock_next_velocity(50.0f), 47.5f);
+    expect_int("noteblock bounces on valid platform", mb64_noteblock_should_bounce(0, 0, 0x101, 1), 1);
+    expect_int("noteblock no bounce when intangible", mb64_noteblock_should_bounce(1, 0, 0x101, 1), 0);
+    expect_int("noteblock no bounce when swimming", mb64_noteblock_should_bounce(0, 1, 0x101, 1), 0);
+    expect_int("noteblock no bounce at min health", mb64_noteblock_should_bounce(0, 0, 0x100, 1), 0);
+    expect_int("noteblock no bounce off platform", mb64_noteblock_should_bounce(0, 0, 0x101, 0), 0);
+}
+
 static void verify_badge_helpers(void) {
     const mb64_badge_config_t *config = mb64_badge_config();
 
@@ -713,6 +730,7 @@ int main(void) {
     verify_exclamation_box_helpers();
     verify_floor_switch_helpers();
     verify_conveyor_helpers();
+    verify_noteblock_helpers();
     verify_badge_helpers();
     verify_green_coin_helpers();
     verify_powerup_helpers();

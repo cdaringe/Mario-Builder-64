@@ -209,6 +209,14 @@ static const mb64_floor_switch_config_t s_floor_switch_config = {
     127.5f, /* press_radius */
 };
 
+static const mb64_noteblock_config_t s_noteblock_config = {
+    5000,  /* graph_angle_step */
+    0x100, /* min_health */
+    0.95f, /* velocity_decay */
+    50.0f, /* bounce_graph_vel_y */
+    95.0f, /* bounce_mario_vel_y */
+};
+
 static const mb64_badge_config_t s_badge_config = {
     0x70,  /* spin_accel */
     0.95f, /* shrink_factor */
@@ -819,6 +827,22 @@ int8_t mb64_conveyor_initial_vertical_push(uint8_t bparam) {
 
 uint8_t mb64_conveyor_should_flip_state(uint8_t anim_state, uint8_t play_onoff) {
     return anim_state > MB64_CONVEYOR_STATE_ALWAYS && anim_state != (uint8_t) (play_onoff + 1);
+}
+
+const mb64_noteblock_config_t *mb64_noteblock_config(void) {
+    return &s_noteblock_config;
+}
+
+int mb64_noteblock_graph_angle(int timer) {
+    return timer * s_noteblock_config.graph_angle_step;
+}
+
+float mb64_noteblock_next_velocity(float vel_y) {
+    return vel_y * s_noteblock_config.velocity_decay;
+}
+
+uint8_t mb64_noteblock_should_bounce(uint8_t intangible, uint8_t swimming, int health, uint8_t mario_on_platform) {
+    return !intangible && !swimming && health > s_noteblock_config.min_health && mario_on_platform;
 }
 
 const mb64_badge_config_t *mb64_badge_config(void) {

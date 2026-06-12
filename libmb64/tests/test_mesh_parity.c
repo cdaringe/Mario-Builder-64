@@ -582,6 +582,10 @@ static void verify_showrunner_helpers(void) {
     expect_int("showrunner tennis parent no hit", mb64_showrunner_tennis_should_reset_parent(400.0f), 0);
     expect_int("showrunner tennis stun helper", mb64_showrunner_tennis_should_stun_parent(2, 5), 1);
     expect_int("showrunner tennis trail delete", mb64_showrunner_tennis_trail_should_delete(12), 1);
+    expect_int("showrunner ballerina projectile gated", mb64_showrunner_should_spawn_ballerina_projectile(33, 0, 0x1001), 1);
+    expect_int("showrunner ballerina projectile spin threshold", mb64_showrunner_should_spawn_ballerina_projectile(33, 0, 0x1000), 0);
+    expect_int("showrunner ballerina projectile interval", mb64_showrunner_should_spawn_ballerina_projectile(34, 0, 0x1001), 0);
+    expect_int("showrunner ballerina projectile subaction", mb64_showrunner_should_spawn_ballerina_projectile(33, 1, 0x1001), 0);
     expect_int("showrunner phantasm release flame timer", mb64_showrunner_should_spawn_phantasm_release_flames(45), 1);
     expect_int("showrunner no early phantasm release flames", mb64_showrunner_should_spawn_phantasm_release_flames(44), 0);
     expect_int("showrunner flame count", config->phantasm_release_flame_count, 32);
@@ -591,6 +595,9 @@ static void verify_showrunner_helpers(void) {
     expect_int("showrunner fast flame expires", mb64_showrunner_thwomp_flame_should_leave_exist(36, 30.0f), 1);
     expect_int("showrunner flame delete", mb64_showrunner_thwomp_flame_should_delete(31), 1);
     expect_float("showrunner flame half scale", mb64_showrunner_thwomp_flame_scale(15), 3.5f);
+    expect_int("showrunner cosmic projectile timer delete", mb64_showrunner_cosmic_projectile_should_delete(111, 0), 1);
+    expect_int("showrunner cosmic projectile wall delete", mb64_showrunner_cosmic_projectile_should_delete(1, 1), 1);
+    expect_float("showrunner cosmic projectile speed", config->cosmic_projectile_forward_vel, 35.0f);
 }
 
 int main(void) {

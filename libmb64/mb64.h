@@ -343,6 +343,10 @@ typedef struct {
     int ballerina_end_timer;
     int ballerina_spin_accel;
     int ballerina_spin_max;
+    int ballerina_projectile_start_timer;
+    int ballerina_projectile_interval;
+    int ballerina_projectile_min_spin;
+    float ballerina_projectile_y_range;
     float trigger_distance;
     float scale;
     float back_away_forward_vel;
@@ -391,6 +395,9 @@ typedef struct {
     int thwomp_flame_fast_lifetime;
     int thwomp_flame_shrink_timer;
     float thwomp_flame_scale;
+    float cosmic_projectile_forward_vel;
+    int cosmic_projectile_delete_timer;
+    int cosmic_projectile_roll_step;
 } mb64_showrunner_config_t;
 
 typedef enum {
@@ -992,6 +999,7 @@ uint8_t mb64_showrunner_should_leave_damaged(int timer);
 uint8_t mb64_showrunner_should_drop_items(int timer);
 uint8_t mb64_showrunner_should_shrink(int timer);
 uint8_t mb64_showrunner_should_delete(float scale);
+uint8_t mb64_showrunner_should_spawn_ballerina_projectile(int timer, int subaction, int angle_vel_yaw);
 uint8_t mb64_showrunner_should_spawn_phantasm_release_flames(int timer);
 uint8_t mb64_showrunner_spike_should_lock_to_mario(uint8_t already_close, float distance_to_mario);
 uint8_t mb64_showrunner_spike_should_leave_rumble(int timer);
@@ -1005,6 +1013,7 @@ uint8_t mb64_showrunner_tennis_trail_should_delete(int opacity);
 uint8_t mb64_showrunner_thwomp_flame_should_leave_exist(int timer, float forward_vel);
 uint8_t mb64_showrunner_thwomp_flame_should_delete(int timer);
 float mb64_showrunner_thwomp_flame_scale(int timer);
+uint8_t mb64_showrunner_cosmic_projectile_should_delete(int timer, uint8_t hit_wall);
 const mb64_motos_config_t *mb64_motos_config(void);
 uint8_t mb64_motos_should_search(float distance_to_mario);
 uint8_t mb64_motos_should_stop_searching(float distance_to_mario);

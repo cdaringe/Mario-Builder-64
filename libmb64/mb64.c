@@ -275,6 +275,10 @@ static const mb64_showrunner_config_t s_showrunner_config = {
     400,      /* ballerina attack end timer */
     0x20,     /* ballerina spin acceleration */
     0x2000,   /* ballerina spin max */
+    30,       /* ballerina projectile starts after this timer */
+    3,        /* ballerina projectile spawn interval */
+    0x1000,   /* ballerina projectile min spin speed */
+    500.0f,   /* ballerina projectile random Y range */
     1500.0f,  /* MB64_BOSS_TRIGGER_DIST */
     1.0f,     /* scale */
     -70.0f,   /* back-away velocity */
@@ -323,6 +327,9 @@ static const mb64_showrunner_config_t s_showrunner_config = {
     35,       /* thwomp flame fast lifetime */
     30,       /* thwomp flame shrink timer */
     7.0f,     /* thwomp flame scale */
+    35.0f,    /* cosmic projectile forward velocity */
+    110,      /* cosmic projectile delete timer */
+    0x400,    /* cosmic projectile roll step */
 };
 
 static const mb64_motos_config_t s_motos_config = {
@@ -848,6 +855,13 @@ uint8_t mb64_showrunner_should_delete(float scale) {
     return scale < s_showrunner_config.delete_scale;
 }
 
+uint8_t mb64_showrunner_should_spawn_ballerina_projectile(int timer, int subaction, int angle_vel_yaw) {
+    return subaction == 0 &&
+        timer > s_showrunner_config.ballerina_projectile_start_timer &&
+        timer % s_showrunner_config.ballerina_projectile_interval == 0 &&
+        angle_vel_yaw > s_showrunner_config.ballerina_projectile_min_spin;
+}
+
 uint8_t mb64_showrunner_should_spawn_phantasm_release_flames(int timer) {
     return timer == s_showrunner_config.phantasm_release_flame_timer;
 }
@@ -908,6 +922,10 @@ float mb64_showrunner_thwomp_flame_scale(int timer) {
     return s_showrunner_config.thwomp_flame_scale -
         (s_showrunner_config.thwomp_flame_scale *
          ((float) timer / (float) s_showrunner_config.thwomp_flame_shrink_timer));
+}
+
+uint8_t mb64_showrunner_cosmic_projectile_should_delete(int timer, uint8_t hit_wall) {
+    return timer > s_showrunner_config.cosmic_projectile_delete_timer || hit_wall;
 }
 
 const mb64_motos_config_t *mb64_motos_config(void) {

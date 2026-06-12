@@ -936,6 +936,20 @@ uint8_t mb64_hidden_box_should_blink(int hidden_box_timer) {
         (hidden_box_timer & 1);
 }
 
+uint8_t mb64_timed_block_is_solid(int hidden_box_timer) {
+    return hidden_box_timer <= 0;
+}
+
+uint8_t mb64_timed_block_show_on_model(int hidden_box_timer) {
+    if (hidden_box_timer <= 0) {
+        return 1;
+    }
+    if (hidden_box_timer < s_floor_switch_config.hidden_box_blink_frames) {
+        return (uint8_t)(hidden_box_timer & 1);
+    }
+    return 0;
+}
+
 uint8_t mb64_conveyor_shape(uint8_t bparam) {
     return bparam & 0x3;
 }

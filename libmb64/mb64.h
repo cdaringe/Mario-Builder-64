@@ -1151,6 +1151,8 @@ uint8_t mb64_floor_switch_should_press(float lateral_distance);
 uint8_t mb64_floor_switch_scale_done(int timer);
 uint8_t mb64_floor_switch_should_timeout(int timer, uint8_t double_time_equipped);
 uint8_t mb64_hidden_box_should_blink(int hidden_box_timer);
+uint8_t mb64_timed_block_is_solid(int hidden_box_timer);
+uint8_t mb64_timed_block_show_on_model(int hidden_box_timer);
 uint8_t mb64_conveyor_shape(uint8_t bparam);
 uint8_t mb64_conveyor_state(uint8_t bparam);
 uint8_t mb64_conveyor_effective_shape(uint8_t bparam, uint8_t play_onoff);

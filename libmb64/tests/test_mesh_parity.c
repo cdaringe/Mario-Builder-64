@@ -376,6 +376,12 @@ static void verify_floor_switch_helpers(void) {
     expect_int("hidden box no blink on even final frames", mb64_hidden_box_should_blink(38), 0);
     expect_int("hidden box no blink before final window", mb64_hidden_box_should_blink(40), 0);
     expect_int("hidden box no blink when inactive", mb64_hidden_box_should_blink(0), 0);
+    expect_int("timed block solid when timer inactive", mb64_timed_block_is_solid(0), 1);
+    expect_int("timed block not solid when timer active", mb64_timed_block_is_solid(400), 0);
+    expect_int("timed block shows on model when timer inactive", mb64_timed_block_show_on_model(0), 1);
+    expect_int("timed block shows off model before blink window", mb64_timed_block_show_on_model(40), 0);
+    expect_int("timed block blinks on model on odd final frames", mb64_timed_block_show_on_model(39), 1);
+    expect_int("timed block blinks off model on even final frames", mb64_timed_block_show_on_model(38), 0);
 }
 
 static void verify_conveyor_helpers(void) {

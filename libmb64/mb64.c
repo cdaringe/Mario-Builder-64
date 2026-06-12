@@ -185,6 +185,20 @@ static const mb64_reinforced_box_config_t s_reinforced_box_config = {
     15,    /* clank_cooldown_timer */
 };
 
+static const mb64_exclamation_box_config_t s_exclamation_box_config = {
+    0x4000, /* scale_angle_start */
+    0x1000, /* scale_angle_step */
+    7,      /* explode_frame */
+    300,    /* respawn_frames */
+    30.0f,  /* hit_launch_vel_y */
+    -8.0f,  /* hit_gravity */
+    0.3f,   /* squash_scale_factor */
+    0.5f,   /* stretch_scale_factor */
+    1.0f,   /* stretch_scale_offset */
+    26.0f,  /* graph_y_offset_factor */
+    2.0f,   /* model_scale */
+};
+
 static const mb64_badge_config_t s_badge_config = {
     0x70,  /* spin_accel */
     0.95f, /* shrink_factor */
@@ -700,6 +714,18 @@ uint8_t mb64_reinforced_box_should_shake(int timer) {
 float mb64_reinforced_box_shake_offset(float random_unit) {
     return random_unit * s_reinforced_box_config.shake_amplitude -
         s_reinforced_box_config.shake_center_offset;
+}
+
+const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void) {
+    return &s_exclamation_box_config;
+}
+
+uint8_t mb64_exclamation_box_should_explode(int timer) {
+    return timer == s_exclamation_box_config.explode_frame;
+}
+
+uint8_t mb64_exclamation_box_should_respawn(int timer) {
+    return timer > s_exclamation_box_config.respawn_frames;
 }
 
 const mb64_badge_config_t *mb64_badge_config(void) {

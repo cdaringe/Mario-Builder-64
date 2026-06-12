@@ -32,6 +32,7 @@ extern "C" {
 
 /** Total trajectory waypoints stored per level (20 paths x 50 points). */
 #define MB64_TRAJ_COUNT (MB64_MAX_TRAJECTORIES * MB64_TRAJECTORY_LENGTH)
+#define MB64_EXCLAMATION_BOX_TYPE_COUNT 7
 
 /* Custom theme */
 typedef struct {
@@ -198,6 +199,20 @@ typedef struct {
     int shake_timer_limit;
     int clank_cooldown_timer;
 } mb64_reinforced_box_config_t;
+
+typedef struct {
+    int scale_angle_start;
+    int scale_angle_step;
+    int explode_frame;
+    int respawn_frames;
+    float hit_launch_vel_y;
+    float hit_gravity;
+    float squash_scale_factor;
+    float stretch_scale_factor;
+    float stretch_scale_offset;
+    float graph_y_offset_factor;
+    float model_scale;
+} mb64_exclamation_box_config_t;
 
 typedef struct {
     int spin_accel;
@@ -968,6 +983,9 @@ const mb64_reinforced_box_config_t *mb64_reinforced_box_config(void);
 uint8_t mb64_reinforced_box_should_clank(int timer);
 uint8_t mb64_reinforced_box_should_shake(int timer);
 float mb64_reinforced_box_shake_offset(float random_unit);
+const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void);
+uint8_t mb64_exclamation_box_should_explode(int timer);
+uint8_t mb64_exclamation_box_should_respawn(int timer);
 const mb64_badge_config_t *mb64_badge_config(void);
 const mb64_green_coin_config_t *mb64_green_coin_config(void);
 uint8_t mb64_badge_is_equipped(uint32_t equipped_badges, uint8_t badge_id);

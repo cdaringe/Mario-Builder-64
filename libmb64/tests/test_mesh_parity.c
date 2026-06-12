@@ -250,6 +250,25 @@ static void verify_reinforced_box_helpers(void) {
     expect_float("rfbox positive shake edge", mb64_reinforced_box_shake_offset(1.0f), 3.0f);
 }
 
+static void verify_exclamation_box_helpers(void) {
+    const mb64_exclamation_box_config_t *config = mb64_exclamation_box_config();
+
+    expect_int("exclamation box content count", MB64_EXCLAMATION_BOX_TYPE_COUNT, 7);
+    expect_int("exclamation box scale angle start", config->scale_angle_start, 0x4000);
+    expect_int("exclamation box scale angle step", config->scale_angle_step, 0x1000);
+    expect_int("exclamation box no explode before frame", mb64_exclamation_box_should_explode(6), 0);
+    expect_int("exclamation box explode frame", mb64_exclamation_box_should_explode(7), 1);
+    expect_int("exclamation box no respawn at frame", mb64_exclamation_box_should_respawn(300), 0);
+    expect_int("exclamation box respawn after frame", mb64_exclamation_box_should_respawn(301), 1);
+    expect_float("exclamation box launch vel", config->hit_launch_vel_y, 30.0f);
+    expect_float("exclamation box gravity", config->hit_gravity, -8.0f);
+    expect_float("exclamation box squash factor", config->squash_scale_factor, 0.3f);
+    expect_float("exclamation box stretch factor", config->stretch_scale_factor, 0.5f);
+    expect_float("exclamation box stretch offset", config->stretch_scale_offset, 1.0f);
+    expect_float("exclamation box graph y offset factor", config->graph_y_offset_factor, 26.0f);
+    expect_float("exclamation box model scale", config->model_scale, 2.0f);
+}
+
 static void verify_badge_helpers(void) {
     const mb64_badge_config_t *config = mb64_badge_config();
 
@@ -641,6 +660,7 @@ int main(void) {
     verify_shaped_tile_rotations();
     verify_woodplat_helpers();
     verify_reinforced_box_helpers();
+    verify_exclamation_box_helpers();
     verify_badge_helpers();
     verify_green_coin_helpers();
     verify_powerup_helpers();

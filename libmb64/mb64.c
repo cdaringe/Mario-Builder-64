@@ -199,6 +199,16 @@ static const mb64_exclamation_box_config_t s_exclamation_box_config = {
     2.0f,   /* model_scale */
 };
 
+static const mb64_floor_switch_config_t s_floor_switch_config = {
+    3,      /* scale_frames */
+    400,    /* timer_frames */
+    800,    /* double_time_timer_frames */
+    40,     /* hidden_box_blink_frames */
+    1.28f,  /* switch_scale */
+    0.2f,   /* pressed_scale */
+    127.5f, /* press_radius */
+};
+
 static const mb64_badge_config_t s_badge_config = {
     0x70,  /* spin_accel */
     0.95f, /* shrink_factor */
@@ -726,6 +736,38 @@ uint8_t mb64_exclamation_box_should_explode(int timer) {
 
 uint8_t mb64_exclamation_box_should_respawn(int timer) {
     return timer > s_exclamation_box_config.respawn_frames;
+}
+
+const mb64_floor_switch_config_t *mb64_floor_switch_config(void) {
+    return &s_floor_switch_config;
+}
+
+int mb64_floor_switch_hidden_box_timer(uint8_t double_time_equipped) {
+    return double_time_equipped ? s_floor_switch_config.double_time_timer_frames :
+        s_floor_switch_config.timer_frames;
+}
+
+int mb64_floor_switch_fast_tick_threshold(uint8_t double_time_equipped) {
+    return mb64_floor_switch_hidden_box_timer(double_time_equipped) -
+        s_floor_switch_config.hidden_box_blink_frames;
+}
+
+uint8_t mb64_floor_switch_should_press(float lateral_distance) {
+    return lateral_distance < s_floor_switch_config.press_radius;
+}
+
+uint8_t mb64_floor_switch_scale_done(int timer) {
+    return timer == s_floor_switch_config.scale_frames;
+}
+
+uint8_t mb64_floor_switch_should_timeout(int timer, uint8_t double_time_equipped) {
+    return timer > mb64_floor_switch_hidden_box_timer(double_time_equipped);
+}
+
+uint8_t mb64_hidden_box_should_blink(int hidden_box_timer) {
+    return hidden_box_timer > 0 &&
+        hidden_box_timer < s_floor_switch_config.hidden_box_blink_frames &&
+        (hidden_box_timer & 1);
 }
 
 const mb64_badge_config_t *mb64_badge_config(void) {

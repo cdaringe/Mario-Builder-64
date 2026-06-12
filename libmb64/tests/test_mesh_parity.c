@@ -269,6 +269,34 @@ static void verify_exclamation_box_helpers(void) {
     expect_float("exclamation box model scale", config->model_scale, 2.0f);
 }
 
+static void verify_floor_switch_helpers(void) {
+    const mb64_floor_switch_config_t *config = mb64_floor_switch_config();
+
+    expect_int("floor switch scale frames", config->scale_frames, 3);
+    expect_int("floor switch timer", config->timer_frames, 400);
+    expect_int("floor switch double time timer", config->double_time_timer_frames, 800);
+    expect_int("floor switch blink frames", config->hidden_box_blink_frames, 40);
+    expect_float("floor switch scale", config->switch_scale, 1.28f);
+    expect_float("floor switch pressed scale", config->pressed_scale, 0.2f);
+    expect_float("floor switch press radius", config->press_radius, 127.5f);
+    expect_int("floor switch default hidden timer", mb64_floor_switch_hidden_box_timer(0), 400);
+    expect_int("floor switch double time hidden timer", mb64_floor_switch_hidden_box_timer(1), 800);
+    expect_int("floor switch default fast tick threshold", mb64_floor_switch_fast_tick_threshold(0), 360);
+    expect_int("floor switch double time fast tick threshold", mb64_floor_switch_fast_tick_threshold(1), 760);
+    expect_int("floor switch press inside radius", mb64_floor_switch_should_press(127.4f), 1);
+    expect_int("floor switch no press at radius", mb64_floor_switch_should_press(127.5f), 0);
+    expect_int("floor switch no scale done before frame", mb64_floor_switch_scale_done(2), 0);
+    expect_int("floor switch scale done at frame", mb64_floor_switch_scale_done(3), 1);
+    expect_int("floor switch no timeout at frame", mb64_floor_switch_should_timeout(400, 0), 0);
+    expect_int("floor switch timeout after frame", mb64_floor_switch_should_timeout(401, 0), 1);
+    expect_int("floor switch no double timeout at frame", mb64_floor_switch_should_timeout(800, 1), 0);
+    expect_int("floor switch double timeout after frame", mb64_floor_switch_should_timeout(801, 1), 1);
+    expect_int("hidden box blinks on odd final frames", mb64_hidden_box_should_blink(39), 1);
+    expect_int("hidden box no blink on even final frames", mb64_hidden_box_should_blink(38), 0);
+    expect_int("hidden box no blink before final window", mb64_hidden_box_should_blink(40), 0);
+    expect_int("hidden box no blink when inactive", mb64_hidden_box_should_blink(0), 0);
+}
+
 static void verify_badge_helpers(void) {
     const mb64_badge_config_t *config = mb64_badge_config();
 
@@ -661,6 +689,7 @@ int main(void) {
     verify_woodplat_helpers();
     verify_reinforced_box_helpers();
     verify_exclamation_box_helpers();
+    verify_floor_switch_helpers();
     verify_badge_helpers();
     verify_green_coin_helpers();
     verify_powerup_helpers();

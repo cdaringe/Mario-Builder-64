@@ -215,6 +215,16 @@ typedef struct {
 } mb64_exclamation_box_config_t;
 
 typedef struct {
+    int scale_frames;
+    int timer_frames;
+    int double_time_timer_frames;
+    int hidden_box_blink_frames;
+    float switch_scale;
+    float pressed_scale;
+    float press_radius;
+} mb64_floor_switch_config_t;
+
+typedef struct {
     int spin_accel;
     float shrink_factor;
     float delete_scale;
@@ -986,6 +996,13 @@ float mb64_reinforced_box_shake_offset(float random_unit);
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void);
 uint8_t mb64_exclamation_box_should_explode(int timer);
 uint8_t mb64_exclamation_box_should_respawn(int timer);
+const mb64_floor_switch_config_t *mb64_floor_switch_config(void);
+int mb64_floor_switch_hidden_box_timer(uint8_t double_time_equipped);
+int mb64_floor_switch_fast_tick_threshold(uint8_t double_time_equipped);
+uint8_t mb64_floor_switch_should_press(float lateral_distance);
+uint8_t mb64_floor_switch_scale_done(int timer);
+uint8_t mb64_floor_switch_should_timeout(int timer, uint8_t double_time_equipped);
+uint8_t mb64_hidden_box_should_blink(int hidden_box_timer);
 const mb64_badge_config_t *mb64_badge_config(void);
 const mb64_green_coin_config_t *mb64_green_coin_config(void);
 uint8_t mb64_badge_is_equipped(uint32_t equipped_badges, uint8_t badge_id);

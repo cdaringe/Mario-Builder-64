@@ -582,6 +582,15 @@ static void verify_showrunner_helpers(void) {
     expect_int("showrunner tennis parent no hit", mb64_showrunner_tennis_should_reset_parent(400.0f), 0);
     expect_int("showrunner tennis stun helper", mb64_showrunner_tennis_should_stun_parent(2, 5), 1);
     expect_int("showrunner tennis trail delete", mb64_showrunner_tennis_trail_should_delete(12), 1);
+    expect_int("showrunner phantasm release flame timer", mb64_showrunner_should_spawn_phantasm_release_flames(45), 1);
+    expect_int("showrunner no early phantasm release flames", mb64_showrunner_should_spawn_phantasm_release_flames(44), 0);
+    expect_int("showrunner flame count", config->phantasm_release_flame_count, 32);
+    expect_int("showrunner flame angle step", config->phantasm_release_flame_angle_step, 0x800);
+    expect_int("showrunner slow flame lifetime", mb64_showrunner_thwomp_flame_should_leave_exist(200, 0.0f), 0);
+    expect_int("showrunner slow flame expires", mb64_showrunner_thwomp_flame_should_leave_exist(201, 0.0f), 1);
+    expect_int("showrunner fast flame expires", mb64_showrunner_thwomp_flame_should_leave_exist(36, 30.0f), 1);
+    expect_int("showrunner flame delete", mb64_showrunner_thwomp_flame_should_delete(31), 1);
+    expect_float("showrunner flame half scale", mb64_showrunner_thwomp_flame_scale(15), 3.5f);
 }
 
 int main(void) {

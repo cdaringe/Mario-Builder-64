@@ -379,6 +379,18 @@ typedef struct {
     float delete_scale;
     int loot_coins;
     float death_barrier_drop_height;
+    int phantasm_release_flame_timer;
+    int phantasm_release_flame_count;
+    int phantasm_release_flame_angle_step;
+    float phantasm_release_flame_y_offset;
+    float phantasm_release_flame_forward_vel;
+    float thwomp_flame_medium_speed;
+    float thwomp_flame_fast_speed;
+    int thwomp_flame_slow_lifetime;
+    int thwomp_flame_medium_lifetime;
+    int thwomp_flame_fast_lifetime;
+    int thwomp_flame_shrink_timer;
+    float thwomp_flame_scale;
 } mb64_showrunner_config_t;
 
 typedef enum {
@@ -980,6 +992,7 @@ uint8_t mb64_showrunner_should_leave_damaged(int timer);
 uint8_t mb64_showrunner_should_drop_items(int timer);
 uint8_t mb64_showrunner_should_shrink(int timer);
 uint8_t mb64_showrunner_should_delete(float scale);
+uint8_t mb64_showrunner_should_spawn_phantasm_release_flames(int timer);
 uint8_t mb64_showrunner_spike_should_lock_to_mario(uint8_t already_close, float distance_to_mario);
 uint8_t mb64_showrunner_spike_should_leave_rumble(int timer);
 uint8_t mb64_showrunner_spike_should_finish_rising(float pos_y, float home_y);
@@ -989,6 +1002,9 @@ uint8_t mb64_showrunner_tennis_should_return_to_parent(uint8_t returning_to_pare
 uint8_t mb64_showrunner_tennis_should_reset_parent(float distance_to_parent);
 uint8_t mb64_showrunner_tennis_should_stun_parent(int parent_health, int tennis_damage);
 uint8_t mb64_showrunner_tennis_trail_should_delete(int opacity);
+uint8_t mb64_showrunner_thwomp_flame_should_leave_exist(int timer, float forward_vel);
+uint8_t mb64_showrunner_thwomp_flame_should_delete(int timer);
+float mb64_showrunner_thwomp_flame_scale(int timer);
 const mb64_motos_config_t *mb64_motos_config(void);
 uint8_t mb64_motos_should_search(float distance_to_mario);
 uint8_t mb64_motos_should_stop_searching(float distance_to_mario);

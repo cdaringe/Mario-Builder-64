@@ -311,6 +311,18 @@ static const mb64_showrunner_config_t s_showrunner_config = {
     0.1f,     /* delete below this scale */
     50,       /* loot coins */
     384.0f,   /* MB64_STAR_HEIGHT */
+    45,       /* phantasm-release flame spawn timer */
+    32,       /* phantasm-release flame count */
+    0x800,    /* phantasm-release flame angle step */
+    40.0f,    /* phantasm-release flame Y offset */
+    30.0f,    /* phantasm-release flame forward velocity */
+    4.0f,     /* thwomp flame medium lifetime speed threshold */
+    16.0f,    /* thwomp flame fast lifetime speed threshold */
+    200,      /* thwomp flame slow lifetime */
+    100,      /* thwomp flame medium lifetime */
+    35,       /* thwomp flame fast lifetime */
+    30,       /* thwomp flame shrink timer */
+    7.0f,     /* thwomp flame scale */
 };
 
 static const mb64_motos_config_t s_motos_config = {
@@ -836,6 +848,10 @@ uint8_t mb64_showrunner_should_delete(float scale) {
     return scale < s_showrunner_config.delete_scale;
 }
 
+uint8_t mb64_showrunner_should_spawn_phantasm_release_flames(int timer) {
+    return timer == s_showrunner_config.phantasm_release_flame_timer;
+}
+
 uint8_t mb64_showrunner_spike_should_lock_to_mario(uint8_t already_close, float distance_to_mario) {
     return !already_close && distance_to_mario < s_showrunner_config.spike_close_distance;
 }
@@ -871,6 +887,27 @@ uint8_t mb64_showrunner_tennis_should_stun_parent(int parent_health, int tennis_
 
 uint8_t mb64_showrunner_tennis_trail_should_delete(int opacity) {
     return opacity <= s_showrunner_config.tennis_trail_delete_opacity;
+}
+
+uint8_t mb64_showrunner_thwomp_flame_should_leave_exist(int timer, float forward_vel) {
+    int expire_timer = s_showrunner_config.thwomp_flame_slow_lifetime;
+    if (forward_vel > s_showrunner_config.thwomp_flame_medium_speed) {
+        expire_timer = s_showrunner_config.thwomp_flame_medium_lifetime;
+    }
+    if (forward_vel > s_showrunner_config.thwomp_flame_fast_speed) {
+        expire_timer = s_showrunner_config.thwomp_flame_fast_lifetime;
+    }
+    return timer > expire_timer;
+}
+
+uint8_t mb64_showrunner_thwomp_flame_should_delete(int timer) {
+    return timer > s_showrunner_config.thwomp_flame_shrink_timer;
+}
+
+float mb64_showrunner_thwomp_flame_scale(int timer) {
+    return s_showrunner_config.thwomp_flame_scale -
+        (s_showrunner_config.thwomp_flame_scale *
+         ((float) timer / (float) s_showrunner_config.thwomp_flame_shrink_timer));
 }
 
 const mb64_motos_config_t *mb64_motos_config(void) {

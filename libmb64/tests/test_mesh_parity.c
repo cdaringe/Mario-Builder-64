@@ -227,6 +227,14 @@ static void verify_woodplat_helpers(void) {
     expect_int("woodplat fat stacks within epsilon", mb64_woodplat_should_stack(1, 4.99f), 1);
     expect_int("woodplat fat does not stack at epsilon", mb64_woodplat_should_stack(1, 5.0f), 0);
     expect_int("woodplat thin does not stack", mb64_woodplat_should_stack(0, 0.0f), 0);
+    expect_int("woodplat simple walls normally enabled",
+               mb64_woodplat_should_use_simple_wall_checks(0, 0, 1), 1);
+    expect_int("woodplat simple walls stay enabled on flat conveyor",
+               mb64_woodplat_should_use_simple_wall_checks(1, 0, 1), 1);
+    expect_int("woodplat simple walls disabled on upward conveyor while grounded",
+               mb64_woodplat_should_use_simple_wall_checks(1, 1, 1), 0);
+    expect_int("woodplat simple walls enabled on upward conveyor while airborne",
+               mb64_woodplat_should_use_simple_wall_checks(1, 1, 0), 1);
 }
 
 static void verify_reinforced_box_helpers(void) {

@@ -239,8 +239,12 @@ static void verify_woodplat_helpers(void) {
 
 static void verify_reinforced_box_helpers(void) {
     const mb64_reinforced_box_config_t *config = mb64_reinforced_box_config();
+    const mb64_object_hitbox_t *hitbox = mb64_reinforced_box_hitbox();
 
     expect_float("rfbox break coin radius", config->break_coin_radius, 46.0f);
+    expect_int("rfbox hitbox radius", hitbox->radius, 150);
+    expect_int("rfbox hitbox height", hitbox->height, 200);
+    expect_int("rfbox hitbox health", hitbox->health, 1);
     expect_int("rfbox init timer", config->init_timer, 15);
     expect_int("rfbox no clank at cooldown", mb64_reinforced_box_should_clank(15), 0);
     expect_int("rfbox clank after cooldown", mb64_reinforced_box_should_clank(16), 1);
@@ -248,6 +252,18 @@ static void verify_reinforced_box_helpers(void) {
     expect_int("rfbox no shake at limit", mb64_reinforced_box_should_shake(10), 0);
     expect_float("rfbox negative shake edge", mb64_reinforced_box_shake_offset(0.0f), -3.0f);
     expect_float("rfbox positive shake edge", mb64_reinforced_box_shake_offset(1.0f), 3.0f);
+}
+
+static void verify_bullet_bill_helpers(void) {
+    const mb64_bullet_bill_config_t *config = mb64_bullet_bill_config();
+    const mb64_object_hitbox_t *hitbox = mb64_bullet_bill_hitbox();
+
+    expect_float("bullet bill wake min", config->wake_min_distance, 400.0f);
+    expect_int("bullet bill hitbox radius", hitbox->radius, 200);
+    expect_int("bullet bill hitbox down offset", hitbox->down_offset, 250);
+    expect_int("bullet bill hitbox damage", hitbox->damage_or_coin_value, 2);
+    expect_int("bullet bill no wake too close", mb64_bullet_bill_should_wake(0x1000, 399.0f), 0);
+    expect_int("bullet bill wakes in range", mb64_bullet_bill_should_wake(0x1000, 401.0f), 1);
 }
 
 static void verify_exclamation_box_helpers(void) {
@@ -677,8 +693,12 @@ static void verify_podoboo_helpers(void) {
 
 static void verify_pokey_helpers(void) {
     const mb64_pokey_config_t *config = mb64_pokey_config();
+    const mb64_object_hitbox_t *hitbox = mb64_pokey_body_part_hitbox();
 
     expect_int("pokey segment count", config->segment_count, 5);
+    expect_int("pokey body hitbox radius", hitbox->radius, 40);
+    expect_int("pokey body hurtbox radius", hitbox->hurtbox_radius, 42);
+    expect_int("pokey body hitbox damage", hitbox->damage_or_coin_value, 2);
     expect_int("pokey head index", config->head_part_index, 0);
     expect_float("pokey scale", config->scale, 3.0f);
     expect_float("pokey body step", config->body_step, 120.0f);
@@ -796,6 +816,7 @@ int main(void) {
     verify_shaped_tile_rotations();
     verify_woodplat_helpers();
     verify_reinforced_box_helpers();
+    verify_bullet_bill_helpers();
     verify_exclamation_box_helpers();
     verify_floor_switch_helpers();
     verify_conveyor_helpers();

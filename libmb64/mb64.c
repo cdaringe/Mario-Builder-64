@@ -176,6 +176,17 @@ static const mb64_bullet_bill_config_t s_bullet_bill_config = {
     0x100,   /* rotate_step */
 };
 
+static const mb64_object_hitbox_t s_bullet_bill_hitbox = {
+    2,   /* damageOrCoinValue */
+    0,   /* health */
+    0,   /* numLootCoins */
+    250, /* downOffset */
+    200, /* radius */
+    400, /* height */
+    0,   /* hurtboxRadius */
+    0,   /* hurtboxHeight */
+};
+
 static const mb64_reinforced_box_config_t s_reinforced_box_config = {
     46.0f, /* break_coin_radius */
     6.0f,  /* shake_amplitude */
@@ -183,6 +194,17 @@ static const mb64_reinforced_box_config_t s_reinforced_box_config = {
     15,    /* init_timer */
     10,    /* shake_timer_limit */
     15,    /* clank_cooldown_timer */
+};
+
+static const mb64_object_hitbox_t s_reinforced_box_hitbox = {
+    0,   /* damageOrCoinValue */
+    1,   /* health */
+    0,   /* numLootCoins */
+    20,  /* downOffset */
+    150, /* radius */
+    200, /* height */
+    150, /* hurtboxRadius */
+    200, /* hurtboxHeight */
 };
 
 static const mb64_exclamation_box_config_t s_exclamation_box_config = {
@@ -655,6 +677,17 @@ static const mb64_pokey_config_t s_pokey_config = {
     384,      /* star_drop_height */
 };
 
+static const mb64_object_hitbox_t s_pokey_body_part_hitbox = {
+    2,  /* damageOrCoinValue */
+    0,  /* health */
+    0,  /* numLootCoins */
+    10, /* downOffset */
+    40, /* radius */
+    30, /* height */
+    42, /* hurtboxRadius */
+    20, /* hurtboxHeight */
+};
+
 static float mb64_clampf(float value, float min, float max) {
     if (value < min) {
         return min;
@@ -740,6 +773,10 @@ const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void) {
     return &s_bullet_bill_config;
 }
 
+const mb64_object_hitbox_t *mb64_bullet_bill_hitbox(void) {
+    return &s_bullet_bill_hitbox;
+}
+
 uint8_t mb64_bullet_bill_should_wake(int angle_diff, float distance) {
     return angle_diff < s_bullet_bill_config.wake_angle_threshold &&
         s_bullet_bill_config.wake_min_distance < distance &&
@@ -778,6 +815,10 @@ uint8_t mb64_bullet_bill_should_reset_after_explosion(int timer) {
 
 const mb64_reinforced_box_config_t *mb64_reinforced_box_config(void) {
     return &s_reinforced_box_config;
+}
+
+const mb64_object_hitbox_t *mb64_reinforced_box_hitbox(void) {
+    return &s_reinforced_box_hitbox;
 }
 
 uint8_t mb64_reinforced_box_should_clank(int timer) {
@@ -1386,6 +1427,10 @@ uint8_t mb64_podoboo_should_launch(int timer) {
 
 const mb64_pokey_config_t *mb64_pokey_config(void) {
     return &s_pokey_config;
+}
+
+const mb64_object_hitbox_t *mb64_pokey_body_part_hitbox(void) {
+    return &s_pokey_body_part_hitbox;
 }
 
 uint32_t mb64_pokey_alive_flags(uint8_t segment_count) {

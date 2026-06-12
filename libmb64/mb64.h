@@ -1094,6 +1094,7 @@ uint8_t mb64_woodplat_should_use_simple_wall_checks(uint8_t floor_is_conveyor,
 uint8_t mb64_woodplat_should_die_on_death_barrier(uint8_t has_floor, uint8_t floor_is_death_plane,
                                                   float platform_y, float floor_y);
 const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void);
+const mb64_object_hitbox_t *mb64_bullet_bill_hitbox(void);
 uint8_t mb64_bullet_bill_should_wake(int angle_diff, float distance);
 float mb64_bullet_bill_forward_velocity(int timer, float launch_speed);
 uint8_t mb64_bullet_bill_should_launch(int timer);
@@ -1102,6 +1103,7 @@ uint8_t mb64_bullet_bill_should_rotate_toward_player(float distance);
 uint8_t mb64_bullet_bill_should_timeout(int timer);
 uint8_t mb64_bullet_bill_should_reset_after_explosion(int timer);
 const mb64_reinforced_box_config_t *mb64_reinforced_box_config(void);
+const mb64_object_hitbox_t *mb64_reinforced_box_hitbox(void);
 uint8_t mb64_reinforced_box_should_clank(int timer);
 uint8_t mb64_reinforced_box_should_shake(int timer);
 float mb64_reinforced_box_shake_offset(float random_unit);
@@ -1229,6 +1231,7 @@ uint8_t mb64_podoboo_should_reset_idle_timer(float distance_to_mario);
 uint8_t mb64_podoboo_should_spawn_warmup_flame(int timer);
 uint8_t mb64_podoboo_should_launch(int timer);
 const mb64_pokey_config_t *mb64_pokey_config(void);
+const mb64_object_hitbox_t *mb64_pokey_body_part_hitbox(void);
 uint32_t mb64_pokey_alive_flags(uint8_t segment_count);
 float mb64_pokey_part_spawn_y(uint8_t part_index);
 int mb64_pokey_part_offset_angle(uint8_t part_index, int timer);

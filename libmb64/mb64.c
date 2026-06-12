@@ -770,6 +770,57 @@ uint8_t mb64_hidden_box_should_blink(int hidden_box_timer) {
         (hidden_box_timer & 1);
 }
 
+uint8_t mb64_conveyor_shape(uint8_t bparam) {
+    return bparam & 0x3;
+}
+
+uint8_t mb64_conveyor_state(uint8_t bparam) {
+    return (bparam >> 2) & 0x3;
+}
+
+uint8_t mb64_conveyor_effective_shape(uint8_t bparam, uint8_t play_onoff) {
+    const uint8_t shape = mb64_conveyor_shape(bparam);
+    const uint8_t state = mb64_conveyor_state(bparam);
+
+    if (state == MB64_CONVEYOR_STATE_ALWAYS || shape < MB64_CONVEYOR_SHAPE_SLOPE) {
+        return shape;
+    }
+
+    if ((shape == MB64_CONVEYOR_SHAPE_SLOPE && play_onoff) ||
+        (shape == MB64_CONVEYOR_SHAPE_DOWNSLOPE && !play_onoff)) {
+        return MB64_CONVEYOR_SHAPE_DOWNSLOPE;
+    }
+
+    return MB64_CONVEYOR_SHAPE_SLOPE;
+}
+
+uint8_t mb64_conveyor_effective_bparam(uint8_t bparam, uint8_t play_onoff) {
+    return (bparam & (uint8_t) ~0x3) | mb64_conveyor_effective_shape(bparam, play_onoff);
+}
+
+uint8_t mb64_conveyor_has_vertical_push(uint8_t bparam, uint8_t play_onoff) {
+    if (mb64_conveyor_state(bparam) == MB64_CONVEYOR_STATE_ALWAYS) {
+        return mb64_conveyor_shape(bparam) >= MB64_CONVEYOR_SHAPE_SLOPE;
+    }
+
+    return mb64_conveyor_effective_shape(bparam, play_onoff) >= MB64_CONVEYOR_SHAPE_SLOPE;
+}
+
+int8_t mb64_conveyor_initial_vertical_push(uint8_t bparam) {
+    const uint8_t shape = mb64_conveyor_shape(bparam);
+    if (shape == MB64_CONVEYOR_SHAPE_SLOPE) {
+        return 1;
+    }
+    if (shape == MB64_CONVEYOR_SHAPE_DOWNSLOPE) {
+        return -1;
+    }
+    return 0;
+}
+
+uint8_t mb64_conveyor_should_flip_state(uint8_t anim_state, uint8_t play_onoff) {
+    return anim_state > MB64_CONVEYOR_STATE_ALWAYS && anim_state != (uint8_t) (play_onoff + 1);
+}
+
 const mb64_badge_config_t *mb64_badge_config(void) {
     return &s_badge_config;
 }

@@ -297,6 +297,28 @@ static void verify_floor_switch_helpers(void) {
     expect_int("hidden box no blink when inactive", mb64_hidden_box_should_blink(0), 0);
 }
 
+static void verify_conveyor_helpers(void) {
+    expect_int("conveyor half shape", mb64_conveyor_shape(0), MB64_CONVEYOR_SHAPE_HALF);
+    expect_int("conveyor flat shape", mb64_conveyor_shape(1), MB64_CONVEYOR_SHAPE_FLAT);
+    expect_int("conveyor slope shape", mb64_conveyor_shape(2), MB64_CONVEYOR_SHAPE_SLOPE);
+    expect_int("conveyor downslope shape", mb64_conveyor_shape(3), MB64_CONVEYOR_SHAPE_DOWNSLOPE);
+    expect_int("conveyor red state", mb64_conveyor_state(5), MB64_CONVEYOR_STATE_RED);
+    expect_int("conveyor blue state", mb64_conveyor_state(10), MB64_CONVEYOR_STATE_BLUE);
+    expect_int("conveyor inactive slope stays slope", mb64_conveyor_effective_shape(2, 0), MB64_CONVEYOR_SHAPE_SLOPE);
+    expect_int("conveyor active slope flips down", mb64_conveyor_effective_shape(6, 1), MB64_CONVEYOR_SHAPE_DOWNSLOPE);
+    expect_int("conveyor inactive downslope flips up", mb64_conveyor_effective_shape(7, 0), MB64_CONVEYOR_SHAPE_DOWNSLOPE);
+    expect_int("conveyor active downslope flips up", mb64_conveyor_effective_shape(7, 1), MB64_CONVEYOR_SHAPE_SLOPE);
+    expect_int("conveyor effective bparam preserves state bits", mb64_conveyor_effective_bparam(6, 1), 7);
+    expect_int("conveyor half has no vertical push", mb64_conveyor_has_vertical_push(0, 0), 0);
+    expect_int("conveyor slope has vertical push", mb64_conveyor_has_vertical_push(2, 0), 1);
+    expect_int("conveyor switched slope has vertical push", mb64_conveyor_has_vertical_push(6, 1), 1);
+    expect_int("conveyor initial slope push", mb64_conveyor_initial_vertical_push(2), 1);
+    expect_int("conveyor initial downslope push", mb64_conveyor_initial_vertical_push(3), -1);
+    expect_int("conveyor no flip when always active", mb64_conveyor_should_flip_state(0, 0), 0);
+    expect_int("conveyor no flip when state matches", mb64_conveyor_should_flip_state(1, 0), 0);
+    expect_int("conveyor flips when state changes", mb64_conveyor_should_flip_state(2, 0), 1);
+}
+
 static void verify_badge_helpers(void) {
     const mb64_badge_config_t *config = mb64_badge_config();
 
@@ -690,6 +712,7 @@ int main(void) {
     verify_reinforced_box_helpers();
     verify_exclamation_box_helpers();
     verify_floor_switch_helpers();
+    verify_conveyor_helpers();
     verify_badge_helpers();
     verify_green_coin_helpers();
     verify_powerup_helpers();

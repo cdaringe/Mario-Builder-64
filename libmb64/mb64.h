@@ -224,6 +224,19 @@ typedef struct {
     float press_radius;
 } mb64_floor_switch_config_t;
 
+enum {
+    MB64_CONVEYOR_SHAPE_HALF = 0,
+    MB64_CONVEYOR_SHAPE_FLAT = 1,
+    MB64_CONVEYOR_SHAPE_SLOPE = 2,
+    MB64_CONVEYOR_SHAPE_DOWNSLOPE = 3,
+};
+
+enum {
+    MB64_CONVEYOR_STATE_ALWAYS = 0,
+    MB64_CONVEYOR_STATE_RED = 1,
+    MB64_CONVEYOR_STATE_BLUE = 2,
+};
+
 typedef struct {
     int spin_accel;
     float shrink_factor;
@@ -1003,6 +1016,13 @@ uint8_t mb64_floor_switch_should_press(float lateral_distance);
 uint8_t mb64_floor_switch_scale_done(int timer);
 uint8_t mb64_floor_switch_should_timeout(int timer, uint8_t double_time_equipped);
 uint8_t mb64_hidden_box_should_blink(int hidden_box_timer);
+uint8_t mb64_conveyor_shape(uint8_t bparam);
+uint8_t mb64_conveyor_state(uint8_t bparam);
+uint8_t mb64_conveyor_effective_shape(uint8_t bparam, uint8_t play_onoff);
+uint8_t mb64_conveyor_effective_bparam(uint8_t bparam, uint8_t play_onoff);
+uint8_t mb64_conveyor_has_vertical_push(uint8_t bparam, uint8_t play_onoff);
+int8_t mb64_conveyor_initial_vertical_push(uint8_t bparam);
+uint8_t mb64_conveyor_should_flip_state(uint8_t anim_state, uint8_t play_onoff);
 const mb64_badge_config_t *mb64_badge_config(void);
 const mb64_green_coin_config_t *mb64_green_coin_config(void);
 uint8_t mb64_badge_is_equipped(uint32_t equipped_badges, uint8_t badge_id);

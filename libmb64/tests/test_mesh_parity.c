@@ -278,6 +278,18 @@ static void verify_goomba_helpers(void) {
                MB64_GOOMBA_SIZE_TINY);
 }
 
+static void verify_koopa_helpers(void) {
+    expect_int("koopa normal behavior param",
+               mb64_koopa_behavior_param_for_type(MB64_OBJECT_TYPE_KOOPA, 0),
+               MB64_KOOPA_BP_NORMAL);
+    expect_int("koopa the quick path zero stays authored",
+               mb64_koopa_behavior_param_for_type(MB64_OBJECT_TYPE_KOOPA_THE_QUICK, 0),
+               0);
+    expect_int("koopa the quick path one stays authored",
+               mb64_koopa_behavior_param_for_type(MB64_OBJECT_TYPE_KOOPA_THE_QUICK, 1),
+               1);
+}
+
 static void verify_bullet_bill_helpers(void) {
     const mb64_bullet_bill_config_t *config = mb64_bullet_bill_config();
     const mb64_object_hitbox_t *hitbox = mb64_bullet_bill_hitbox();
@@ -842,6 +854,7 @@ int main(void) {
     verify_reinforced_box_helpers();
     verify_fire_spinner_helpers();
     verify_goomba_helpers();
+    verify_koopa_helpers();
     verify_bullet_bill_helpers();
     verify_exclamation_box_helpers();
     verify_floor_switch_helpers();

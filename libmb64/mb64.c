@@ -862,6 +862,15 @@ uint8_t mb64_goomba_size_param_for_type(uint8_t object_type) {
     }
 }
 
+uint8_t mb64_koopa_behavior_param_for_type(uint8_t object_type, uint8_t authored_param) {
+    switch (object_type) {
+        case MB64_OBJECT_TYPE_KOOPA:
+            return MB64_KOOPA_BP_NORMAL;
+        default:
+            return authored_param;
+    }
+}
+
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void) {
     return &s_exclamation_box_config;
 }

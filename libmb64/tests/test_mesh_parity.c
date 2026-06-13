@@ -834,6 +834,61 @@ static void verify_showrunner_helpers(void) {
     expect_float("showrunner cosmic projectile speed", config->cosmic_projectile_forward_vel, 35.0f);
 }
 
+static void verify_level_size_boundary_helpers(void) {
+    mb64_level_t level;
+    mb64_mesh_t mesh;
+    mb64_tile_t tile;
+    memset(&level, 0, sizeof(level));
+    memset(&tile, 0, sizeof(tile));
+    level.header.tile_count = 1;
+    level.tiles = &tile;
+    tile.x = 32;
+    tile.y = 0;
+    tile.z = 32;
+    tile.type = TILE_TYPE_CULL;
+
+    level.header.level_size = 0;
+    expect_int("small level grid size", mb64_level_grid_size(&level), 32);
+    expect_int("small level grid min", mb64_level_grid_min(&level), 16);
+    level.header.level_size = 1;
+    expect_int("medium level grid size", mb64_level_grid_size(&level), 48);
+    expect_int("medium level grid min", mb64_level_grid_min(&level), 8);
+    level.header.level_size = 2;
+    expect_int("large level grid size", mb64_level_grid_size(&level), 64);
+    expect_int("large level grid min", mb64_level_grid_min(&level), 0);
+
+    memset(&mesh, 0, sizeof(mesh));
+    level.header.level_size = 1;
+    level.header.boundary = 1;
+    level.header.boundary_mat = 0;
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "medium boundary render mesh failed\n");
+        g_failures++;
+        return;
+    }
+    expect_int("medium boundary floor face count", (int)mesh.face_count, 16);
+    expect_vertex("medium inner boundary extent", mesh.faces[0].v[0], 384, 0, 384);
+    expect_vertex("medium outer boundary extent", mesh.faces[4].v[0], 576, 0, 384);
+    mb64_free_render_mesh(&mesh);
+
+    memset(&mesh, 0, sizeof(mesh));
+    level.header.boundary = 3;
+    level.header.boundary_height = 40;
+    if (!mb64_build_collision_mesh(&level, &mesh)) {
+        fprintf(stderr, "medium boundary wall collision mesh failed\n");
+        g_failures++;
+        return;
+    }
+    if (mesh.face_count < 13) {
+        fprintf(stderr, "medium boundary wall face count too small: %u\n", mesh.face_count);
+        g_failures++;
+    } else {
+        expect_vertex("medium wall boundary extent", mesh.faces[12].v[0], 384, 128, 0);
+        expect_int("medium wall boundary direction", mesh.faces[12].direction, MB64_MESH_FACE_NEG_X);
+    }
+    mb64_free_render_mesh(&mesh);
+}
+
 int main(void) {
     static const int16_t front0[4][3] = {
         { 0, 40, 0 }, { 0, 32, 0 }, { 16, 40, 0 }, { 16, 32, 0 },
@@ -891,6 +946,7 @@ int main(void) {
     verify_npc_helpers();
     verify_podoboo_helpers();
     verify_pokey_helpers();
+    verify_level_size_boundary_helpers();
 
     if (g_failures != 0) {
         fprintf(stderr, "mesh parity tests failed: %d\n", g_failures);

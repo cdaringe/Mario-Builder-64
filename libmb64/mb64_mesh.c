@@ -76,6 +76,10 @@ typedef struct {
     int8_t v[4][2];
 } mb64_boundary_floor_quad_t;
 
+typedef struct {
+    int8_t v[4][3];
+} mb64_boundary_wall_quad_t;
+
 
 
 static int solid_at(int x, int y, int z);
@@ -155,6 +159,22 @@ uint8_t mb64_mesh_face_has_terrain_collision(const mb64_mesh_face_t *face) {
 static int tile_is_water(const mb64_tile_t *t) {
     return tile_in_range(t) &&
            (t->type == TILE_TYPE_WATER || t->waterlogged);
+}
+
+uint8_t mb64_level_grid_size(const mb64_level_t *level) {
+    if (level == NULL) {
+        return MB64_GRID_SIZE;
+    }
+    switch (level->header.level_size) {
+        case 0: return 32;
+        case 1: return 48;
+        case 2: return 64;
+        default: return MB64_GRID_SIZE;
+    }
+}
+
+uint8_t mb64_level_grid_min(const mb64_level_t *level) {
+    return (uint8_t)((MB64_GRID_SIZE - mb64_level_grid_size(level)) / 2);
 }
 
 static int solid_at(int x, int y, int z) {
@@ -409,10 +429,11 @@ uint32_t mb64_build_death_plane_faces(const mb64_level_t *level,
         return 0;
     }
     const uint8_t flags = boundary_flags(level);
+    const int16_t levelGridSize = mb64_level_grid_size(level);
     const int16_t gridSize =
         (flags & (MB64_BOUNDARY_OUTER_FLOOR | MB64_BOUNDARY_CEILING))
-            ? MB64_GRID_SIZE
-            : MB64_GRID_SIZE + 16;
+            ? levelGridSize
+            : levelGridSize + 16;
     const int16_t extent = (int16_t)(gridSize * MB64_TILE_SUBUNITS / 2);
     const int16_t y = (int16_t)(MB64_DEATH_PLANE_GRID_Y * MB64_TILE_SUBUNITS);
     const mb64_boundary_face_t faces[MB64_DEATH_PLANE_FACE_COUNT] = {
@@ -440,6 +461,14 @@ static uint32_t boundary_floor_face_count(const mb64_level_t *level) {
     return count;
 }
 
+static uint32_t boundary_wall_face_count(const mb64_level_t *level) {
+    uint8_t flags = boundary_flags(level);
+    if (flags & (MB64_BOUNDARY_INNER_WALLS | MB64_BOUNDARY_OUTER_WALLS)) {
+        return (uint32_t)(sizeof(s_boundary_walls) / sizeof(s_boundary_walls[0]));
+    }
+    return 0;
+}
+
 static void emit_boundary_floor_face(mb64_mesh_t *mesh, uint32_t *idx,
                                      const mb64_level_t *level,
                                      const mb64_boundary_floor_quad_t *quad,
@@ -464,12 +493,65 @@ static void emit_boundary_floor_face(mb64_mesh_t *mesh, uint32_t *idx,
     face->tile_y = UINT8_MAX;
     face->tile_z = UINT8_MAX;
 
+    const int16_t gridScale = (int16_t)(mb64_level_grid_size(level) / 4);
     for (uint8_t i = 0; i < 4; i++) {
-        face->v[i][0] = (int16_t)(quad->v[i][0] * MB64_TILE_SUBUNITS);
+        face->v[i][0] = (int16_t)(quad->v[i][0] * gridScale);
         face->v[i][1] = y;
-        face->v[i][2] = (int16_t)(quad->v[i][1] * MB64_TILE_SUBUNITS);
+        face->v[i][2] = (int16_t)(quad->v[i][1] * gridScale);
         face->tc[i][0] = (int16_t)(quad->v[i][0] * 32);
         face->tc[i][1] = (int16_t)(quad->v[i][1] * 32);
+    }
+}
+
+static uint8_t boundary_wall_direction(const mb64_boundary_wall_quad_t *quad, uint8_t reverse) {
+    int8_t x = quad->v[0][0];
+    int8_t z = quad->v[0][2];
+    uint8_t sameX = 1;
+    uint8_t sameZ = 1;
+    for (uint8_t i = 1; i < 4; i++) {
+        if (quad->v[i][0] != x) { sameX = 0; }
+        if (quad->v[i][2] != z) { sameZ = 0; }
+    }
+    if (sameX) {
+        if (x >= 0) { return reverse ? MB64_MESH_FACE_POS_X : MB64_MESH_FACE_NEG_X; }
+        return reverse ? MB64_MESH_FACE_NEG_X : MB64_MESH_FACE_POS_X;
+    }
+    if (sameZ) {
+        if (z >= 0) { return reverse ? MB64_MESH_FACE_POS_Z : MB64_MESH_FACE_NEG_Z; }
+        return reverse ? MB64_MESH_FACE_NEG_Z : MB64_MESH_FACE_POS_Z;
+    }
+    return MB64_MESH_FACE_POS_X;
+}
+
+static void emit_boundary_wall_face(mb64_mesh_t *mesh, uint32_t *idx,
+                                    const mb64_level_t *level,
+                                    const mb64_boundary_wall_quad_t *quad,
+                                    int16_t y_bottom, int16_t y_top, uint8_t reverse) {
+    mb64_mesh_face_t *face = &mesh->faces[(*idx)++];
+    mb64_tile_t material_tile;
+    memset(&material_tile, 0, sizeof(material_tile));
+    material_tile.mat = level->header.boundary_mat;
+
+    face->material = material_tile.mat;
+    face->resolved_material = mb64_resolve_tile_material(level, &material_tile, 0);
+    face->tile_type = 0;
+    face->direction = boundary_wall_direction(quad, reverse);
+    face->is_water = 0;
+    face->vertex_count = 4;
+    face->use_tc = 1;
+    face->tile_x = UINT8_MAX;
+    face->tile_y = UINT8_MAX;
+    face->tile_z = UINT8_MAX;
+
+    const int16_t gridScale = (int16_t)(mb64_level_grid_size(level) / 4);
+    const int16_t yHeight = (int16_t)(y_top - y_bottom);
+    for (uint8_t i = 0; i < 4; i++) {
+        const uint8_t src = reverse ? (uint8_t)((i == 1) ? 2 : (i == 2) ? 1 : i) : i;
+        face->v[i][0] = (int16_t)(quad->v[src][0] * gridScale);
+        face->v[i][1] = (int16_t)((quad->v[src][1] * yHeight + y_bottom) * MB64_TILE_SUBUNITS);
+        face->v[i][2] = (int16_t)(quad->v[src][2] * gridScale);
+        face->tc[i][0] = (int16_t)(quad->v[src][0] * 32);
+        face->tc[i][1] = (int16_t)((quad->v[src][1] * yHeight + y_bottom) * 32);
     }
 }
 
@@ -490,6 +572,22 @@ static void emit_boundary_floor_faces(mb64_mesh_t *mesh, uint32_t *idx,
         int16_t y = (int16_t)(level->header.boundary_height * MB64_TILE_SUBUNITS);
         for (uint32_t i = 0; i < (uint32_t)(sizeof(s_boundary_inner_floor) / sizeof(s_boundary_inner_floor[0])); i++) {
             emit_boundary_floor_face(mesh, idx, level, &s_boundary_inner_floor[i], y, MB64_MESH_FACE_BOTTOM);
+        }
+    }
+}
+
+static void emit_boundary_wall_faces(mb64_mesh_t *mesh, uint32_t *idx,
+                                     const mb64_level_t *level) {
+    const uint8_t flags = boundary_flags(level);
+    if (flags & MB64_BOUNDARY_INNER_WALLS) {
+        const int16_t bottomY = (flags & MB64_BOUNDARY_INNER_FLOOR) ? -32 : -40;
+        const int16_t topY = (int16_t)level->header.boundary_height - 32;
+        for (uint32_t i = 0; i < (uint32_t)(sizeof(s_boundary_walls) / sizeof(s_boundary_walls[0])); i++) {
+            emit_boundary_wall_face(mesh, idx, level, &s_boundary_walls[i], bottomY, topY, 0);
+        }
+    } else if (flags & MB64_BOUNDARY_OUTER_WALLS) {
+        for (uint32_t i = 0; i < (uint32_t)(sizeof(s_boundary_walls) / sizeof(s_boundary_walls[0])); i++) {
+            emit_boundary_wall_face(mesh, idx, level, &s_boundary_walls[i], -42, -32, 1);
         }
     }
 }
@@ -973,6 +1071,7 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
         if (!full_face_is_occluded(level, t, MB64_MESH_FACE_POS_Z, tx, ty, tz + 1, collision_mesh)) { face_count++; }
     }
     face_count += boundary_floor_face_count(level);
+    face_count += boundary_wall_face_count(level);
 
     if (face_count == 0) { return 0; }
     mesh->faces = calloc(face_count, sizeof(*mesh->faces));
@@ -984,6 +1083,7 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
 
     uint32_t out = 0;
     emit_boundary_floor_faces(mesh, &out, level);
+    emit_boundary_wall_faces(mesh, &out, level);
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
         if (!(collision_mesh ? mb64_tile_has_terrain_collision(t) : tile_is_solid(t))) { continue; }

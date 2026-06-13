@@ -248,6 +248,19 @@ def parse_boundary_quads(boundary_text: str, name: str) -> list[list[tuple[int, 
     return quads
 
 
+def parse_boundary_wall_quads(boundary_text: str, name: str) -> list[list[tuple[int, int, int]]]:
+    body = extract_initializer(boundary_text, f"struct mb64_boundary_quad {name}[]")
+    quads: list[list[tuple[int, int, int]]] = []
+    for raw_entry in split_top_level(clean_initializer(body)):
+        fields = split_top_level(unwrap_braces(raw_entry))
+        vertex_fields = split_top_level(unwrap_braces(fields[0]))
+        quad: list[tuple[int, int, int]] = []
+        for vertex in vertex_fields:
+            quad.append(parse_vertex(vertex))
+        quads.append(quad)
+    return quads
+
+
 def parse_boundary_table(data_text: str) -> list[str]:
     body = extract_initializer(data_text, "u8 mb64_boundary_table[]")
     entries: list[str] = []
@@ -320,6 +333,12 @@ def main() -> int:
             verts = ", ".join(f"{{{x:3d}, {z:3d}}}" for x, z in quad)
             lines.append(f"    {{{{{verts}}}}},")
         lines.extend(["};", ""])
+
+    lines.append("static const mb64_boundary_wall_quad_t s_boundary_walls[] = {")
+    for quad in parse_boundary_wall_quads(boundary_text, "wall_boundary"):
+        verts = ", ".join(f"{{{x:3d}, {y:2d}, {z:3d}}}" for x, y, z in quad)
+        lines.append(f"    {{{{{verts}}}}},")
+    lines.extend(["};", ""])
 
     all_shape_entries = {**shape_entries, **collision_shape_entries}
     for name in sorted(all_shape_entries):

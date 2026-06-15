@@ -37,6 +37,17 @@ static void expect_vertex(const char *label,
     }
 }
 
+static void expect_texcoord(const char *label,
+                            const int16_t actual[2],
+                            int16_t u,
+                            int16_t v) {
+    if (actual[0] != u || actual[1] != v) {
+        fprintf(stderr, "%s: expected (%d,%d), got (%d,%d)\n",
+                label, u, v, actual[0], actual[1]);
+        g_failures++;
+    }
+}
+
 static void set_level(mb64_level_t *level, mb64_tile_t *tile, uint8_t rot) {
     memset(level, 0, sizeof(*level));
     memset(tile, 0, sizeof(*tile));
@@ -125,12 +136,50 @@ static void verify_fence_rotation(uint8_t rot,
         expect_int("back material", mesh.faces[1].resolved_material, MB64_RENDER_MATERIAL_FENCE);
         expect_int("front direction", mesh.faces[0].direction, front_dir);
         expect_int("back direction", mesh.faces[1].direction, back_dir);
+        expect_int("front uses explicit fence texture coordinates", mesh.faces[0].use_tc, 1);
+        expect_int("back uses explicit fence texture coordinates", mesh.faces[1].use_tc, 1);
         for (int i = 0; i < 4; i++) {
+            static const int16_t expected_tc[4][2] = {
+                { 7152, -16 }, { 7152, 1008 }, { 9200, -16 }, { 9200, 1008 },
+            };
             snprintf(label, sizeof(label), "rot %u front v%d", rot, i);
             expect_vertex(label, mesh.faces[0].v[i], front[i][0], front[i][1], front[i][2]);
             snprintf(label, sizeof(label), "rot %u back v%d", rot, i);
             expect_vertex(label, mesh.faces[1].v[i], back[i][0], back[i][1], back[i][2]);
+            snprintf(label, sizeof(label), "rot %u front tc%d", rot, i);
+            expect_texcoord(label, mesh.faces[0].tc[i], expected_tc[i][0], expected_tc[i][1]);
+            snprintf(label, sizeof(label), "rot %u back tc%d", rot, i);
+            expect_texcoord(label, mesh.faces[1].tc[i], expected_tc[i][0], expected_tc[i][1]);
         }
+    }
+
+    mb64_free_render_mesh(&mesh);
+}
+
+static void verify_adjacent_fence_uv_phase(void) {
+    mb64_level_t level;
+    mb64_tile_t tiles[2];
+    mb64_mesh_t mesh = { 0 };
+
+    set_level(&level, &tiles[0], 0);
+    tiles[1] = tiles[0];
+    tiles[1].x = (uint8_t)(tiles[0].x + 1);
+    level.header.tile_count = 2;
+    level.tiles = tiles;
+
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "adjacent fence uv phase: mb64_build_render_mesh failed\n");
+        g_failures++;
+        return;
+    }
+
+    expect_int("adjacent fence face count", (int)mesh.face_count, 4);
+    if (mesh.face_count >= 4) {
+        expect_int("adjacent fence tile 0 face material", mesh.faces[0].resolved_material, MB64_RENDER_MATERIAL_FENCE);
+        expect_int("adjacent fence tile 1 face material", mesh.faces[2].resolved_material, MB64_RENDER_MATERIAL_FENCE);
+        expect_int("adjacent fence tile 0 explicit tc", mesh.faces[0].use_tc, 1);
+        expect_int("adjacent fence tile 1 explicit tc", mesh.faces[2].use_tc, 1);
+        expect_int("adjacent fence u phase", mesh.faces[2].tc[0][0] - mesh.faces[0].tc[0][0], 2048);
     }
 
     mb64_free_render_mesh(&mesh);
@@ -919,6 +968,7 @@ int main(void) {
     verify_fence_rotation(1, MB64_MESH_FACE_POS_X, MB64_MESH_FACE_NEG_X, front1, back1);
     verify_fence_rotation(2, MB64_MESH_FACE_NEG_Z, MB64_MESH_FACE_POS_Z, front2, back2);
     verify_fence_rotation(3, MB64_MESH_FACE_NEG_X, MB64_MESH_FACE_POS_X, front3, back3);
+    verify_adjacent_fence_uv_phase();
     verify_shaped_tile_rotations();
     verify_woodplat_helpers();
     verify_looping_platform_helpers();

@@ -1085,6 +1085,38 @@ int mb64_find_water_column_top(const mb64_level_t *level,
                                int *out_top_grid_y);
 
 /**
+ * mb64_find_water_surface() - MB64's water lookup plus surface shape.
+ *
+ * Mirrors mb64_get_water_level() from the MB64 runtime: first find the local
+ * Y-aware water column, then report whether that water surface is a full block
+ * surface or the usual shallow water face. Consumers keep their own world-unit
+ * conversion but must use this to avoid reimplementing MB64 shape/material
+ * rules.
+ */
+int mb64_find_water_surface(const mb64_level_t *level,
+                            int grid_x,
+                            int grid_y,
+                            int grid_z,
+                            int *out_top_grid_y,
+                            int *out_fullblock);
+
+/**
+ * mb64_find_water_query_surface() - Gameplay-safe water lookup.
+ *
+ * Use this for Mario/object water checks with a real query Y. If the query
+ * cell itself contains water, the returned surface belongs to that cell rather
+ * than the top of a taller contiguous stack. This prevents side-entry into a
+ * lower water block from snapping gameplay to an upper stacked water surface.
+ * If the query cell is not water, this falls back to mb64_find_water_surface().
+ */
+int mb64_find_water_query_surface(const mb64_level_t *level,
+                                  int grid_x,
+                                  int grid_y,
+                                  int grid_z,
+                                  int *out_surface_grid_y,
+                                  int *out_fullblock);
+
+/**
  * mb64_theme_specials_for_level() - Return MB64 special material ids.
  *
  * Regular tile materials resolve through mb64_resolve_tile_material(); fences,

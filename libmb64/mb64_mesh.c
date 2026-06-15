@@ -83,6 +83,7 @@ typedef struct {
 
 
 static int solid_at(int x, int y, int z);
+static uint8_t rotate_direction(uint8_t direction, uint8_t rot);
 
 typedef struct {
     int8_t v[4][3];
@@ -213,6 +214,49 @@ static int level_water_at(const mb64_level_t *level, int x, int y, int z) {
     return tile_is_water(find_level_tile(level, x, y, z));
 }
 
+static int mb64_level_faceshape_at(const mb64_level_t *level,
+                                   int x,
+                                   int y,
+                                   int z,
+                                   uint8_t direction) {
+    const mb64_tile_t *tile = find_level_tile(level, x, y, z);
+    const mb64_shape_t *shape = shape_for_tile(tile, 0);
+    if (shape == NULL) {
+        return tile_is_solid(tile) ? MB64_FACESHAPE_FULL : MB64_FACESHAPE_EMPTY;
+    }
+
+    uint8_t local_dir = (uint8_t)(rotate_direction(direction, (uint8_t)((4 - (tile->rot & 3)) & 3)) ^ 1);
+    for (uint8_t i = 0; i < shape->face_count; i++) {
+        if (shape->faces[i].direction == local_dir) {
+            return shape->faces[i].faceshape;
+        }
+    }
+    return MB64_FACESHAPE_EMPTY;
+}
+
+static int mb64_water_surface_is_fullblock(const mb64_level_t *level,
+                                           int grid_x,
+                                           int grid_y,
+                                           int grid_z) {
+    const mb64_tile_t *tile = find_level_tile(level, grid_x, grid_y, grid_z);
+    const mb64_tile_t *above = find_level_tile(level, grid_x, grid_y + 1, grid_z);
+
+    if (tile == NULL) {
+        return 0;
+    }
+    if (tile_is_water(above)) {
+        return 1;
+    }
+    if (above == NULL || mb64_level_faceshape_at(level, grid_x, grid_y + 1, grid_z,
+                                                MB64_MESH_FACE_TOP) != MB64_FACESHAPE_FULL) {
+        return 0;
+    }
+    if (tile->type == TILE_TYPE_TROLL && above->type == TILE_TYPE_TROLL) {
+        return 0;
+    }
+    return mb64_tile_occludes_face(level, tile, above, MB64_MESH_FACE_TOP) ? 1 : 0;
+}
+
 int mb64_find_water_column_top(const mb64_level_t *level,
                                int grid_x,
                                int grid_y,
@@ -254,6 +298,64 @@ int mb64_find_water_column_top(const mb64_level_t *level,
         *out_top_grid_y = grid_y;
     }
     return 1;
+}
+
+int mb64_find_water_surface(const mb64_level_t *level,
+                            int grid_x,
+                            int grid_y,
+                            int grid_z,
+                            int *out_top_grid_y,
+                            int *out_fullblock) {
+    int top_grid_y = -1;
+    if (out_top_grid_y != NULL) {
+        *out_top_grid_y = -1;
+    }
+    if (out_fullblock != NULL) {
+        *out_fullblock = 0;
+    }
+    if (!mb64_find_water_column_top(level, grid_x, grid_y, grid_z, &top_grid_y)) {
+        return 0;
+    }
+    if (out_top_grid_y != NULL) {
+        *out_top_grid_y = top_grid_y;
+    }
+    if (out_fullblock != NULL) {
+        *out_fullblock = mb64_water_surface_is_fullblock(level, grid_x, top_grid_y, grid_z);
+    }
+    return 1;
+}
+
+int mb64_find_water_query_surface(const mb64_level_t *level,
+                                  int grid_x,
+                                  int grid_y,
+                                  int grid_z,
+                                  int *out_surface_grid_y,
+                                  int *out_fullblock) {
+    if (out_surface_grid_y != NULL) {
+        *out_surface_grid_y = -1;
+    }
+    if (out_fullblock != NULL) {
+        *out_fullblock = 0;
+    }
+
+    if (level == NULL || level->tiles == NULL ||
+        grid_x < 0 || grid_x >= MB64_GRID_SIZE ||
+        grid_y < 0 || grid_y >= MB64_GRID_SIZE ||
+        grid_z < 0 || grid_z >= MB64_GRID_SIZE) {
+        return 0;
+    }
+
+    if (level_water_at(level, grid_x, grid_y, grid_z)) {
+        if (out_surface_grid_y != NULL) {
+            *out_surface_grid_y = grid_y;
+        }
+        if (out_fullblock != NULL) {
+            *out_fullblock = mb64_water_surface_is_fullblock(level, grid_x, grid_y, grid_z);
+        }
+        return 1;
+    }
+
+    return mb64_find_water_surface(level, grid_x, grid_y, grid_z, out_surface_grid_y, out_fullblock);
 }
 
 uint8_t mb64_resolve_tile_material(const mb64_level_t *level,

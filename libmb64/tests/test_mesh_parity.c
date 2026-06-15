@@ -185,6 +185,45 @@ static void verify_adjacent_fence_uv_phase(void) {
     mb64_free_render_mesh(&mesh);
 }
 
+static void verify_bars_match_mb64_connection_rendering(void) {
+    mb64_level_t level;
+    mb64_tile_t tile;
+    mb64_mesh_t mesh = { 0 };
+
+    set_tile_level(&level, &tile, TILE_TYPE_BARS, 0);
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "isolated bars: mb64_build_render_mesh failed\n");
+        g_failures++;
+        return;
+    }
+    expect_int("isolated bars face count", (int)mesh.face_count, 6);
+    if (mesh.face_count == 6) {
+        expect_int("isolated bars side material", mesh.faces[0].resolved_material, MB64_RENDER_MATERIAL_BARS);
+        expect_int("isolated bars top material", mesh.faces[4].resolved_material, MB64_RENDER_MATERIAL_BARS_TOP);
+        expect_int("isolated bars bottom material", mesh.faces[5].resolved_material, MB64_RENDER_MATERIAL_BARS_TOP);
+    }
+    mb64_free_render_mesh(&mesh);
+
+    mb64_tile_t tiles[2];
+    set_tile_level(&level, &tiles[0], TILE_TYPE_BARS, 0);
+    tiles[1] = tiles[0];
+    tiles[1].z = (uint8_t)(tiles[0].z + 1);
+    level.header.tile_count = 2;
+    level.tiles = tiles;
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "connected bars: mb64_build_render_mesh failed\n");
+        g_failures++;
+        return;
+    }
+    expect_int("connected bars face count", (int)mesh.face_count, 18);
+    if (mesh.face_count >= 4) {
+        expect_int("connected bars first face direction", mesh.faces[0].direction, MB64_MESH_FACE_NEG_X);
+        expect_int("connected bars second face direction", mesh.faces[1].direction, MB64_MESH_FACE_POS_X);
+        expect_int("connected bars connected side material", mesh.faces[0].resolved_material, MB64_RENDER_MATERIAL_BARS);
+    }
+    mb64_free_render_mesh(&mesh);
+}
+
 static void verify_shaped_tile_rotation(uint8_t type, uint8_t rot) {
     mb64_level_t base_level;
     mb64_level_t rotated_level;
@@ -969,6 +1008,7 @@ int main(void) {
     verify_fence_rotation(2, MB64_MESH_FACE_NEG_Z, MB64_MESH_FACE_POS_Z, front2, back2);
     verify_fence_rotation(3, MB64_MESH_FACE_NEG_X, MB64_MESH_FACE_POS_X, front3, back3);
     verify_adjacent_fence_uv_phase();
+    verify_bars_match_mb64_connection_rendering();
     verify_shaped_tile_rotations();
     verify_woodplat_helpers();
     verify_looping_platform_helpers();

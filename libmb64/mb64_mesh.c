@@ -19,6 +19,10 @@
 #define MB64_BOUNDARY_OUTER_WALLS (1 << 3)
 #define MB64_BOUNDARY_CEILING     (1 << 4)
 
+#define BAR_CONNECTED_SIDE(flags)   ((flags) & 1)
+#define BAR_CONNECTED_TOP(flags)    ((flags) & 2)
+#define BAR_CONNECTED_BOTTOM(flags) ((flags) & 4)
+
 enum {
     MAT_OPAQUE = 0,
     MAT_DECAL,
@@ -101,6 +105,11 @@ typedef struct {
 } mb64_shape_t;
 
 static const mb64_shape_t *shape_for_tile(const mb64_tile_t *t, int collision_mesh);
+static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
+                            const mb64_level_t *level,
+                            const mb64_tile_t *t,
+                            const mb64_shape_face_t *src,
+                            int collision_mesh);
 
 #define Q(dir, faceshape, growth, has_alt, alt, ...) { { __VA_ARGS__ }, dir, faceshape, 4, growth, has_alt, alt }
 #define T(dir, faceshape, growth, has_alt, alt, ...) { { __VA_ARGS__, {0,0,0} }, dir, faceshape, 3, growth, has_alt, alt }
@@ -184,6 +193,14 @@ static int solid_at(int x, int y, int z) {
         return 0;
     }
     return s_solid_grid[z][y][x] != 0;
+}
+
+static int coords_in_level_range(const mb64_level_t *level, int x, int y, int z) {
+    const int grid_min = mb64_level_grid_min(level);
+    const int grid_max = grid_min + mb64_level_grid_size(level) - 1;
+    return x >= grid_min && x <= grid_max &&
+           y >= 0 && y < MB64_GRID_SIZE &&
+           z >= grid_min && z <= grid_max;
 }
 
 static int water_at(int x, int y, int z) {
@@ -1121,6 +1138,180 @@ static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     }
 }
 
+static void bar_direction_offset(uint8_t direction, int *dx, int *dy, int *dz) {
+    *dx = 0;
+    *dy = 0;
+    *dz = 0;
+    switch (direction) {
+        case MB64_MESH_FACE_TOP: *dy = 1; break;
+        case MB64_MESH_FACE_BOTTOM: *dy = -1; break;
+        case MB64_MESH_FACE_POS_X: *dx = 1; break;
+        case MB64_MESH_FACE_NEG_X: *dx = -1; break;
+        case MB64_MESH_FACE_POS_Z: *dz = 1; break;
+        case MB64_MESH_FACE_NEG_Z: *dz = -1; break;
+        default: break;
+    }
+}
+
+static void check_bar_side_connections(const mb64_level_t *level,
+                                       const mb64_tile_t *t,
+                                       uint8_t connections[5],
+                                       int collision_mesh) {
+    for (uint8_t rot = 0; rot < 4; rot++) {
+        int dx, dy, dz;
+        const uint8_t dir = rotate_direction(MB64_MESH_FACE_POS_Z, rot);
+        bar_direction_offset(dir, &dx, &dy, &dz);
+        const int ax = (int)t->x + dx;
+        const int ay = (int)t->y + dy;
+        const int az = (int)t->z + dz;
+        if (!coords_in_level_range(level, ax, ay, az)) {
+            if ((level->header.boundary & MB64_BOUNDARY_INNER_WALLS) &&
+                ay < level->header.boundary_height) {
+                connections[rot] = 1;
+            }
+            continue;
+        }
+        const mb64_tile_t *adj = tile_at(ax, ay, az);
+        if (adj != NULL && adj->type == TILE_TYPE_BARS) {
+            connections[rot] = 1;
+            continue;
+        }
+        if (faceshape_at(ax, ay, az, dir, collision_mesh) == MB64_FACESHAPE_FULL ||
+            (adj != NULL && adj->type == TILE_TYPE_CULL)) {
+            connections[rot] = 1;
+        }
+    }
+}
+
+static void check_bar_connections(const mb64_level_t *level,
+                                  const mb64_tile_t *t,
+                                  uint8_t connections[5],
+                                  int collision_mesh) {
+    memset(connections, 0, 5);
+    check_bar_side_connections(level, t, connections, collision_mesh);
+    connections[4] = 0;
+    for (uint8_t updown = 0; updown < 2; updown++) {
+        int dx, dy, dz;
+        uint8_t adjacent_connections[5] = {0};
+        bar_direction_offset(updown == 0 ? MB64_MESH_FACE_TOP : MB64_MESH_FACE_BOTTOM,
+                             &dx, &dy, &dz);
+        const int ax = (int)t->x + dx;
+        const int ay = (int)t->y + dy;
+        const int az = (int)t->z + dz;
+        if (!coords_in_level_range(level, ax, ay, az)) {
+            continue;
+        }
+        const mb64_tile_t *adj = tile_at(ax, ay, az);
+        const uint8_t faceshape = faceshape_at(ax, ay, az, updown, collision_mesh);
+        if (faceshape == MB64_FACESHAPE_FULL ||
+            (adj != NULL && adj->type == TILE_TYPE_CULL)) {
+            for (uint8_t rot = 0; rot < 4; rot++) {
+                connections[rot] |= (uint8_t)(1 << (updown + 1));
+            }
+            connections[4] |= (uint8_t)(1 << (updown + 1));
+        } else if (faceshape == MB64_FACESHAPE_TOPHALF && adj != NULL) {
+            connections[(adj->rot + 2) & 3] |= (uint8_t)(1 << (updown + 1));
+        } else if (adj != NULL && adj->type == TILE_TYPE_BARS) {
+            check_bar_side_connections(level, adj, adjacent_connections, collision_mesh);
+            for (uint8_t rot = 0; rot < 4; rot++) {
+                connections[rot] |= (uint8_t)(adjacent_connections[rot] << (updown + 1));
+            }
+            connections[4] |= (uint8_t)(1 << (updown + 1));
+        }
+    }
+    if (t->y == 0 && (level->header.boundary & MB64_BOUNDARY_INNER_FLOOR)) {
+        for (uint8_t rot = 0; rot < 5; rot++) {
+            connections[rot] |= 4;
+        }
+    }
+    if ((level->header.boundary & MB64_BOUNDARY_CEILING) &&
+        t->y == (uint8_t)(level->header.boundary_height - 1)) {
+        for (uint8_t rot = 0; rot < 5; rot++) {
+            connections[rot] |= 2;
+        }
+    }
+}
+
+static uint8_t bars_emitted_face_count(const mb64_level_t *level,
+                                       const mb64_tile_t *t,
+                                       int collision_mesh) {
+    uint8_t connections[5];
+    uint8_t count = 0;
+    check_bar_connections(level, t, connections, collision_mesh);
+    for (uint8_t rot = 0; rot < 4; rot++) {
+        const uint8_t left_rot = (rot + 3) & 3;
+        const uint8_t right_rot = (rot + 1) & 3;
+        if (BAR_CONNECTED_SIDE(connections[rot])) {
+            count += 2;
+        }
+        if (!BAR_CONNECTED_SIDE(connections[rot]) ||
+            (BAR_CONNECTED_SIDE(connections[left_rot]) &&
+             BAR_CONNECTED_SIDE(connections[right_rot]))) {
+            count++;
+        }
+    }
+    for (uint8_t rot = 0; rot < 4; rot++) {
+        if (BAR_CONNECTED_SIDE(connections[rot])) {
+            if (!BAR_CONNECTED_TOP(connections[rot])) {
+                count++;
+            }
+            if (!BAR_CONNECTED_BOTTOM(connections[rot])) {
+                count++;
+            }
+        }
+    }
+    if (!BAR_CONNECTED_TOP(connections[4])) {
+        count++;
+    }
+    if (!BAR_CONNECTED_BOTTOM(connections[4])) {
+        count++;
+    }
+    return count;
+}
+
+static void emit_bars_faces(mb64_mesh_t *mesh,
+                            uint32_t *idx,
+                            const mb64_level_t *level,
+                            const mb64_tile_t *t,
+                            const mb64_shape_t *shape,
+                            int collision_mesh) {
+    uint8_t connections[5];
+    check_bar_connections(level, t, connections, collision_mesh);
+    for (uint8_t rot = 0; rot < 4; rot++) {
+        mb64_tile_t rotated = *t;
+        const uint8_t left_rot = (rot + 3) & 3;
+        const uint8_t right_rot = (rot + 1) & 3;
+        rotated.rot = rot;
+        if (BAR_CONNECTED_SIDE(connections[rot])) {
+            emit_shape_face(mesh, idx, level, &rotated, &shape->faces[1], collision_mesh);
+            emit_shape_face(mesh, idx, level, &rotated, &shape->faces[2], collision_mesh);
+        }
+        if (!BAR_CONNECTED_SIDE(connections[rot]) ||
+            (BAR_CONNECTED_SIDE(connections[left_rot]) &&
+             BAR_CONNECTED_SIDE(connections[right_rot]))) {
+            emit_shape_face(mesh, idx, level, &rotated, &shape->faces[0], collision_mesh);
+        }
+    }
+    for (uint8_t rot = 0; rot < 4; rot++) {
+        if (BAR_CONNECTED_SIDE(connections[rot])) {
+            mb64_tile_t rotated = *t;
+            rotated.rot = rot;
+            if (!BAR_CONNECTED_TOP(connections[rot])) {
+                emit_shape_face(mesh, idx, level, &rotated, &shape->faces[3], collision_mesh);
+            }
+            if (!BAR_CONNECTED_BOTTOM(connections[rot])) {
+                emit_shape_face(mesh, idx, level, &rotated, &shape->faces[4], collision_mesh);
+            }
+        }
+    }
+    if (!BAR_CONNECTED_TOP(connections[4])) {
+        emit_shape_face(mesh, idx, level, t, &shape->faces[5], collision_mesh);
+    }
+    if (!BAR_CONNECTED_BOTTOM(connections[4])) {
+        emit_shape_face(mesh, idx, level, t, &shape->faces[6], collision_mesh);
+    }
+}
+
 static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int collision_mesh) {
     if (mesh == NULL) { return 0; }
     memset(mesh, 0, sizeof(*mesh));
@@ -1161,7 +1352,9 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
         if (!(collision_mesh ? mb64_tile_has_terrain_collision(t) : tile_is_solid(t))) { continue; }
         const mb64_shape_t *shape = shape_for_tile(t, collision_mesh);
         if (tile_uses_shaped_mesh(t, collision_mesh) && shape != NULL) {
-            face_count += shape->face_count;
+            face_count += t->type == TILE_TYPE_BARS
+                ? bars_emitted_face_count(level, t, collision_mesh)
+                : shape->face_count;
             continue;
         }
         int tx = t->x, ty = t->y, tz = t->z;
@@ -1191,8 +1384,12 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
         if (!(collision_mesh ? mb64_tile_has_terrain_collision(t) : tile_is_solid(t))) { continue; }
         const mb64_shape_t *shape = shape_for_tile(t, collision_mesh);
         if (tile_uses_shaped_mesh(t, collision_mesh) && shape != NULL) {
-            for (uint8_t j = 0; j < shape->face_count; j++) {
-                emit_shape_face(mesh, &out, level, t, &shape->faces[j], collision_mesh);
+            if (t->type == TILE_TYPE_BARS) {
+                emit_bars_faces(mesh, &out, level, t, shape, collision_mesh);
+            } else {
+                for (uint8_t j = 0; j < shape->face_count; j++) {
+                    emit_shape_face(mesh, &out, level, t, &shape->faces[j], collision_mesh);
+                }
             }
             continue;
         }

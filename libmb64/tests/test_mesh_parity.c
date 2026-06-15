@@ -201,6 +201,9 @@ static void verify_bars_match_mb64_connection_rendering(void) {
         expect_int("isolated bars side material", mesh.faces[0].resolved_material, MB64_RENDER_MATERIAL_BARS);
         expect_int("isolated bars top material", mesh.faces[4].resolved_material, MB64_RENDER_MATERIAL_BARS_TOP);
         expect_int("isolated bars bottom material", mesh.faces[5].resolved_material, MB64_RENDER_MATERIAL_BARS_TOP);
+        expect_int("isolated bars side vertical uv span",
+                   mesh.faces[0].tc[2][1] - mesh.faces[0].tc[0][1],
+                   2048);
     }
     mb64_free_render_mesh(&mesh);
 

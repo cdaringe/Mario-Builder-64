@@ -929,6 +929,14 @@ static void assign_tile_texture_coordinates(mb64_mesh_face_t *face,
         }
         u = (int16_t)(u - u_pos * 16);
         v = (int16_t)(v - v_pos * 16);
+        if (material == MB64_RENDER_MATERIAL_BARS) {
+            /* MB64 bar side materials use N64 tile shift 15 on S/T, which
+             * doubles texture frequency. Apply the same scale to generated
+             * mesh UVs so non-MB64 renderers do not depend on display-list
+             * tile-shift behavior to get the authored bar cell count. */
+            u = (int16_t)(u * 2);
+            v = (int16_t)(v * 2);
+        }
         face->tc[i][0] = (int16_t)(u * 64 - 16);
         face->tc[i][1] = (int16_t)(v * 64 - 16);
     }

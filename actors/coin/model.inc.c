@@ -675,27 +675,33 @@ ALIGNED8 const Texture coin_seg3_texture_tilt_left[] = {
 };
 #endif
 
+#ifdef IA8_COINS
+#define MB64_COIN_TEXTURE_IMAGE(texture) gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_8b, 64, texture)
+#else
+#define MB64_COIN_TEXTURE_IMAGE(texture) gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, texture)
+#endif
+
 const Gfx coin_dl_start1[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_front),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_front),
     gsSPEndDisplayList(),
 };
 
 const Gfx coin_dl_start2[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_tilt_right),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_tilt_right),
     gsSPEndDisplayList(),
 };
 
 const Gfx coin_dl_start3[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_side),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_side),
     gsSPEndDisplayList(),
 };
 
 const Gfx coin_dl_start4[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_tilt_left),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_tilt_left),
     gsSPEndDisplayList(),
 };
 
@@ -708,9 +714,9 @@ const Gfx coin_seg3_sub_dl_begin[] = {
     gsDPSetAlphaCompare(G_AC_THRESHOLD),
     gsSPTexture(0x8000, 0x8000, 0, G_TX_RENDERTILE, G_ON),
 #ifdef IA8_COINS
-    gsDPSetTile(G_IM_FMT_IA, G_IM_SIZ_16b, 0, 0, G_TX_LOADTILE, 0, G_TX_CLAMP, 6, G_TX_NOLOD, G_TX_CLAMP, 6, G_TX_NOLOD),
+    gsDPSetTile(G_IM_FMT_IA, G_IM_SIZ_8b, 8, 0, G_TX_LOADTILE, 0, G_TX_CLAMP, 6, G_TX_NOLOD, G_TX_CLAMP, 6, G_TX_NOLOD),
     gsDPLoadSync(),
-    gsDPLoadBlock(G_TX_LOADTILE, 0, 0, 64/2 * 64 - 1, CALC_DXT(64/2, G_IM_SIZ_16b_BYTES)),
+    gsDPLoadTile(G_TX_LOADTILE, 0, 0, (64 - 1) << G_TEXTURE_IMAGE_FRAC, (64 - 1) << G_TEXTURE_IMAGE_FRAC),
     gsDPSetTile(G_IM_FMT_IA, G_IM_SIZ_8b, 8, 0, G_TX_RENDERTILE, 0, G_TX_CLAMP, 6, G_TX_NOLOD, G_TX_CLAMP, 6, G_TX_NOLOD),
     gsDPSetTileSize(0, 0, 0, (64 - 1) << G_TEXTURE_IMAGE_FRAC, (64 - 1) << G_TEXTURE_IMAGE_FRAC),
 #else
@@ -738,7 +744,7 @@ const Gfx coin_seg3_sub_dl_end[] = {
 // 0x03007800 - 0x03007828
 const Gfx coin_seg3_dl_yellow_front[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_front),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_front),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_yellow, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -747,7 +753,7 @@ const Gfx coin_seg3_dl_yellow_front[] = {
 // 0x03007828 - 0x03007850
 const Gfx coin_seg3_dl_yellow_tilt_right[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_tilt_right),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_tilt_right),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_yellow, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -756,7 +762,7 @@ const Gfx coin_seg3_dl_yellow_tilt_right[] = {
 // 0x03007850 - 0x03007878
 const Gfx coin_seg3_dl_yellow_side[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_side),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_side),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_yellow, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -765,7 +771,7 @@ const Gfx coin_seg3_dl_yellow_side[] = {
 // 0x03007878 - 0x030078A0
 const Gfx coin_seg3_dl_yellow_tilt_left[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_tilt_left),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_tilt_left),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_yellow, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -774,7 +780,7 @@ const Gfx coin_seg3_dl_yellow_tilt_left[] = {
 // 0x030078A0 - 0x030078C8
 const Gfx coin_seg3_dl_blue_front[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_front),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_front),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_blue, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -783,7 +789,7 @@ const Gfx coin_seg3_dl_blue_front[] = {
 // 0x030078C8 - 0x030078F0
 const Gfx coin_seg3_dl_blue_tilt_right[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_tilt_right),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_tilt_right),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_blue, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -792,7 +798,7 @@ const Gfx coin_seg3_dl_blue_tilt_right[] = {
 // 0x030078F0 - 0x03007918
 const Gfx coin_seg3_dl_blue_side[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_side),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_side),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_blue, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -801,7 +807,7 @@ const Gfx coin_seg3_dl_blue_side[] = {
 // 0x03007918 - 0x03007940
 const Gfx coin_seg3_dl_blue_tilt_left[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_tilt_left),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_tilt_left),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_blue, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -810,7 +816,7 @@ const Gfx coin_seg3_dl_blue_tilt_left[] = {
 // 0x03007940 - 0x03007968
 const Gfx coin_seg3_dl_red_front[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_front),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_front),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_red, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -819,7 +825,7 @@ const Gfx coin_seg3_dl_red_front[] = {
 // 0x03007968 - 0x03007990
 const Gfx coin_seg3_dl_red_tilt_right[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_tilt_right),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_tilt_right),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_red, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -828,7 +834,7 @@ const Gfx coin_seg3_dl_red_tilt_right[] = {
 // 0x03007990 - 0x030079B8
 const Gfx coin_seg3_dl_red_side[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_side),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_side),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_red, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -837,7 +843,7 @@ const Gfx coin_seg3_dl_red_side[] = {
 // 0x030079B8 - 0x030079E0
 const Gfx coin_seg3_dl_red_tilt_left[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_tilt_left),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_tilt_left),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_red, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -845,7 +851,7 @@ const Gfx coin_seg3_dl_red_tilt_left[] = {
 
 const Gfx coin_seg3_dl_green_front[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_front),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_front),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_green, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -853,7 +859,7 @@ const Gfx coin_seg3_dl_green_front[] = {
 
 const Gfx coin_seg3_dl_green_tilt_right[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_tilt_right),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_tilt_right),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_green, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -861,7 +867,7 @@ const Gfx coin_seg3_dl_green_tilt_right[] = {
 
 const Gfx coin_seg3_dl_green_side[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_side),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_side),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_green, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -869,7 +875,7 @@ const Gfx coin_seg3_dl_green_side[] = {
 
 const Gfx coin_seg3_dl_green_tilt_left[] = {
     gsDPPipeSync(),
-    gsDPSetTextureImage(G_IM_FMT_IA, G_IM_SIZ_16b, 1, coin_seg3_texture_tilt_left),
+    MB64_COIN_TEXTURE_IMAGE(coin_seg3_texture_tilt_left),
     gsSPDisplayList(coin_seg3_sub_dl_begin),
     gsSPVertex(coin_seg3_vertex_green, 4, 0),
     gsSPBranchList(coin_seg3_sub_dl_end),
@@ -908,3 +914,5 @@ const Gfx coin_seg3_dl_green_tilt_left[] = {
 // };
 
 #endif
+
+#undef MB64_COIN_TEXTURE_IMAGE

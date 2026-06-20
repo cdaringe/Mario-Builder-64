@@ -702,7 +702,7 @@ const Gfx coin_dl_start4[] = {
 // 0x03007780 - 0x030077D0
 const Gfx coin_seg3_sub_dl_begin[] = {
     gsDPPipeSync(),
-    gsSPClearGeometryMode(G_LIGHTING),
+    gsSPClearGeometryMode(G_LIGHTING | G_CULL_BOTH),
     gsDPSetCombineMode(G_CC_MODULATEIA, G_CC_MODULATEIA),
     gsDPSetRenderMode(G_RM_AA_ZB_TEX_EDGE, G_RM_AA_ZB_TEX_EDGE2),
     gsDPSetAlphaCompare(G_AC_THRESHOLD),
@@ -731,7 +731,7 @@ const Gfx coin_seg3_sub_dl_end[] = {
     gsDPSetAlphaCompare(G_AC_NONE),
     gsDPSetRenderMode(G_RM_AA_ZB_OPA_SURF, G_RM_AA_ZB_OPA_SURF2),
     gsDPSetCombineMode(G_CC_SHADE, G_CC_SHADE),
-    gsSPSetGeometryMode(G_LIGHTING),
+    gsSPSetGeometryMode(G_LIGHTING | G_CULL_BACK),
     gsSPEndDisplayList(),
 };
 

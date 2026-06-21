@@ -308,6 +308,62 @@ static void verify_shaped_tile_rotations(void) {
     }
 }
 
+static int count_faces_for_tile(const mb64_mesh_t *mesh,
+                                uint8_t x,
+                                uint8_t y,
+                                uint8_t z,
+                                int direction) {
+    int count = 0;
+    for (uint32_t i = 0; i < mesh->face_count; i++) {
+        const mb64_mesh_face_t *face = &mesh->faces[i];
+        if (face->tile_x == x && face->tile_y == y && face->tile_z == z &&
+            (direction < 0 || face->direction == direction)) {
+            count++;
+        }
+    }
+    return count;
+}
+
+static void verify_shaped_corner_under_block_keeps_shell_faces(void) {
+    mb64_level_t level;
+    mb64_tile_t tiles[2];
+    mb64_mesh_t mesh = { 0 };
+
+    memset(&level, 0, sizeof(level));
+    memset(tiles, 0, sizeof(tiles));
+    level.header.theme = 0;
+    level.header.tile_count = 2;
+    level.tiles = tiles;
+
+    tiles[0].x = 32;
+    tiles[0].y = 2;
+    tiles[0].z = 32;
+    tiles[0].type = TILE_TYPE_DCORNER;
+    tiles[0].mat = MB64_MAT_GRASS;
+
+    tiles[1] = tiles[0];
+    tiles[1].y = (uint8_t)(tiles[0].y + 1);
+    tiles[1].type = TILE_TYPE_BLOCK;
+
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "shaped corner under block: mb64_build_render_mesh failed\n");
+        g_failures++;
+        return;
+    }
+
+    expect_int("shaped corner under block visible shell faces",
+               count_faces_for_tile(&mesh, tiles[0].x, tiles[0].y, tiles[0].z, -1),
+               4);
+    expect_int("shaped corner under block top occluded",
+               count_faces_for_tile(&mesh, tiles[0].x, tiles[0].y, tiles[0].z, MB64_MESH_FACE_TOP),
+               0);
+    expect_int("shaped corner under block keeps bottom faces",
+               count_faces_for_tile(&mesh, tiles[0].x, tiles[0].y, tiles[0].z, MB64_MESH_FACE_BOTTOM),
+               2);
+
+    mb64_free_render_mesh(&mesh);
+}
+
 static void verify_woodplat_helpers(void) {
     const uint8_t thin_fat_thin[] = { 0, 1, 0 };
 
@@ -1013,6 +1069,7 @@ int main(void) {
     verify_adjacent_fence_uv_phase();
     verify_bars_match_mb64_connection_rendering();
     verify_shaped_tile_rotations();
+    verify_shaped_corner_under_block_keeps_shell_faces();
     verify_woodplat_helpers();
     verify_looping_platform_helpers();
     verify_reinforced_box_helpers();

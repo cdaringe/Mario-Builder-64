@@ -767,6 +767,75 @@ mb64_material_texture_animation_t mb64_texture_animation_for_water(const mb64_le
     }
 }
 
+static uint8_t render_class_for_material_type(uint8_t type) {
+    switch (type) {
+        case MAT_DECAL:
+            return MB64_RENDER_CLASS_DECAL;
+        case MAT_CUTOUT:
+            return MB64_RENDER_CLASS_CUTOUT;
+        case MAT_CUTOUT_NOCULL:
+            return MB64_RENDER_CLASS_CUTOUT_NOCULL;
+        case MAT_TRANSPARENT:
+            return MB64_RENDER_CLASS_TRANSPARENT;
+        case MAT_SCREEN:
+            return MB64_RENDER_CLASS_SCREEN;
+        case MAT_OPAQUE:
+        default:
+            return MB64_RENDER_CLASS_OPAQUE;
+    }
+}
+
+int mb64_render_binding_for_face(const mb64_level_t *level,
+                                 const mb64_mesh_face_t *face,
+                                 mb64_render_binding_t *out) {
+    if (level == NULL || face == NULL || out == NULL) {
+        return 0;
+    }
+
+    memset(out, 0, sizeof(*out));
+    out->material = face->resolved_material;
+
+    if (face->is_water) {
+        out->kind = MB64_RENDER_BINDING_WATER;
+        out->token = mb64_theme_specials_for_level(level)->water;
+        out->render_class = MB64_RENDER_CLASS_TRANSPARENT;
+        out->animation = mb64_texture_animation_for_water(level);
+        return 1;
+    }
+
+    switch (face->resolved_material) {
+        case MB64_RENDER_MATERIAL_FENCE:
+            out->kind = MB64_RENDER_BINDING_FENCE;
+            out->token = mb64_theme_specials_for_level(level)->fence;
+            out->render_class = MB64_RENDER_CLASS_CUTOUT;
+            out->cull_backfaces = 1;
+            break;
+        case MB64_RENDER_MATERIAL_BARS:
+            out->kind = MB64_RENDER_BINDING_BARS;
+            out->token = mb64_theme_specials_for_level(level)->bars;
+            out->render_class = MB64_RENDER_CLASS_CUTOUT;
+            out->cull_backfaces = 1;
+            break;
+        case MB64_RENDER_MATERIAL_BARS_TOP:
+            out->kind = MB64_RENDER_BINDING_BARS_TOP;
+            out->token = mb64_theme_specials_for_level(level)->bars;
+            out->render_class = MB64_RENDER_CLASS_CUTOUT_NOCULL;
+            break;
+        case MB64_RENDER_MATERIAL_TTC_GRATE_TOP:
+            out->kind = MB64_RENDER_BINDING_TTC_GRATE_TOP;
+            out->render_class = MB64_RENDER_CLASS_OPAQUE;
+            break;
+        default:
+            out->kind = MB64_RENDER_BINDING_MATERIAL;
+            out->token = face->resolved_material;
+            out->render_class = render_class_for_material_type(mb64_material_type(face->resolved_material));
+            break;
+    }
+
+    out->animation = mb64_texture_animation_for_material(face->resolved_material);
+    return 1;
+}
+
 void mb64_water_vertex_color(const mb64_level_t *level, uint8_t wave, uint8_t rgba[4]) {
     (void)level;
     if (rgba == NULL) {
@@ -1500,6 +1569,97 @@ int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
 
 int mb64_build_collision_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
     return mb64_build_mesh(level, mesh, 1);
+}
+
+static int mesh_vertices_match_unordered(const mb64_mesh_face_t *a,
+                                         const mb64_mesh_face_t *b) {
+    if (a->vertex_count != b->vertex_count) {
+        return 0;
+    }
+
+    for (uint8_t i = 0; i < a->vertex_count; i++) {
+        int matched = 0;
+        for (uint8_t j = 0; j < b->vertex_count; j++) {
+            if (a->v[i][0] == b->v[j][0] &&
+                a->v[i][1] == b->v[j][1] &&
+                a->v[i][2] == b->v[j][2]) {
+                matched = 1;
+                break;
+            }
+        }
+        if (!matched) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static uint32_t count_duplicate_mesh_faces(const mb64_mesh_t *mesh) {
+    uint32_t duplicates = 0;
+    if (mesh == NULL || mesh->faces == NULL) {
+        return 0;
+    }
+
+    for (uint32_t i = 0; i < mesh->face_count; i++) {
+        const mb64_mesh_face_t *a = &mesh->faces[i];
+        for (uint32_t j = i + 1; j < mesh->face_count; j++) {
+            const mb64_mesh_face_t *b = &mesh->faces[j];
+            if (a->direction == b->direction &&
+                a->is_water == b->is_water &&
+                a->resolved_material == b->resolved_material &&
+                mesh_vertices_match_unordered(a, b)) {
+                duplicates++;
+            }
+        }
+    }
+    return duplicates;
+}
+
+static int mb64_visit_mesh(const mb64_level_t *level,
+                           const mb64_mesh_visitor_t *visitor,
+                           void *user,
+                           int collision_mesh) {
+    mb64_mesh_t mesh;
+    if (!mb64_build_mesh(level, &mesh, collision_mesh)) {
+        return 0;
+    }
+
+    mb64_mesh_info_t info;
+    info.face_count = mesh.face_count;
+    info.solid_tile_count = mesh.solid_tile_count;
+    info.water_tile_count = mesh.water_tile_count;
+    info.duplicate_face_count = count_duplicate_mesh_faces(&mesh);
+
+    int ok = 1;
+    if (visitor != NULL && visitor->begin != NULL) {
+        ok = visitor->begin(&info, user);
+    }
+    if (ok && visitor != NULL && visitor->face != NULL) {
+        for (uint32_t i = 0; i < mesh.face_count; i++) {
+            if (!visitor->face(&mesh.faces[i], user)) {
+                ok = 0;
+                break;
+            }
+        }
+    }
+    if (ok && visitor != NULL && visitor->end != NULL) {
+        ok = visitor->end(&info, user);
+    }
+
+    mb64_free_render_mesh(&mesh);
+    return ok;
+}
+
+int mb64_visit_render_mesh(const mb64_level_t *level,
+                           const mb64_mesh_visitor_t *visitor,
+                           void *user) {
+    return mb64_visit_mesh(level, visitor, user, 0);
+}
+
+int mb64_visit_collision_mesh(const mb64_level_t *level,
+                              const mb64_mesh_visitor_t *visitor,
+                              void *user) {
+    return mb64_visit_mesh(level, visitor, user, 1);
 }
 
 void mb64_free_render_mesh(mb64_mesh_t *mesh) {

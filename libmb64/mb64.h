@@ -143,6 +143,19 @@ typedef struct {
     uint32_t water_tile_count;
 } mb64_mesh_t;
 
+typedef struct {
+    uint32_t face_count;
+    uint32_t solid_tile_count;
+    uint32_t water_tile_count;
+    uint32_t duplicate_face_count;
+} mb64_mesh_info_t;
+
+typedef struct {
+    int (*begin)(const mb64_mesh_info_t *info, void *user);
+    int (*face)(const mb64_mesh_face_t *face, void *user);
+    int (*end)(const mb64_mesh_info_t *info, void *user);
+} mb64_mesh_visitor_t;
+
 #define MB64_BOUNDARY_FLAG_INNER_FLOOR (1 << 0)
 #define MB64_BOUNDARY_FLAG_OUTER_FLOOR (1 << 1)
 #define MB64_BOUNDARY_FLAG_INNER_WALLS (1 << 2)
@@ -161,6 +174,33 @@ typedef struct {
     uint16_t step_s;
     uint16_t step_t;
 } mb64_material_texture_animation_t;
+
+typedef enum {
+    MB64_RENDER_BINDING_MATERIAL = 0,
+    MB64_RENDER_BINDING_FENCE,
+    MB64_RENDER_BINDING_BARS,
+    MB64_RENDER_BINDING_BARS_TOP,
+    MB64_RENDER_BINDING_TTC_GRATE_TOP,
+    MB64_RENDER_BINDING_WATER,
+} mb64_render_binding_kind_t;
+
+typedef enum {
+    MB64_RENDER_CLASS_OPAQUE = 0,
+    MB64_RENDER_CLASS_DECAL,
+    MB64_RENDER_CLASS_CUTOUT,
+    MB64_RENDER_CLASS_CUTOUT_NOCULL,
+    MB64_RENDER_CLASS_TRANSPARENT,
+    MB64_RENDER_CLASS_SCREEN,
+} mb64_render_class_t;
+
+typedef struct {
+    uint8_t kind;
+    uint8_t token;
+    uint8_t material;
+    uint8_t render_class;
+    uint8_t cull_backfaces;
+    mb64_material_texture_animation_t animation;
+} mb64_render_binding_t;
 
 typedef struct {
     float thin_height;
@@ -1048,6 +1088,12 @@ uint8_t mb64_music_sequence_from_index(uint8_t music_index);
 
 int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh);
 int mb64_build_collision_mesh(const mb64_level_t *level, mb64_mesh_t *mesh);
+int mb64_visit_render_mesh(const mb64_level_t *level,
+                           const mb64_mesh_visitor_t *visitor,
+                           void *user);
+int mb64_visit_collision_mesh(const mb64_level_t *level,
+                              const mb64_mesh_visitor_t *visitor,
+                              void *user);
 void mb64_free_render_mesh(mb64_mesh_t *mesh);
 uint8_t mb64_tile_has_collision(const mb64_tile_t *tile);
 uint8_t mb64_tile_has_terrain_collision(const mb64_tile_t *tile);
@@ -1068,6 +1114,9 @@ int16_t mb64_surface_for_material(uint8_t material);
 int16_t mb64_surface_for_tile(const mb64_level_t *level, const mb64_tile_t *tile);
 mb64_material_texture_animation_t mb64_texture_animation_for_material(uint8_t material);
 mb64_material_texture_animation_t mb64_texture_animation_for_water(const mb64_level_t *level);
+int mb64_render_binding_for_face(const mb64_level_t *level,
+                                 const mb64_mesh_face_t *face,
+                                 mb64_render_binding_t *out);
 
 /**
  * mb64_find_water_column_top() - MB64's Y-aware stacked-water lookup.

@@ -324,6 +324,156 @@ static int count_faces_for_tile(const mb64_mesh_t *mesh,
     return count;
 }
 
+static void expect_face_equal(const char *label,
+                              const mb64_mesh_face_t *actual,
+                              const mb64_mesh_face_t *expected) {
+    expect_int(label, actual->material, expected->material);
+    expect_int(label, actual->resolved_material, expected->resolved_material);
+    expect_int(label, actual->tile_type, expected->tile_type);
+    expect_int(label, actual->direction, expected->direction);
+    expect_int(label, actual->is_water, expected->is_water);
+    expect_int(label, actual->vertex_count, expected->vertex_count);
+    expect_int(label, actual->use_tc, expected->use_tc);
+    expect_int(label, actual->tile_x, expected->tile_x);
+    expect_int(label, actual->tile_y, expected->tile_y);
+    expect_int(label, actual->tile_z, expected->tile_z);
+    for (uint8_t i = 0; i < actual->vertex_count; i++) {
+        expect_vertex(label, actual->v[i], expected->v[i][0], expected->v[i][1], expected->v[i][2]);
+        expect_texcoord(label, actual->tc[i], expected->tc[i][0], expected->tc[i][1]);
+    }
+}
+
+typedef struct {
+    const mb64_mesh_t *mesh;
+    uint32_t index;
+    uint8_t saw_begin;
+    uint8_t saw_end;
+    uint8_t saw_water;
+} mesh_visitor_test_t;
+
+static int render_mesh_visitor_begin(const mb64_mesh_info_t *info, void *user) {
+    mesh_visitor_test_t *ctx = (mesh_visitor_test_t *) user;
+    ctx->saw_begin = 1;
+    expect_int("visitor face count", info->face_count, ctx->mesh->face_count);
+    expect_int("visitor solid tile count", info->solid_tile_count, ctx->mesh->solid_tile_count);
+    expect_int("visitor water tile count", info->water_tile_count, ctx->mesh->water_tile_count);
+    expect_int("visitor duplicate face count", info->duplicate_face_count, 0);
+    return 1;
+}
+
+static int render_mesh_visitor_face(const mb64_mesh_face_t *face, void *user) {
+    mesh_visitor_test_t *ctx = (mesh_visitor_test_t *) user;
+    if (!face->is_water && ctx->saw_water) {
+        fprintf(stderr, "visitor emitted solid face after water face\n");
+        g_failures++;
+        return 0;
+    }
+    if (face->is_water) {
+        ctx->saw_water = 1;
+    }
+    if (ctx->index >= ctx->mesh->face_count) {
+        fprintf(stderr, "visitor emitted too many faces\n");
+        g_failures++;
+        return 0;
+    }
+    expect_face_equal("visitor face", face, &ctx->mesh->faces[ctx->index]);
+    ctx->index++;
+    return 1;
+}
+
+static int render_mesh_visitor_end(const mb64_mesh_info_t *info, void *user) {
+    mesh_visitor_test_t *ctx = (mesh_visitor_test_t *) user;
+    ctx->saw_end = 1;
+    expect_int("visitor end face count", info->face_count, ctx->index);
+    return 1;
+}
+
+static void verify_render_mesh_visitor_matches_snapshot(void) {
+    mb64_level_t level;
+    mb64_tile_t tiles[2];
+    mb64_mesh_t mesh = { 0 };
+
+    memset(&level, 0, sizeof(level));
+    memset(tiles, 0, sizeof(tiles));
+    level.header.theme = 0;
+    level.header.tile_count = 2;
+    level.tiles = tiles;
+
+    tiles[0].x = 32;
+    tiles[0].y = 2;
+    tiles[0].z = 32;
+    tiles[0].type = TILE_TYPE_BLOCK;
+    tiles[0].mat = MB64_MAT_GRASS;
+
+    tiles[1].x = 33;
+    tiles[1].y = 2;
+    tiles[1].z = 32;
+    tiles[1].type = TILE_TYPE_WATER;
+    tiles[1].mat = MB64_MAT_GRASS;
+
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "visitor snapshot setup: mb64_build_render_mesh failed\n");
+        g_failures++;
+        return;
+    }
+
+    mesh_visitor_test_t ctx = { &mesh, 0, 0, 0, 0 };
+    const mb64_mesh_visitor_t visitor = {
+        render_mesh_visitor_begin,
+        render_mesh_visitor_face,
+        render_mesh_visitor_end,
+    };
+    if (!mb64_visit_render_mesh(&level, &visitor, &ctx)) {
+        fprintf(stderr, "mb64_visit_render_mesh failed\n");
+        g_failures++;
+    }
+    expect_int("visitor begin called", ctx.saw_begin, 1);
+    expect_int("visitor end called", ctx.saw_end, 1);
+    expect_int("visitor emitted all faces", ctx.index, mesh.face_count);
+    expect_int("visitor saw water partition", ctx.saw_water, 1);
+
+    mb64_free_render_mesh(&mesh);
+}
+
+static void verify_render_binding_descriptors(void) {
+    mb64_level_t level;
+    mb64_mesh_face_t face;
+    mb64_render_binding_t binding;
+
+    memset(&level, 0, sizeof(level));
+    memset(&face, 0, sizeof(face));
+    level.header.theme = 0;
+
+    face.resolved_material = MB64_RENDER_MATERIAL_FENCE;
+    expect_int("fence binding resolves", mb64_render_binding_for_face(&level, &face, &binding), 1);
+    expect_int("fence binding kind", binding.kind, MB64_RENDER_BINDING_FENCE);
+    expect_int("fence binding token", binding.token, MB64_FENCE_NORMAL);
+    expect_int("fence binding class", binding.render_class, MB64_RENDER_CLASS_CUTOUT);
+    expect_int("fence binding culls", binding.cull_backfaces, 1);
+
+    face.resolved_material = MB64_RENDER_MATERIAL_BARS_TOP;
+    expect_int("bars top binding resolves", mb64_render_binding_for_face(&level, &face, &binding), 1);
+    expect_int("bars top binding kind", binding.kind, MB64_RENDER_BINDING_BARS_TOP);
+    expect_int("bars top binding token", binding.token, MB64_BAR_GENERIC);
+    expect_int("bars top binding class", binding.render_class, MB64_RENDER_CLASS_CUTOUT_NOCULL);
+    expect_int("bars top binding culls", binding.cull_backfaces, 0);
+
+    face.resolved_material = MB64_MAT_MC_GLASS;
+    expect_int("glass binding resolves", mb64_render_binding_for_face(&level, &face, &binding), 1);
+    expect_int("glass binding kind", binding.kind, MB64_RENDER_BINDING_MATERIAL);
+    expect_int("glass binding token", binding.token, MB64_MAT_MC_GLASS);
+    expect_int("glass binding class", binding.render_class, MB64_RENDER_CLASS_CUTOUT_NOCULL);
+    expect_int("glass binding culls", binding.cull_backfaces, 0);
+
+    memset(&face, 0, sizeof(face));
+    face.is_water = 1;
+    expect_int("water binding resolves", mb64_render_binding_for_face(&level, &face, &binding), 1);
+    expect_int("water binding kind", binding.kind, MB64_RENDER_BINDING_WATER);
+    expect_int("water binding token", binding.token, MB64_WATER_DEFAULT);
+    expect_int("water binding class", binding.render_class, MB64_RENDER_CLASS_TRANSPARENT);
+    expect_int("water binding animates", binding.animation.animated, 1);
+}
+
 static void verify_shaped_corner_under_block_keeps_shell_faces(void) {
     mb64_level_t level;
     mb64_tile_t tiles[2];
@@ -1069,6 +1219,8 @@ int main(void) {
     verify_adjacent_fence_uv_phase();
     verify_bars_match_mb64_connection_rendering();
     verify_shaped_tile_rotations();
+    verify_render_mesh_visitor_matches_snapshot();
+    verify_render_binding_descriptors();
     verify_shaped_corner_under_block_keeps_shell_faces();
     verify_woodplat_helpers();
     verify_looping_platform_helpers();

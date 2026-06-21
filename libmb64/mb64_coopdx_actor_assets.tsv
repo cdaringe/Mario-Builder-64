@@ -1,0 +1,31 @@
+# kind	coop_path	mb64_path	mode
+actor-root	actors/Rex		verbatim
+actor-root	actors/badge		verbatim
+actor-root	actors/Hammerbro		verbatim
+actor-root	actors/billmask		verbatim
+actor-root	actors/blaster		verbatim
+actor-root	actors/chicken		verbatim
+actor-root	actors/cobie2		verbatim
+actor-root	actors/crab		verbatim
+actor-root	actors/crowbar		verbatim
+actor-root	actors/gooner		verbatim
+actor-root	actors/hammer		verbatim
+actor-root	actors/imbuet		verbatim
+actor-root	actors/maker		verbatim
+actor-root	actors/mb64_coin	actors/coin	renamed-root
+actor-root	actors/mb64_penguin	actors/penguin	renamed-root
+actor-root	actors/mb64_toad	actors/toad	renamed-root
+actor-root	actors/mb64_ukiki	actors/ukiki	renamed-root
+actor-root	actors/moleman3		verbatim
+actor-root	actors/motos		verbatim
+actor-root	actors/onoffblock		verbatim
+actor-root	actors/onoffblock1		verbatim
+actor-root	actors/onoffblock2		verbatim
+actor-root	actors/onoffbutton		verbatim
+actor-root	actors/onoffswitch		verbatim
+actor-root	actors/showrunner		verbatim
+actor-root	actors/srball_1		verbatim
+actor-root	actors/srball_2		verbatim
+actor-root	actors/srspike		verbatim
+actor-root	actors/metalstar		verbatim
+extra-asset	actors/metalstar/custom_metalstartex.rgba16.png	actors/star/custom_metalstartex.rgba16.png	verbatim

@@ -213,8 +213,8 @@ def emit_poly_array(name: str, entries: list[dict[str, object]], lines: list[str
             altuv_literal = "{" + ", ".join(f"{{{u}, {v}}}" for u, v in padded[:4]) + "}"
             has_altuvs = "1"
         lines.append(
-            f"    {{{verts}, {entry['direction']}, {entry['faceshape']}, "
-            f"{vertex_count}, {entry['growth_type']}, {has_altuvs}, {altuv_literal}}},"
+            f"    {{{{{verts}, {entry['direction']}, {entry['faceshape']}, {vertex_count}}}, "
+            f"{entry['growth_type']}, {{{has_altuvs}, {altuv_literal}}}}},"
         )
     lines.append("};")
     lines.append("")

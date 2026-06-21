@@ -94,9 +94,17 @@ typedef struct {
     uint8_t direction;
     uint8_t faceshape;
     uint8_t vertex_count;
-    uint8_t growth_type;
+} mb64_shape_face_geometry_t;
+
+typedef struct {
     uint8_t has_alt_uvs;
     int8_t alt_uvs[4][2];
+} mb64_shape_face_uv_t;
+
+typedef struct {
+    mb64_shape_face_geometry_t geometry;
+    uint8_t growth_type;
+    mb64_shape_face_uv_t uv;
 } mb64_shape_face_t;
 
 typedef struct {
@@ -105,14 +113,15 @@ typedef struct {
 } mb64_shape_t;
 
 static const mb64_shape_t *shape_for_tile(const mb64_tile_t *t, int collision_mesh);
-static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
-                            const mb64_level_t *level,
-                            const mb64_tile_t *t,
-                            const mb64_shape_face_t *src,
-                            int collision_mesh);
+static void emit_base_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
+                                 const mb64_level_t *level,
+                                 const mb64_tile_t *t,
+                                 const mb64_shape_face_geometry_t *src,
+                                 const mb64_shape_face_uv_t *uv,
+                                 int collision_mesh);
 
-#define Q(dir, faceshape, growth, has_alt, alt, ...) { { __VA_ARGS__ }, dir, faceshape, 4, growth, has_alt, alt }
-#define T(dir, faceshape, growth, has_alt, alt, ...) { { __VA_ARGS__, {0,0,0} }, dir, faceshape, 3, growth, has_alt, alt }
+#define Q(dir, faceshape, growth, has_alt, alt, ...) { { { __VA_ARGS__ }, dir, faceshape, 4 }, growth, { has_alt, alt } }
+#define T(dir, faceshape, growth, has_alt, alt, ...) { { { __VA_ARGS__, {0,0,0} }, dir, faceshape, 3 }, growth, { has_alt, alt } }
 
 #include "mb64_mesh_data.generated.inc.c"
 
@@ -244,8 +253,8 @@ static int mb64_level_faceshape_at(const mb64_level_t *level,
 
     uint8_t local_dir = (uint8_t)(rotate_direction(direction, (uint8_t)((4 - (tile->rot & 3)) & 3)) ^ 1);
     for (uint8_t i = 0; i < shape->face_count; i++) {
-        if (shape->faces[i].direction == local_dir) {
-            return shape->faces[i].faceshape;
+        if (shape->faces[i].geometry.direction == local_dir) {
+            return shape->faces[i].geometry.faceshape;
         }
     }
     return MB64_FACESHAPE_EMPTY;
@@ -959,8 +968,8 @@ static uint8_t faceshape_at(int x, int y, int z, uint8_t direction, int collisio
     }
     uint8_t local_dir = (uint8_t)(rotate_direction(direction, (uint8_t)((4 - (tile->rot & 3)) & 3)) ^ 1);
     for (uint8_t i = 0; i < shape->face_count; i++) {
-        if (shape->faces[i].direction == local_dir) {
-            return shape->faces[i].faceshape;
+        if (shape->faces[i].geometry.direction == local_dir) {
+            return shape->faces[i].geometry.faceshape;
         }
     }
     return MB64_FACESHAPE_EMPTY;
@@ -1104,11 +1113,12 @@ static int tile_uses_shaped_mesh(const mb64_tile_t *t, int collision_mesh) {
            t->type != TILE_TYPE_TROLL;
 }
 
-static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
-                            const mb64_level_t *level,
-                            const mb64_tile_t *t,
-                            const mb64_shape_face_t *src,
-                            int collision_mesh) {
+static void emit_base_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
+                                 const mb64_level_t *level,
+                                 const mb64_tile_t *t,
+                                 const mb64_shape_face_geometry_t *src,
+                                 const mb64_shape_face_uv_t *uv,
+                                 int collision_mesh) {
     int16_t p[4][3];
     int16_t local[4][3];
     int16_t x0, x1, y0, y1, z0, z1;
@@ -1142,7 +1152,7 @@ static void emit_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     } else {
         assign_tile_texture_coordinates(face, t, local, direction,
                                         src->faceshape, face->resolved_material,
-                                        src->alt_uvs, src->has_alt_uvs);
+                                        uv->alt_uvs, uv->has_alt_uvs);
     }
 }
 
@@ -1291,13 +1301,19 @@ static void emit_bars_faces(mb64_mesh_t *mesh,
         const uint8_t right_rot = (rot + 1) & 3;
         rotated.rot = rot;
         if (BAR_CONNECTED_SIDE(connections[rot])) {
-            emit_shape_face(mesh, idx, level, &rotated, &shape->faces[1], collision_mesh);
-            emit_shape_face(mesh, idx, level, &rotated, &shape->faces[2], collision_mesh);
+            emit_base_shape_face(mesh, idx, level, &rotated,
+                                 &shape->faces[1].geometry, &shape->faces[1].uv,
+                                 collision_mesh);
+            emit_base_shape_face(mesh, idx, level, &rotated,
+                                 &shape->faces[2].geometry, &shape->faces[2].uv,
+                                 collision_mesh);
         }
         if (!BAR_CONNECTED_SIDE(connections[rot]) ||
             (BAR_CONNECTED_SIDE(connections[left_rot]) &&
              BAR_CONNECTED_SIDE(connections[right_rot]))) {
-            emit_shape_face(mesh, idx, level, &rotated, &shape->faces[0], collision_mesh);
+            emit_base_shape_face(mesh, idx, level, &rotated,
+                                 &shape->faces[0].geometry, &shape->faces[0].uv,
+                                 collision_mesh);
         }
     }
     for (uint8_t rot = 0; rot < 4; rot++) {
@@ -1305,18 +1321,26 @@ static void emit_bars_faces(mb64_mesh_t *mesh,
             mb64_tile_t rotated = *t;
             rotated.rot = rot;
             if (!BAR_CONNECTED_TOP(connections[rot])) {
-                emit_shape_face(mesh, idx, level, &rotated, &shape->faces[3], collision_mesh);
+                emit_base_shape_face(mesh, idx, level, &rotated,
+                                     &shape->faces[3].geometry, &shape->faces[3].uv,
+                                     collision_mesh);
             }
             if (!BAR_CONNECTED_BOTTOM(connections[rot])) {
-                emit_shape_face(mesh, idx, level, &rotated, &shape->faces[4], collision_mesh);
+                emit_base_shape_face(mesh, idx, level, &rotated,
+                                     &shape->faces[4].geometry, &shape->faces[4].uv,
+                                     collision_mesh);
             }
         }
     }
     if (!BAR_CONNECTED_TOP(connections[4])) {
-        emit_shape_face(mesh, idx, level, t, &shape->faces[5], collision_mesh);
+        emit_base_shape_face(mesh, idx, level, t,
+                             &shape->faces[5].geometry, &shape->faces[5].uv,
+                             collision_mesh);
     }
     if (!BAR_CONNECTED_BOTTOM(connections[4])) {
-        emit_shape_face(mesh, idx, level, t, &shape->faces[6], collision_mesh);
+        emit_base_shape_face(mesh, idx, level, t,
+                             &shape->faces[6].geometry, &shape->faces[6].uv,
+                             collision_mesh);
     }
 }
 
@@ -1396,7 +1420,9 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
                 emit_bars_faces(mesh, &out, level, t, shape, collision_mesh);
             } else {
                 for (uint8_t j = 0; j < shape->face_count; j++) {
-                    emit_shape_face(mesh, &out, level, t, &shape->faces[j], collision_mesh);
+                    emit_base_shape_face(mesh, &out, level, t,
+                                         &shape->faces[j].geometry, &shape->faces[j].uv,
+                                         collision_mesh);
                 }
             }
             continue;

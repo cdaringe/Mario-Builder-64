@@ -12,6 +12,9 @@
 #define MB64_MATERIAL_SLOT_COUNT 10
 #define MB64_DEATH_PLANE_GRID_Y (-40)
 #define PACK_TILESIZE(w, d) (((w) << 2) + (d))
+#define MB64_SURFACE_DEFAULT 0
+#define MB64_SURFACE_NO_CAM_COLLISION 0x0076
+#define MB64_SURFACE_VANISH_CAP_WALLS 0x007B
 
 #define MB64_BOUNDARY_INNER_FLOOR (1 << 0)
 #define MB64_BOUNDARY_OUTER_FLOOR (1 << 1)
@@ -729,9 +732,23 @@ int16_t mb64_surface_for_material(uint8_t material) {
 
 int16_t mb64_surface_for_tile(const mb64_level_t *level, const mb64_tile_t *tile) {
     if (level == NULL || tile == NULL) {
-        return 0;
+        return MB64_SURFACE_DEFAULT;
     }
     return mb64_surface_for_material(mb64_resolve_tile_material(level, tile, 1));
+}
+
+int16_t mb64_surface_for_mesh_face(const mb64_mesh_face_t *face) {
+    if (face == NULL) {
+        return MB64_SURFACE_DEFAULT;
+    }
+    switch (face->tile_type) {
+        case TILE_TYPE_FENCE:
+            return MB64_SURFACE_NO_CAM_COLLISION;
+        case TILE_TYPE_BARS:
+            return MB64_SURFACE_VANISH_CAP_WALLS;
+        default:
+            return mb64_surface_for_material(face->resolved_material);
+    }
 }
 
 mb64_material_texture_animation_t mb64_texture_animation_for_material(uint8_t material) {

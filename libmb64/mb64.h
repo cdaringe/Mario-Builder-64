@@ -25,6 +25,7 @@
 
 #include "mb64_object_types.h"
 #include "mb64_save_format.h"
+#include "mb64_tile_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -1112,6 +1113,7 @@ uint8_t mb64_resolve_tile_material(const mb64_level_t *level,
                                    uint8_t top_face);
 int16_t mb64_surface_for_material(uint8_t material);
 int16_t mb64_surface_for_tile(const mb64_level_t *level, const mb64_tile_t *tile);
+int16_t mb64_surface_for_mesh_face(const mb64_mesh_face_t *face);
 mb64_material_texture_animation_t mb64_texture_animation_for_material(uint8_t material);
 mb64_material_texture_animation_t mb64_texture_animation_for_water(const mb64_level_t *level);
 int mb64_render_binding_for_face(const mb64_level_t *level,

@@ -474,6 +474,27 @@ static void verify_render_binding_descriptors(void) {
     expect_int("water binding animates", binding.animation.animated, 1);
 }
 
+static void verify_face_surface_descriptors(void) {
+    mb64_mesh_face_t face;
+
+    memset(&face, 0, sizeof(face));
+    face.tile_type = TILE_TYPE_FENCE;
+    face.resolved_material = MB64_MAT_GRASS;
+    expect_int("fence face surface", mb64_surface_for_mesh_face(&face), 0x0076);
+
+    memset(&face, 0, sizeof(face));
+    face.tile_type = TILE_TYPE_BARS;
+    face.resolved_material = MB64_RENDER_MATERIAL_BARS;
+    expect_int("bars face surface", mb64_surface_for_mesh_face(&face), 0x007B);
+
+    memset(&face, 0, sizeof(face));
+    face.tile_type = TILE_TYPE_BLOCK;
+    face.resolved_material = MB64_MAT_ICE;
+    expect_int("material face surface",
+               mb64_surface_for_mesh_face(&face),
+               mb64_surface_for_material(MB64_MAT_ICE));
+}
+
 static void verify_shaped_corner_under_block_keeps_shell_faces(void) {
     mb64_level_t level;
     mb64_tile_t tiles[2];
@@ -1221,6 +1242,7 @@ int main(void) {
     verify_shaped_tile_rotations();
     verify_render_mesh_visitor_matches_snapshot();
     verify_render_binding_descriptors();
+    verify_face_surface_descriptors();
     verify_shaped_corner_under_block_keeps_shell_faces();
     verify_woodplat_helpers();
     verify_looping_platform_helpers();

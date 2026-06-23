@@ -1164,16 +1164,31 @@ static void verify_level_size_boundary_helpers(void) {
     tile.y = 0;
     tile.z = 32;
     tile.type = TILE_TYPE_CULL;
+    level.header.boundary = 1;
 
     level.header.level_size = 0;
     expect_int("small level grid size", mb64_level_grid_size(&level), 32);
     expect_int("small level grid min", mb64_level_grid_min(&level), 16);
+    mb64_level_bounds_t bounds = mb64_level_playable_bounds(&level);
+    expect_int("small playable min", bounds.min, -256);
+    expect_int("small playable max", bounds.max, 256);
     level.header.level_size = 1;
     expect_int("medium level grid size", mb64_level_grid_size(&level), 48);
     expect_int("medium level grid min", mb64_level_grid_min(&level), 8);
+    bounds = mb64_level_playable_bounds(&level);
+    expect_int("medium playable min", bounds.min, -384);
+    expect_int("medium playable max", bounds.max, 384);
     level.header.level_size = 2;
     expect_int("large level grid size", mb64_level_grid_size(&level), 64);
     expect_int("large level grid min", mb64_level_grid_min(&level), 0);
+    bounds = mb64_level_playable_bounds(&level);
+    expect_int("large playable min", bounds.min, -512);
+    expect_int("large playable max", bounds.max, 512);
+
+    level.header.boundary = 0;
+    bounds = mb64_level_playable_bounds(&level);
+    expect_int("large no-boundary playable min", bounds.min, -640);
+    expect_int("large no-boundary playable max", bounds.max, 640);
 
     memset(&mesh, 0, sizeof(mesh));
     level.header.level_size = 1;

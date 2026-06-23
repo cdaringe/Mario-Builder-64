@@ -169,6 +169,11 @@ typedef struct {
 } mb64_boundary_face_t;
 
 typedef struct {
+    int16_t min; /* Inclusive lower X/Z world bound in sixteenths of one tile. */
+    int16_t max; /* Exclusive upper X/Z world bound in sixteenths of one tile. */
+} mb64_level_bounds_t;
+
+typedef struct {
     uint8_t animated;
     uint8_t tile_size_cmd;
     uint8_t interval;
@@ -1101,6 +1106,7 @@ uint8_t mb64_tile_has_terrain_collision(const mb64_tile_t *tile);
 uint8_t mb64_mesh_face_has_terrain_collision(const mb64_mesh_face_t *face);
 uint8_t mb64_level_grid_size(const mb64_level_t *level);
 uint8_t mb64_level_grid_min(const mb64_level_t *level);
+mb64_level_bounds_t mb64_level_playable_bounds(const mb64_level_t *level);
 uint8_t mb64_tile_occludes_face(const mb64_level_t *level,
                                 const mb64_tile_t *cur,
                                 const mb64_tile_t *other,

@@ -91,6 +91,7 @@ typedef struct {
 
 static int solid_at(int x, int y, int z);
 static uint8_t rotate_direction(uint8_t direction, uint8_t rot);
+static uint8_t boundary_flags(const mb64_level_t *level);
 
 typedef struct {
     int8_t v[4][3];
@@ -218,6 +219,20 @@ uint8_t mb64_level_grid_size(const mb64_level_t *level) {
 
 uint8_t mb64_level_grid_min(const mb64_level_t *level) {
     return (uint8_t)((MB64_GRID_SIZE - mb64_level_grid_size(level)) / 2);
+}
+
+mb64_level_bounds_t mb64_level_playable_bounds(const mb64_level_t *level) {
+    const uint8_t gridMin = mb64_level_grid_min(level);
+    const uint8_t gridSize = mb64_level_grid_size(level);
+    mb64_level_bounds_t bounds = {
+        (int16_t)(((int16_t)gridMin - MB64_GRID_CENTRE) * MB64_TILE_SUBUNITS),
+        (int16_t)(((int16_t)gridMin + (int16_t)gridSize - MB64_GRID_CENTRE) * MB64_TILE_SUBUNITS),
+    };
+    if ((boundary_flags(level) & MB64_BOUNDARY_OUTER_FLOOR) == 0) {
+        bounds.min = (int16_t)(bounds.min - 8 * MB64_TILE_SUBUNITS);
+        bounds.max = (int16_t)(bounds.max + 8 * MB64_TILE_SUBUNITS);
+    }
+    return bounds;
 }
 
 static int solid_at(int x, int y, int z) {

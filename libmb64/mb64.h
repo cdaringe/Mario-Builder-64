@@ -1119,6 +1119,8 @@ mb64_material_texture_animation_t mb64_texture_animation_for_water(const mb64_le
 int mb64_render_binding_for_face(const mb64_level_t *level,
                                  const mb64_mesh_face_t *face,
                                  mb64_render_binding_t *out);
+uint8_t mb64_tile_renders_water(const mb64_level_t *level,
+                                const mb64_tile_t *tile);
 
 /**
  * mb64_find_water_column_top() - MB64's Y-aware stacked-water lookup.

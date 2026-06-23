@@ -178,9 +178,30 @@ uint8_t mb64_mesh_face_has_terrain_collision(const mb64_mesh_face_t *face) {
     return face->tile_type != TILE_TYPE_TROLL && face->tile_type != TILE_TYPE_POLE;
 }
 
-static int tile_is_water(const mb64_tile_t *t) {
-    return tile_in_range(t) &&
-           (t->type == TILE_TYPE_WATER || t->waterlogged);
+static int fullblock_can_be_waterlogged(const mb64_level_t *level,
+                                        const mb64_tile_t *t) {
+    if (level == NULL || t == NULL) {
+        return 0;
+    }
+    return mb64_material_type(mb64_resolve_tile_material(level, t, 0)) == MAT_CUTOUT ||
+           mb64_material_type(mb64_resolve_tile_material(level, t, 1)) == MAT_CUTOUT;
+}
+
+uint8_t mb64_tile_renders_water(const mb64_level_t *level, const mb64_tile_t *t) {
+    if (!tile_in_range(t)) {
+        return 0;
+    }
+    if (t->type == TILE_TYPE_WATER) {
+        return 1;
+    }
+    if (!t->waterlogged) {
+        return 0;
+    }
+    if ((t->type == TILE_TYPE_BLOCK || t->type == TILE_TYPE_TROLL) &&
+        !fullblock_can_be_waterlogged(level, t)) {
+        return 0;
+    }
+    return 1;
 }
 
 uint8_t mb64_level_grid_size(const mb64_level_t *level) {
@@ -240,7 +261,7 @@ static const mb64_tile_t *find_level_tile(const mb64_level_t *level, int x, int 
 }
 
 static int level_water_at(const mb64_level_t *level, int x, int y, int z) {
-    return tile_is_water(find_level_tile(level, x, y, z));
+    return mb64_tile_renders_water(level, find_level_tile(level, x, y, z));
 }
 
 static int mb64_level_faceshape_at(const mb64_level_t *level,
@@ -273,7 +294,7 @@ static int mb64_water_surface_is_fullblock(const mb64_level_t *level,
     if (tile == NULL) {
         return 0;
     }
-    if (tile_is_water(above)) {
+    if (mb64_tile_renders_water(level, above)) {
         return 1;
     }
     if (above == NULL || mb64_level_faceshape_at(level, grid_x, grid_y + 1, grid_z,
@@ -1443,11 +1464,13 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
 
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
+        const int water = mb64_tile_renders_water(level, t);
         if ((collision_mesh ? mb64_tile_has_terrain_collision(t) : tile_is_solid(t))) {
             s_solid_grid[t->z][t->y][t->x] = 1;
             s_tile_grid[t->z][t->y][t->x] = t;
             mesh->solid_tile_count++;
-        } else if (tile_is_water(t)) {
+        }
+        if (water) {
             s_water_grid[t->z][t->y][t->x] = 1;
             mesh->water_tile_count++;
         }
@@ -1456,7 +1479,7 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
     uint32_t face_count = 0;
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
-        if (!tile_is_water(t) || water_at(t->x, t->y - 1, t->z)) { continue; }
+        if (!mb64_tile_renders_water(level, t) || water_at(t->x, t->y - 1, t->z)) { continue; }
         int y1 = t->y + 1;
         while (water_at(t->x, y1, t->z)) { y1++; }
         face_count++; /* top of the merged water column */
@@ -1546,7 +1569,7 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
 
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
-        if (!tile_is_water(t)) { continue; }
+        if (!mb64_tile_renders_water(level, t)) { continue; }
         if (water_at(t->x, t->y - 1, t->z)) { continue; }
         int16_t x0, x1, y0, y1, z0, z1;
         tile_bounds(t, &x0, &x1, &y0, &y1, &z0, &z1);

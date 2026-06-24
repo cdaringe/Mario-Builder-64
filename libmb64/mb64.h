@@ -300,6 +300,24 @@ enum {
     MB64_KOOPA_BP_TINY = 4,
 };
 
+enum {
+    MB64_BULLY_SIZE_SMALL = 0,
+    MB64_BULLY_SIZE_BIG = 1,
+};
+
+enum {
+    MB64_BULLY_SUBTYPE_GENERIC = 0,
+    MB64_BULLY_SUBTYPE_CHILL = 16,
+};
+
+typedef struct {
+    uint8_t object_type;
+    uint8_t subtype;
+    uint8_t size_param;
+    uint8_t is_chill;
+    uint8_t is_big;
+} mb64_bully_variant_t;
+
 typedef struct {
     int scale_angle_start;
     int scale_angle_step;
@@ -1270,6 +1288,8 @@ const mb64_fire_spinner_config_t *mb64_fire_spinner_config(void);
 uint8_t mb64_fire_spinner_flames_per_arm(uint8_t behavior_param_2);
 uint8_t mb64_goomba_size_param_for_type(uint8_t object_type);
 uint8_t mb64_koopa_behavior_param_for_type(uint8_t object_type, uint8_t authored_param);
+const mb64_bully_variant_t *mb64_bully_variant_for_type(uint8_t object_type);
+uint8_t mb64_object_type_is_bully_variant(uint8_t object_type);
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void);
 const mb64_exclamation_box_content_t *mb64_exclamation_box_content(uint8_t game, uint8_t bparam);
 uint8_t mb64_exclamation_box_should_explode(int timer);

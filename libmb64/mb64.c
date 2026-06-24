@@ -142,6 +142,13 @@ static const uint8_t s_music_sequence_by_index[] = {
     SEQ_SMW_CASTLE,
 };
 
+static const mb64_bully_variant_t s_bully_variants[] = {
+    { MB64_OBJECT_TYPE_BULLY, MB64_BULLY_SUBTYPE_GENERIC, MB64_BULLY_SIZE_SMALL, 0, 0 },
+    { MB64_OBJECT_TYPE_CHILL_BULLY, MB64_BULLY_SUBTYPE_CHILL, MB64_BULLY_SIZE_SMALL, 1, 0 },
+    { MB64_OBJECT_TYPE_BIG_BULLY, MB64_BULLY_SUBTYPE_GENERIC, MB64_BULLY_SIZE_BIG, 0, 1 },
+    { MB64_OBJECT_TYPE_BIG_CHILL_BULLY, MB64_BULLY_SUBTYPE_CHILL, MB64_BULLY_SIZE_BIG, 1, 1 },
+};
+
 static const mb64_woodplat_config_t s_woodplat_config = {
     96.0f,   /* thin_height */
     256.0f,  /* fat_height */
@@ -880,6 +887,19 @@ uint8_t mb64_koopa_behavior_param_for_type(uint8_t object_type, uint8_t authored
         default:
             return authored_param;
     }
+}
+
+const mb64_bully_variant_t *mb64_bully_variant_for_type(uint8_t object_type) {
+    for (size_t i = 0; i < sizeof(s_bully_variants) / sizeof(s_bully_variants[0]); i++) {
+        if (s_bully_variants[i].object_type == object_type) {
+            return &s_bully_variants[i];
+        }
+    }
+    return NULL;
+}
+
+uint8_t mb64_object_type_is_bully_variant(uint8_t object_type) {
+    return mb64_bully_variant_for_type(object_type) != NULL;
 }
 
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void) {

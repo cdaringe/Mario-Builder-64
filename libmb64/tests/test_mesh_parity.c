@@ -617,6 +617,57 @@ static void verify_koopa_helpers(void) {
                1);
 }
 
+static void expect_bully_variant(const char *name, uint8_t object_type, uint8_t subtype,
+                                 uint8_t size_param, uint8_t is_chill, uint8_t is_big) {
+    const mb64_bully_variant_t *variant = mb64_bully_variant_for_type(object_type);
+
+    expect_int(name, variant != NULL, 1);
+    if (variant == NULL) {
+        return;
+    }
+    expect_int("bully object type", variant->object_type, object_type);
+    expect_int("bully subtype", variant->subtype, subtype);
+    expect_int("bully size param", variant->size_param, size_param);
+    expect_int("bully chill flag", variant->is_chill, is_chill);
+    expect_int("bully big flag", variant->is_big, is_big);
+}
+
+static void verify_bully_helpers(void) {
+    expect_bully_variant("small bully variant",
+                         MB64_OBJECT_TYPE_BULLY,
+                         MB64_BULLY_SUBTYPE_GENERIC,
+                         MB64_BULLY_SIZE_SMALL,
+                         0,
+                         0);
+    expect_bully_variant("small chill bully variant",
+                         MB64_OBJECT_TYPE_CHILL_BULLY,
+                         MB64_BULLY_SUBTYPE_CHILL,
+                         MB64_BULLY_SIZE_SMALL,
+                         1,
+                         0);
+    expect_bully_variant("big bully variant",
+                         MB64_OBJECT_TYPE_BIG_BULLY,
+                         MB64_BULLY_SUBTYPE_GENERIC,
+                         MB64_BULLY_SIZE_BIG,
+                         0,
+                         1);
+    expect_bully_variant("big chill bully variant",
+                         MB64_OBJECT_TYPE_BIG_CHILL_BULLY,
+                         MB64_BULLY_SUBTYPE_CHILL,
+                         MB64_BULLY_SIZE_BIG,
+                         1,
+                         1);
+    expect_int("goomba is not bully variant",
+               mb64_bully_variant_for_type(MB64_OBJECT_TYPE_GOOMBA) == NULL,
+               1);
+    expect_int("bully predicate accepts variant",
+               mb64_object_type_is_bully_variant(MB64_OBJECT_TYPE_BIG_CHILL_BULLY),
+               1);
+    expect_int("bully predicate rejects non variant",
+               mb64_object_type_is_bully_variant(MB64_OBJECT_TYPE_GOOMBA),
+               0);
+}
+
 static void verify_bullet_bill_helpers(void) {
     const mb64_bullet_bill_config_t *config = mb64_bullet_bill_config();
     const mb64_object_hitbox_t *hitbox = mb64_bullet_bill_hitbox();
@@ -1265,6 +1316,7 @@ int main(void) {
     verify_fire_spinner_helpers();
     verify_goomba_helpers();
     verify_koopa_helpers();
+    verify_bully_helpers();
     verify_bullet_bill_helpers();
     verify_exclamation_box_helpers();
     verify_floor_switch_helpers();

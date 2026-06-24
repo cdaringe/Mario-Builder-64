@@ -40,6 +40,20 @@ enum {
     MB64_GAME_BTCM = 1,
 };
 
+typedef enum {
+    MB64_THEME_MATERIAL_SLOT_GRASS = 0,
+    MB64_THEME_MATERIAL_SLOT_BRICKS,
+    MB64_THEME_MATERIAL_SLOT_ROCK,
+    MB64_THEME_MATERIAL_SLOT_TILING,
+    MB64_THEME_MATERIAL_SLOT_ROOF,
+    MB64_THEME_MATERIAL_SLOT_WOOD,
+    MB64_THEME_MATERIAL_SLOT_SAND,
+    MB64_THEME_MATERIAL_SLOT_SNOW,
+    MB64_THEME_MATERIAL_SLOT_LAVA,
+    MB64_THEME_MATERIAL_SLOT_QUICKSAND,
+    MB64_THEME_MATERIAL_SLOT_COUNT,
+} mb64_theme_material_slot_t;
+
 /* Custom theme */
 typedef struct {
     uint8_t mats[10];
@@ -79,7 +93,7 @@ typedef struct {
     uint32_t raw;         /* original big-endian word */
     uint8_t  x, y, z;    /* grid coordinates (0-63) */
     uint8_t  type;        /* tile type (0-31) */
-    uint8_t  mat;         /* material (0-15) */
+    uint8_t  mat;         /* theme material slot (0-9) */
     uint8_t  rot;         /* rotation (0-3) */
     uint8_t  waterlogged; /* 1 if waterlogged, 0 otherwise */
 } mb64_tile_t;
@@ -266,6 +280,13 @@ typedef struct {
     int rotation_speed;
 } mb64_fire_spinner_config_t;
 
+typedef enum {
+    MB64_FIRE_SPINNER_ACT_INIT = 0,
+    MB64_FIRE_SPINNER_ACT_SPAWN_ARMS,
+    MB64_FIRE_SPINNER_ACT_ROTATE,
+    MB64_FIRE_SPINNER_ACT_RESET,
+} mb64_fire_spinner_action_t;
+
 enum {
     MB64_GOOMBA_SIZE_REGULAR = 0,
     MB64_GOOMBA_SIZE_HUGE = 1,
@@ -367,6 +388,12 @@ typedef struct {
     float collision_min_scale_y;
 } mb64_onoff_config_t;
 
+typedef enum {
+    MB64_ONOFF_BUTTON_ACT_INIT = 0,
+    MB64_ONOFF_BUTTON_ACT_RISE,
+    MB64_ONOFF_BUTTON_ACT_PRESSED,
+} mb64_onoff_button_action_t;
+
 enum {
     MB64_CONVEYOR_SHAPE_HALF = 0,
     MB64_CONVEYOR_SHAPE_FLAT = 1,
@@ -385,6 +412,11 @@ typedef struct {
     float shrink_factor;
     float delete_scale;
 } mb64_badge_config_t;
+
+typedef enum {
+    MB64_BADGE_ACT_WAIT = 0,
+    MB64_BADGE_ACT_COLLECT,
+} mb64_badge_action_t;
 
 typedef struct {
     float damage_or_coin_value;
@@ -406,6 +438,11 @@ typedef struct {
     float hitbox_down_offset;
     float mask_graph_y_offset;
 } mb64_powerup_config_t;
+
+typedef enum {
+    MB64_POWERUP_ACT_AVAILABLE = 0,
+    MB64_POWERUP_ACT_RESPAWN_WAIT,
+} mb64_powerup_action_t;
 
 typedef enum {
     MB64_PHANTASM_ACT_INIT = 0,

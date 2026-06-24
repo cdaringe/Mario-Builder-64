@@ -725,7 +725,7 @@ const mb64_woodplat_config_t *mb64_woodplat_config(void) {
 }
 
 float mb64_woodplat_piece_height(uint8_t bparam) {
-    return bparam == 1 ? s_woodplat_config.fat_height : s_woodplat_config.thin_height;
+    return bparam == MB64_WOODPLAT_FULL ? s_woodplat_config.fat_height : s_woodplat_config.thin_height;
 }
 
 float mb64_woodplat_stack_height(const uint8_t *bparams, size_t count) {
@@ -743,7 +743,7 @@ float mb64_woodplat_stack_height(const uint8_t *bparams, size_t count) {
 }
 
 uint8_t mb64_woodplat_should_stack(uint8_t bparam, float nearest_distance) {
-    return bparam == 1 && nearest_distance < s_woodplat_config.stack_dist_epsilon;
+    return bparam == MB64_WOODPLAT_FULL && nearest_distance < s_woodplat_config.stack_dist_epsilon;
 }
 
 float mb64_woodplat_water_float_accel(float water_level, float platform_y) {
@@ -1034,23 +1034,25 @@ float mb64_onoff_button_collision_min_scale(float base_scale) {
 }
 
 uint8_t mb64_onoff_button_initial_anim_state(uint8_t bparam) {
-    return bparam != 0;
+    return bparam != MB64_ONOFF_COLOR_RED;
 }
 
 uint8_t mb64_onoff_button_is_pressed(uint8_t anim_state, uint8_t play_onoff) {
-    return (anim_state == 0 && !play_onoff) || (anim_state != 0 && play_onoff);
+    return (anim_state == MB64_ONOFF_COLOR_RED && !play_onoff) ||
+           (anim_state != MB64_ONOFF_COLOR_RED && play_onoff);
 }
 
 uint8_t mb64_onoff_button_should_rise(uint8_t bparam, uint8_t play_onoff) {
-    return (bparam == 0 && play_onoff) || (bparam != 0 && !play_onoff);
+    return (bparam == MB64_ONOFF_COLOR_RED && play_onoff) ||
+           (bparam != MB64_ONOFF_COLOR_RED && !play_onoff);
 }
 
 uint8_t mb64_onoff_state_from_bparam(uint8_t bparam) {
-    return bparam != 0;
+    return bparam != MB64_ONOFF_COLOR_RED;
 }
 
 uint8_t mb64_onoff_block_is_active(uint8_t bparam, uint8_t play_onoff) {
-    return bparam != 0 ? play_onoff : !play_onoff;
+    return bparam != MB64_ONOFF_COLOR_RED ? play_onoff : !play_onoff;
 }
 
 const mb64_badge_config_t *mb64_badge_config(void) {
@@ -1085,7 +1087,7 @@ const mb64_powerup_config_t *mb64_powerup_config(void) {
 }
 
 uint8_t mb64_powerup_bit_for_bparam(uint8_t behavior_param_2) {
-    return behavior_param_2 == 0 ?
+    return behavior_param_2 == MB64_POWERUP_TYPE_CROWBAR ?
         s_powerup_config.crowbar_power_bit :
         s_powerup_config.mask_power_bit;
 }

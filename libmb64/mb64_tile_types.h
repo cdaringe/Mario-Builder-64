@@ -34,4 +34,12 @@ enum {
     TILE_TYPE_WATER,
 };
 
+typedef enum {
+    MB64_TILE_ROT_0 = 0,
+    MB64_TILE_ROT_90,
+    MB64_TILE_ROT_180,
+    MB64_TILE_ROT_270,
+    MB64_TILE_ROT_COUNT,
+} mb64_tile_rotation_t;
+
 #endif

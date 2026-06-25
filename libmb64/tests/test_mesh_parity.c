@@ -5,6 +5,8 @@
 #include "mb64.h"
 #include "mb64_tile_types.h"
 
+#define MB64_TEST_THEME_CUSTOM 10
+
 static int g_failures = 0;
 
 static void expect_int(const char *label, int actual, int expected) {
@@ -324,6 +326,23 @@ static int count_faces_for_tile(const mb64_mesh_t *mesh,
     return count;
 }
 
+static int count_water_faces_for_tile(const mb64_mesh_t *mesh,
+                                      uint8_t x,
+                                      uint8_t y,
+                                      uint8_t z,
+                                      int direction) {
+    int count = 0;
+    for (uint32_t i = 0; i < mesh->face_count; i++) {
+        const mb64_mesh_face_t *face = &mesh->faces[i];
+        if (face->is_water &&
+            face->tile_x == x && face->tile_y == y && face->tile_z == z &&
+            (direction < 0 || face->direction == direction)) {
+            count++;
+        }
+    }
+    return count;
+}
+
 static void expect_face_equal(const char *label,
                               const mb64_mesh_face_t *actual,
                               const mb64_mesh_face_t *expected) {
@@ -432,6 +451,70 @@ static void verify_render_mesh_visitor_matches_snapshot(void) {
     expect_int("visitor emitted all faces", ctx.index, mesh.face_count);
     expect_int("visitor saw water partition", ctx.saw_water, 1);
 
+    mb64_free_render_mesh(&mesh);
+}
+
+static void verify_water_render_predicates(void) {
+    mb64_level_t level;
+    mb64_tile_t tiles[2];
+    mb64_mesh_t mesh = { 0 };
+
+    memset(&level, 0, sizeof(level));
+    memset(tiles, 0, sizeof(tiles));
+    level.header.theme = MB64_TEST_THEME_CUSTOM;
+    level.header.custom_theme.mats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_GRASS;
+    level.header.tile_count = 1;
+    level.tiles = tiles;
+
+    tiles[0].x = 32;
+    tiles[0].y = 2;
+    tiles[0].z = 32;
+    tiles[0].type = TILE_TYPE_BLOCK;
+    tiles[0].mat = MB64_THEME_MATERIAL_SLOT_GRASS;
+    tiles[0].waterlogged = 1;
+    expect_int("opaque waterlogged block does not render water",
+               mb64_tile_renders_water(&level, &tiles[0]), 0);
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "opaque waterlogged block mesh failed\n");
+        g_failures++;
+        return;
+    }
+    expect_int("opaque waterlogged block water tiles", mesh.water_tile_count, 0);
+    expect_int("opaque waterlogged block water faces",
+               count_water_faces_for_tile(&mesh, 32, 2, 32, -1), 0);
+    mb64_free_render_mesh(&mesh);
+
+    level.header.custom_theme.mats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_MC_OAK_LEAVES;
+    expect_int("cutout waterlogged block renders water",
+               mb64_tile_renders_water(&level, &tiles[0]), 1);
+
+    memset(&mesh, 0, sizeof(mesh));
+    level.header.custom_theme.mats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_GRASS;
+    tiles[0].type = TILE_TYPE_TROLL;
+    expect_int("opaque waterlogged troll does not render water",
+               mb64_tile_renders_water(&level, &tiles[0]), 0);
+
+    memset(tiles, 0, sizeof(tiles));
+    level.header.tile_count = 2;
+    tiles[0].x = 32;
+    tiles[0].y = 2;
+    tiles[0].z = 32;
+    tiles[0].type = TILE_TYPE_WATER;
+    tiles[0].mat = MB64_THEME_MATERIAL_SLOT_GRASS;
+    tiles[1].x = 33;
+    tiles[1].y = 2;
+    tiles[1].z = 32;
+    tiles[1].type = TILE_TYPE_BLOCK;
+    tiles[1].mat = MB64_THEME_MATERIAL_SLOT_GRASS;
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "water side culling mesh failed\n");
+        g_failures++;
+        return;
+    }
+    expect_int("water next to opaque block has no blocked side",
+               count_water_faces_for_tile(&mesh, 32, 2, 32, MB64_MESH_FACE_POS_X), 0);
+    expect_int("water next to opaque block still has water faces",
+               count_water_faces_for_tile(&mesh, 32, 2, 32, -1) > 0, 1);
     mb64_free_render_mesh(&mesh);
 }
 
@@ -783,6 +866,11 @@ static void verify_noteblock_helpers(void) {
     expect_float("noteblock velocity decay", config->velocity_decay, 0.95f);
     expect_float("noteblock graph bounce velocity", config->bounce_graph_vel_y, 50.0f);
     expect_float("noteblock mario bounce velocity", config->bounce_mario_vel_y, 95.0f);
+    expect_float("noteblock model scale", config->model_scale, MB64_NOTEBLOCK_MODEL_SCALE);
+    expect_float("noteblock collision half height",
+                 config->collision_half_height,
+                 MB64_NOTEBLOCK_COLLISION_HALF_HEIGHT);
+    expect_float("noteblock collision top offset", config->collision_top_y_offset, 127.0f);
     expect_int("noteblock graph angle", mb64_noteblock_graph_angle(2), 10000);
     expect_float("noteblock velocity decay helper", mb64_noteblock_next_velocity(50.0f), 47.5f);
     expect_int("noteblock bounces on valid platform", mb64_noteblock_should_bounce(0, 0, 0x101, 1), 1);
@@ -1252,6 +1340,8 @@ static void verify_level_size_boundary_helpers(void) {
     }
     expect_int("medium boundary floor face count", (int)mesh.face_count, 16);
     expect_vertex("medium inner boundary extent", mesh.faces[0].v[0], 384, 0, 384);
+    expect_int("medium inner boundary tc u", mesh.faces[0].tc[0][0], 24576);
+    expect_int("medium inner boundary tc v", mesh.faces[0].tc[0][1], 24576);
     expect_vertex("medium outer boundary extent", mesh.faces[4].v[0], 576, 0, 384);
     mb64_free_render_mesh(&mesh);
 
@@ -1269,6 +1359,8 @@ static void verify_level_size_boundary_helpers(void) {
     } else {
         expect_vertex("medium wall boundary extent", mesh.faces[12].v[0], 384, 128, 0);
         expect_int("medium wall boundary direction", mesh.faces[12].direction, MB64_MESH_FACE_NEG_X);
+        expect_int("medium wall boundary tc horizontal", mesh.faces[12].tc[1][0], -24576);
+        expect_int("medium wall boundary tc vertical", mesh.faces[12].tc[0][1], 8192);
     }
     mb64_free_render_mesh(&mesh);
 }
@@ -1307,6 +1399,7 @@ int main(void) {
     verify_bars_match_mb64_connection_rendering();
     verify_shaped_tile_rotations();
     verify_render_mesh_visitor_matches_snapshot();
+    verify_water_render_predicates();
     verify_render_binding_descriptors();
     verify_face_surface_descriptors();
     verify_shaped_corner_under_block_keeps_shell_faces();

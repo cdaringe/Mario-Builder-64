@@ -636,6 +636,10 @@ static uint32_t boundary_wall_face_count(const mb64_level_t *level) {
     return 0;
 }
 
+static int16_t boundary_tc_from_subunits(int16_t value) {
+    return (int16_t)((int32_t)value * 64);
+}
+
 static void emit_boundary_floor_face(mb64_mesh_t *mesh, uint32_t *idx,
                                      const mb64_level_t *level,
                                      const mb64_boundary_floor_quad_t *quad,
@@ -665,8 +669,8 @@ static void emit_boundary_floor_face(mb64_mesh_t *mesh, uint32_t *idx,
         face->v[i][0] = (int16_t)(quad->v[i][0] * gridScale);
         face->v[i][1] = y;
         face->v[i][2] = (int16_t)(quad->v[i][1] * gridScale);
-        face->tc[i][0] = (int16_t)(quad->v[i][0] * 32);
-        face->tc[i][1] = (int16_t)(quad->v[i][1] * 32);
+        face->tc[i][0] = boundary_tc_from_subunits(face->v[i][0]);
+        face->tc[i][1] = boundary_tc_from_subunits(face->v[i][2]);
     }
 }
 
@@ -717,8 +721,10 @@ static void emit_boundary_wall_face(mb64_mesh_t *mesh, uint32_t *idx,
         face->v[i][0] = (int16_t)(quad->v[src][0] * gridScale);
         face->v[i][1] = (int16_t)((quad->v[src][1] * yHeight + y_bottom) * MB64_TILE_SUBUNITS);
         face->v[i][2] = (int16_t)(quad->v[src][2] * gridScale);
-        face->tc[i][0] = (int16_t)(quad->v[src][0] * 32);
-        face->tc[i][1] = (int16_t)((quad->v[src][1] * yHeight + y_bottom) * 32);
+        face->tc[i][0] = boundary_tc_from_subunits(
+            face->direction == MB64_MESH_FACE_POS_X ||
+            face->direction == MB64_MESH_FACE_NEG_X ? face->v[i][2] : face->v[i][0]);
+        face->tc[i][1] = boundary_tc_from_subunits(face->v[i][1]);
     }
 }
 
@@ -1293,6 +1299,104 @@ static void bar_direction_offset(uint8_t direction, int *dx, int *dy, int *dz) {
     }
 }
 
+static int water_block_side_is_solid(const mb64_level_t *level,
+                                     const mb64_tile_t *adjacent,
+                                     const mb64_tile_t *waterlogged,
+                                     uint8_t direction) {
+    const uint8_t adjacent_class =
+        mb64_resolve_tile_side_class(level, adjacent, direction ^ 1);
+    if (adjacent_class == CLASS_CUTOUT) {
+        return 0;
+    }
+    if (adjacent_class != CLASS_HOLLOW_CUTOUT) {
+        return 1;
+    }
+
+    return mb64_resolve_tile_side_class(level, waterlogged, MB64_MESH_FACE_BOTTOM) !=
+           CLASS_HOLLOW_CUTOUT;
+}
+
+static uint8_t water_face_render_type(const mb64_level_t *level,
+                                      const mb64_tile_t *t,
+                                      uint8_t direction,
+                                      uint8_t is_fullblock,
+                                      int collision_mesh) {
+    int dx = 0;
+    int dy = 0;
+    int dz = 0;
+    bar_direction_offset(direction, &dx, &dy, &dz);
+    if (level == NULL || t == NULL || (dx == 0 && dy == 0 && dz == 0)) {
+        return 0;
+    }
+    if ((boundary_flags(level) & MB64_BOUNDARY_CEILING) &&
+        level->header.boundary_height > 0 &&
+        t->y == (uint8_t)(level->header.boundary_height - 1) &&
+        direction == MB64_MESH_FACE_TOP) {
+        mb64_tile_t boundary_tile;
+        memset(&boundary_tile, 0, sizeof(boundary_tile));
+        boundary_tile.mat = level->header.boundary_mat;
+        if (mb64_material_type(mb64_resolve_tile_material(level, &boundary_tile, 0)) != MAT_CUTOUT) {
+            return 0;
+        }
+    }
+
+    const int nx = (int)t->x + dx;
+    const int ny = (int)t->y + dy;
+    const int nz = (int)t->z + dz;
+    if (!coords_in_level_range(level, nx, ny, nz)) {
+        const uint8_t type = is_fullblock ? 2 : 1;
+        if (direction == MB64_MESH_FACE_TOP) {
+            return 1;
+        }
+        if (direction == MB64_MESH_FACE_BOTTOM) {
+            return (boundary_flags(level) & MB64_BOUNDARY_INNER_FLOOR) ? 0 : type;
+        }
+        return ((boundary_flags(level) & MB64_BOUNDARY_INNER_WALLS) &&
+                t->y < level->header.boundary_height) ? 0 : type;
+    }
+
+    if (water_at(nx, ny, nz)) {
+        return 0;
+    }
+
+    const mb64_tile_t *adj = find_level_tile(level, nx, ny, nz);
+    if (adj != NULL && adj->type == TILE_TYPE_CULL) {
+        return 0;
+    }
+    if (adj != NULL &&
+        faceshape_at(nx, ny, nz, direction, collision_mesh) == MB64_FACESHAPE_FULL &&
+        water_block_side_is_solid(level, adj, t, direction)) {
+        return 0;
+    }
+    if (faceshape_at(t->x, t->y, t->z, direction ^ 1, collision_mesh) == MB64_FACESHAPE_FULL &&
+        water_block_side_is_solid(level, t, adj, direction ^ 1)) {
+        if (!is_fullblock && direction == MB64_MESH_FACE_TOP) {
+            return 1;
+        }
+        return 0;
+    }
+
+    if (adj != NULL && adj->waterlogged) {
+        if (direction != MB64_MESH_FACE_TOP && direction != MB64_MESH_FACE_BOTTOM &&
+            is_fullblock &&
+            !mb64_water_surface_is_fullblock(level, nx, ny, nz)) {
+            return 3;
+        }
+        return 0;
+    }
+
+    return is_fullblock ? 2 : 1;
+}
+
+static int water_side_should_render(const mb64_level_t *level,
+                                    const mb64_tile_t *t,
+                                    uint8_t direction,
+                                    int collision_mesh) {
+    const uint8_t is_fullblock = (uint8_t)mb64_water_surface_is_fullblock(
+        level, t != NULL ? t->x : 0, t != NULL ? t->y : 0, t != NULL ? t->z : 0);
+    return water_face_render_type(level, t, direction, is_fullblock, collision_mesh) != 0;
+}
+
 static void check_bar_side_connections(const mb64_level_t *level,
                                        const mb64_tile_t *t,
                                        uint8_t connections[5],
@@ -1497,11 +1601,17 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
         if (!mb64_tile_renders_water(level, t) || water_at(t->x, t->y - 1, t->z)) { continue; }
         int y1 = t->y + 1;
         while (water_at(t->x, y1, t->z)) { y1++; }
-        face_count++; /* top of the merged water column */
-        if (!water_at(t->x - 1, t->y, t->z)) { face_count++; }
-        if (!water_at(t->x + 1, t->y, t->z)) { face_count++; }
-        if (!water_at(t->x, t->y, t->z - 1)) { face_count++; }
-        if (!water_at(t->x, t->y, t->z + 1)) { face_count++; }
+        const mb64_tile_t *top_water = find_level_tile(level, t->x, y1 - 1, t->z);
+        if (water_face_render_type(level, top_water != NULL ? top_water : t,
+                                   MB64_MESH_FACE_TOP,
+                                   (uint8_t)mb64_water_surface_is_fullblock(level, t->x, y1 - 1, t->z),
+                                   collision_mesh) != 0) {
+            face_count++;
+        }
+        if (water_side_should_render(level, t, MB64_MESH_FACE_NEG_X, collision_mesh)) { face_count++; }
+        if (water_side_should_render(level, t, MB64_MESH_FACE_POS_X, collision_mesh)) { face_count++; }
+        if (water_side_should_render(level, t, MB64_MESH_FACE_NEG_Z, collision_mesh)) { face_count++; }
+        if (water_side_should_render(level, t, MB64_MESH_FACE_POS_Z, collision_mesh)) { face_count++; }
     }
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
@@ -1594,21 +1704,27 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
         int16_t water_top_y = (int16_t)(y1 - 2);
         int16_t water_side_top_y = water_top_y;
         int16_t water_side_bottom_y = (int16_t)(y0 - 2);
-        const int16_t top[4][3] = {{x0,water_top_y,z1},{x0,water_top_y,z0},{x1,water_top_y,z1},{x1,water_top_y,z0}};
-        emit_face(mesh, &out, level, t, MB64_MESH_FACE_TOP, 1, top);
-        if (!water_at(t->x - 1, t->y, t->z)) {
+        const mb64_tile_t *top_water = find_level_tile(level, t->x, (y1 / MB64_TILE_SUBUNITS) - 1, t->z);
+        if (water_face_render_type(level, top_water != NULL ? top_water : t,
+                                   MB64_MESH_FACE_TOP,
+                                   (uint8_t)mb64_water_surface_is_fullblock(level, t->x, (y1 / MB64_TILE_SUBUNITS) - 1, t->z),
+                                   collision_mesh) != 0) {
+            const int16_t top[4][3] = {{x0,water_top_y,z1},{x0,water_top_y,z0},{x1,water_top_y,z1},{x1,water_top_y,z0}};
+            emit_face(mesh, &out, level, t, MB64_MESH_FACE_TOP, 1, top);
+        }
+        if (water_side_should_render(level, t, MB64_MESH_FACE_NEG_X, collision_mesh)) {
             const int16_t p[4][3] = {{x0,water_side_top_y,z0},{x0,water_side_bottom_y,z0},{x0,water_side_top_y,z1},{x0,water_side_bottom_y,z1}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_NEG_X, 1, p);
         }
-        if (!water_at(t->x + 1, t->y, t->z)) {
+        if (water_side_should_render(level, t, MB64_MESH_FACE_POS_X, collision_mesh)) {
             const int16_t p[4][3] = {{x1,water_side_top_y,z1},{x1,water_side_bottom_y,z1},{x1,water_side_top_y,z0},{x1,water_side_bottom_y,z0}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_POS_X, 1, p);
         }
-        if (!water_at(t->x, t->y, t->z - 1)) {
+        if (water_side_should_render(level, t, MB64_MESH_FACE_NEG_Z, collision_mesh)) {
             const int16_t p[4][3] = {{x1,water_side_top_y,z0},{x1,water_side_bottom_y,z0},{x0,water_side_top_y,z0},{x0,water_side_bottom_y,z0}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_NEG_Z, 1, p);
         }
-        if (!water_at(t->x, t->y, t->z + 1)) {
+        if (water_side_should_render(level, t, MB64_MESH_FACE_POS_Z, collision_mesh)) {
             const int16_t p[4][3] = {{x0,water_side_top_y,z1},{x0,water_side_bottom_y,z1},{x1,water_side_top_y,z1},{x1,water_side_bottom_y,z1}};
             emit_face(mesh, &out, level, t, MB64_MESH_FACE_POS_Z, 1, p);
         }

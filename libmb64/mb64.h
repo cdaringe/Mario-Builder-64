@@ -34,6 +34,8 @@ extern "C" {
 /** Total trajectory waypoints stored per level (20 paths x 50 points). */
 #define MB64_TRAJ_COUNT (MB64_MAX_TRAJECTORIES * MB64_TRAJECTORY_LENGTH)
 #define MB64_EXCLAMATION_BOX_TYPE_COUNT 7
+#define MB64_NOTEBLOCK_MODEL_SCALE 1.27f
+#define MB64_NOTEBLOCK_COLLISION_HALF_HEIGHT 100.0f
 
 enum {
     MB64_GAME_VANILLA = 0,
@@ -398,6 +400,9 @@ typedef struct {
     float velocity_decay;
     float bounce_graph_vel_y;
     float bounce_mario_vel_y;
+    float model_scale;
+    float collision_half_height;
+    float collision_top_y_offset;
 } mb64_noteblock_config_t;
 
 typedef struct {

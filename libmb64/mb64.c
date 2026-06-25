@@ -274,11 +274,15 @@ static const mb64_floor_switch_config_t s_floor_switch_config = {
 };
 
 static const mb64_noteblock_config_t s_noteblock_config = {
-    5000,  /* graph_angle_step */
-    0x100, /* min_health */
-    0.95f, /* velocity_decay */
-    50.0f, /* bounce_graph_vel_y */
-    95.0f, /* bounce_mario_vel_y */
+    5000,                                        /* graph_angle_step */
+    0x100,                                       /* min_health */
+    0.95f,                                       /* velocity_decay */
+    50.0f,                                       /* bounce_graph_vel_y */
+    95.0f,                                       /* bounce_mario_vel_y */
+    MB64_NOTEBLOCK_MODEL_SCALE,                  /* model_scale */
+    MB64_NOTEBLOCK_COLLISION_HALF_HEIGHT,        /* collision_half_height */
+    MB64_NOTEBLOCK_MODEL_SCALE *
+        MB64_NOTEBLOCK_COLLISION_HALF_HEIGHT,    /* collision_top_y_offset */
 };
 
 static const mb64_onoff_config_t s_onoff_config = {

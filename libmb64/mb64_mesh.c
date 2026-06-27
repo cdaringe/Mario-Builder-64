@@ -1742,27 +1742,91 @@ int mb64_build_collision_mesh(const mb64_level_t *level, mb64_mesh_t *mesh) {
     return mb64_build_mesh(level, mesh, 1);
 }
 
-static int mesh_vertices_match_unordered(const mb64_mesh_face_t *a,
-                                         const mb64_mesh_face_t *b) {
-    if (a->vertex_count != b->vertex_count) {
-        return 0;
+typedef struct {
+    uint8_t direction;
+    uint8_t is_water;
+    uint8_t vertex_count;
+    uint16_t resolved_material;
+    int16_t vertices[4][3];
+} mb64_face_duplicate_key_t;
+
+typedef struct {
+    mb64_face_duplicate_key_t key;
+    uint32_t count;
+    uint8_t occupied;
+} mb64_face_duplicate_entry_t;
+
+static int mesh_vertex_compare(const int16_t a[3], const int16_t b[3]) {
+    for (uint8_t i = 0; i < 3; i++) {
+        if (a[i] < b[i]) {
+            return -1;
+        }
+        if (a[i] > b[i]) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void mesh_duplicate_key_from_face(mb64_face_duplicate_key_t *key,
+                                         const mb64_mesh_face_t *face) {
+    memset(key, 0, sizeof(*key));
+    key->direction = face->direction;
+    key->is_water = face->is_water;
+    key->vertex_count = face->vertex_count;
+    key->resolved_material = face->resolved_material;
+    for (uint8_t i = 0; i < face->vertex_count && i < 4; i++) {
+        key->vertices[i][0] = face->v[i][0];
+        key->vertices[i][1] = face->v[i][1];
+        key->vertices[i][2] = face->v[i][2];
     }
 
-    for (uint8_t i = 0; i < a->vertex_count; i++) {
-        int matched = 0;
-        for (uint8_t j = 0; j < b->vertex_count; j++) {
-            if (a->v[i][0] == b->v[j][0] &&
-                a->v[i][1] == b->v[j][1] &&
-                a->v[i][2] == b->v[j][2]) {
-                matched = 1;
-                break;
-            }
+    for (uint8_t i = 1; i < key->vertex_count && i < 4; i++) {
+        int16_t vertex[3] = {
+            key->vertices[i][0],
+            key->vertices[i][1],
+            key->vertices[i][2],
+        };
+        uint8_t j = i;
+        while (j > 0 && mesh_vertex_compare(vertex, key->vertices[j - 1]) < 0) {
+            key->vertices[j][0] = key->vertices[j - 1][0];
+            key->vertices[j][1] = key->vertices[j - 1][1];
+            key->vertices[j][2] = key->vertices[j - 1][2];
+            j--;
         }
-        if (!matched) {
-            return 0;
-        }
+        key->vertices[j][0] = vertex[0];
+        key->vertices[j][1] = vertex[1];
+        key->vertices[j][2] = vertex[2];
     }
-    return 1;
+}
+
+static uint32_t mesh_duplicate_hash_key(const mb64_face_duplicate_key_t *key) {
+    uint32_t hash = 2166136261u;
+#define MB64_HASH_U32(value) do { \
+        uint32_t mb64_hash_value = (uint32_t)(value); \
+        for (uint8_t mb64_hash_i = 0; mb64_hash_i < 4; mb64_hash_i++) { \
+            hash ^= (mb64_hash_value >> (mb64_hash_i * 8)) & 0xffu; \
+            hash *= 16777619u; \
+        } \
+    } while (0)
+
+    MB64_HASH_U32(key->direction);
+    MB64_HASH_U32(key->is_water);
+    MB64_HASH_U32(key->vertex_count);
+    MB64_HASH_U32(key->resolved_material);
+    for (uint8_t i = 0; i < key->vertex_count && i < 4; i++) {
+        MB64_HASH_U32((uint16_t)key->vertices[i][0]);
+        MB64_HASH_U32((uint16_t)key->vertices[i][1]);
+        MB64_HASH_U32((uint16_t)key->vertices[i][2]);
+    }
+
+#undef MB64_HASH_U32
+    return hash;
+}
+
+static int mesh_duplicate_keys_equal(const mb64_face_duplicate_key_t *a,
+                                     const mb64_face_duplicate_key_t *b) {
+    return memcmp(a, b, sizeof(*a)) == 0;
 }
 
 static uint32_t count_duplicate_mesh_faces(const mb64_mesh_t *mesh) {
@@ -1771,18 +1835,36 @@ static uint32_t count_duplicate_mesh_faces(const mb64_mesh_t *mesh) {
         return 0;
     }
 
+    size_t capacity = 1;
+    while (capacity < ((size_t)mesh->face_count * 2u)) {
+        capacity <<= 1;
+    }
+    mb64_face_duplicate_entry_t *entries =
+        (mb64_face_duplicate_entry_t *)calloc(capacity, sizeof(*entries));
+    if (entries == NULL) {
+        return 0;
+    }
+
     for (uint32_t i = 0; i < mesh->face_count; i++) {
-        const mb64_mesh_face_t *a = &mesh->faces[i];
-        for (uint32_t j = i + 1; j < mesh->face_count; j++) {
-            const mb64_mesh_face_t *b = &mesh->faces[j];
-            if (a->direction == b->direction &&
-                a->is_water == b->is_water &&
-                a->resolved_material == b->resolved_material &&
-                mesh_vertices_match_unordered(a, b)) {
-                duplicates++;
+        mb64_face_duplicate_key_t key;
+        mesh_duplicate_key_from_face(&key, &mesh->faces[i]);
+        size_t slot = (size_t)mesh_duplicate_hash_key(&key) & (capacity - 1u);
+        while (entries[slot].occupied) {
+            if (mesh_duplicate_keys_equal(&entries[slot].key, &key)) {
+                duplicates += entries[slot].count;
+                entries[slot].count++;
+                break;
             }
+            slot = (slot + 1u) & (capacity - 1u);
+        }
+        if (!entries[slot].occupied) {
+            entries[slot].key = key;
+            entries[slot].count = 1;
+            entries[slot].occupied = 1;
         }
     }
+
+    free(entries);
     return duplicates;
 }
 

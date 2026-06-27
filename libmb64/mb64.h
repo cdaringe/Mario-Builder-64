@@ -275,6 +275,13 @@ typedef struct {
 } mb64_reinforced_box_config_t;
 
 typedef struct {
+    float break_coin_radius;
+    int cork_anim_state;
+    int initial_loot_coins;
+    float imbue_drop_y_offset;
+} mb64_breakable_box_config_t;
+
+typedef struct {
     float first_flame_distance;
     float flame_spacing;
     float flame_y_offset;
@@ -1274,6 +1281,9 @@ uint8_t mb64_woodplat_should_use_simple_wall_checks(uint8_t floor_is_conveyor,
                                                     uint8_t on_ground);
 uint8_t mb64_woodplat_should_die_on_death_barrier(uint8_t has_floor, uint8_t floor_is_death_plane,
                                                   float platform_y, float floor_y);
+float mb64_thwomp_floor_probe_offset_y(void);
+uint8_t mb64_thwomp_should_die_on_death_barrier(uint8_t has_floor, uint8_t floor_is_death_plane,
+                                                float thwomp_y, float floor_y);
 const mb64_looping_platform_config_t *mb64_looping_platform_config(void);
 const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void);
 const mb64_object_hitbox_t *mb64_bullet_bill_hitbox(void);
@@ -1284,6 +1294,8 @@ uint8_t mb64_bullet_bill_should_floor_probe(int timer);
 uint8_t mb64_bullet_bill_should_rotate_toward_player(float distance);
 uint8_t mb64_bullet_bill_should_timeout(int timer);
 uint8_t mb64_bullet_bill_should_reset_after_explosion(int timer);
+const mb64_breakable_box_config_t *mb64_breakable_box_config(void);
+const mb64_object_hitbox_t *mb64_breakable_box_hitbox(void);
 const mb64_reinforced_box_config_t *mb64_reinforced_box_config(void);
 const mb64_object_hitbox_t *mb64_reinforced_box_hitbox(void);
 uint8_t mb64_reinforced_box_should_clank(int timer);

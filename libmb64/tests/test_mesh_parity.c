@@ -636,6 +636,13 @@ static void verify_woodplat_helpers(void) {
                mb64_woodplat_should_use_simple_wall_checks(1, 1, 1), 0);
     expect_int("woodplat simple walls enabled on upward conveyor while airborne",
                mb64_woodplat_should_use_simple_wall_checks(1, 1, 0), 1);
+    expect_float("thwomp floor probe offset", mb64_thwomp_floor_probe_offset_y(), 30.0f);
+    expect_int("thwomp unknown floor does not die",
+               mb64_thwomp_should_die_on_death_barrier(0, 0, 0.0f, 0.0f), 0);
+    expect_int("thwomp death plane kills near floor",
+               mb64_thwomp_should_die_on_death_barrier(1, 1, 99.0f, 0.0f), 1);
+    expect_int("thwomp death plane does not kill when high",
+               mb64_thwomp_should_die_on_death_barrier(1, 1, 100.0f, 0.0f), 0);
 }
 
 static void verify_looping_platform_helpers(void) {
@@ -662,6 +669,20 @@ static void verify_reinforced_box_helpers(void) {
     expect_int("rfbox no shake at limit", mb64_reinforced_box_should_shake(10), 0);
     expect_float("rfbox negative shake edge", mb64_reinforced_box_shake_offset(0.0f), -3.0f);
     expect_float("rfbox positive shake edge", mb64_reinforced_box_shake_offset(1.0f), 3.0f);
+}
+
+static void verify_breakable_box_helpers(void) {
+    const mb64_breakable_box_config_t *config = mb64_breakable_box_config();
+    const mb64_object_hitbox_t *hitbox = mb64_breakable_box_hitbox();
+
+    expect_float("breakable box break coin radius", config->break_coin_radius, 46.0f);
+    expect_int("breakable box cork anim state", config->cork_anim_state, 1);
+    expect_int("breakable box initial loot coins", config->initial_loot_coins, 0);
+    expect_float("breakable box imbue drop y offset", config->imbue_drop_y_offset, 150.0f);
+    expect_int("breakable box hitbox radius", hitbox->radius, 192);
+    expect_int("breakable box hitbox height", hitbox->height, 256);
+    expect_int("breakable box hurtbox radius", hitbox->hurtbox_radius, 192);
+    expect_int("breakable box hurtbox height", hitbox->hurtbox_height, 256);
 }
 
 static void verify_fire_spinner_helpers(void) {
@@ -1405,6 +1426,7 @@ int main(void) {
     verify_shaped_corner_under_block_keeps_shell_faces();
     verify_woodplat_helpers();
     verify_looping_platform_helpers();
+    verify_breakable_box_helpers();
     verify_reinforced_box_helpers();
     verify_fire_spinner_helpers();
     verify_goomba_helpers();

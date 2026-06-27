@@ -201,6 +201,24 @@ static const mb64_object_hitbox_t s_bullet_bill_hitbox = {
     0,   /* hurtboxHeight */
 };
 
+static const mb64_breakable_box_config_t s_breakable_box_config = {
+    46.0f, /* break_coin_radius */
+    1,     /* BREAKABLE_BOX_ANIM_STATE_CORK_BOX */
+    0,     /* MB64 clears loot coins after cork-box init */
+    150.0f, /* imbue drop y offset */
+};
+
+static const mb64_object_hitbox_t s_breakable_box_hitbox = {
+    0,   /* damageOrCoinValue */
+    1,   /* health */
+    0,   /* numLootCoins */
+    20,  /* downOffset */
+    192, /* radius */
+    256, /* height */
+    192, /* hurtboxRadius */
+    256, /* hurtboxHeight */
+};
+
 static const mb64_reinforced_box_config_t s_reinforced_box_config = {
     46.0f, /* break_coin_radius */
     6.0f,  /* shake_amplitude */
@@ -795,6 +813,18 @@ uint8_t mb64_woodplat_should_die_on_death_barrier(uint8_t has_floor, uint8_t flo
     return floor_is_death_plane && platform_y < floor_y + 100.0f;
 }
 
+float mb64_thwomp_floor_probe_offset_y(void) {
+    return 30.0f;
+}
+
+uint8_t mb64_thwomp_should_die_on_death_barrier(uint8_t has_floor, uint8_t floor_is_death_plane,
+                                                float thwomp_y, float floor_y) {
+    if (!has_floor) {
+        return 0;
+    }
+    return floor_is_death_plane && thwomp_y < floor_y + 100.0f;
+}
+
 const mb64_looping_platform_config_t *mb64_looping_platform_config(void) {
     return &s_looping_platform_config;
 }
@@ -841,6 +871,14 @@ uint8_t mb64_bullet_bill_should_timeout(int timer) {
 
 uint8_t mb64_bullet_bill_should_reset_after_explosion(int timer) {
     return timer > s_bullet_bill_config.explosion_reset_frame;
+}
+
+const mb64_breakable_box_config_t *mb64_breakable_box_config(void) {
+    return &s_breakable_box_config;
+}
+
+const mb64_object_hitbox_t *mb64_breakable_box_hitbox(void) {
+    return &s_breakable_box_hitbox;
 }
 
 const mb64_reinforced_box_config_t *mb64_reinforced_box_config(void) {

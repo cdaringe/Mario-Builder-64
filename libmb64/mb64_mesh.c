@@ -410,17 +410,8 @@ int mb64_find_water_query_surface(const mb64_level_t *level,
         return 0;
     }
 
-    if (level_water_at(level, grid_x, grid_y, grid_z)) {
-        if (out_surface_grid_y != NULL) {
-            *out_surface_grid_y = grid_y;
-        }
-        if (out_fullblock != NULL) {
-            *out_fullblock = mb64_water_surface_is_fullblock(level, grid_x, grid_y, grid_z);
-        }
-        return 1;
-    }
-
-    return mb64_find_water_surface(level, grid_x, grid_y, grid_z, out_surface_grid_y, out_fullblock);
+    return mb64_find_water_surface(level, grid_x, grid_y, grid_z,
+                                   out_surface_grid_y, out_fullblock);
 }
 
 uint8_t mb64_resolve_tile_material(const mb64_level_t *level,

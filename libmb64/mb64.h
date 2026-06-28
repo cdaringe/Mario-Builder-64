@@ -1227,13 +1227,13 @@ int mb64_find_water_surface(const mb64_level_t *level,
                             int *out_fullblock);
 
 /**
- * mb64_find_water_query_surface() - Gameplay-safe water lookup.
+ * mb64_find_water_query_surface() - MB64 runtime water lookup.
  *
- * Use this for Mario/object water checks with a real query Y. If the query
- * cell itself contains water, the returned surface belongs to that cell rather
- * than the top of a taller contiguous stack. This prevents side-entry into a
- * lower water block from snapping gameplay to an upper stacked water surface.
- * If the query cell is not water, this falls back to mb64_find_water_surface().
+ * Use this for Mario/object water checks with a real query Y. The query
+ * mirrors mb64_get_water_level(): if the query cell contains water, scan up to
+ * the highest contiguous water block; otherwise scan down to the nearest water
+ * column below. This keeps stacked water as one stitched volume and prevents
+ * intermediate blocks from behaving like separate water surfaces.
  */
 int mb64_find_water_query_surface(const mb64_level_t *level,
                                   int grid_x,

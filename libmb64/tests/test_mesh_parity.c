@@ -518,6 +518,35 @@ static void verify_water_render_predicates(void) {
     mb64_free_render_mesh(&mesh);
 }
 
+static void verify_stacked_water_query_uses_top_surface(void) {
+    mb64_level_t level;
+    mb64_tile_t tiles[3];
+    int surfaceGridY = -1;
+    int fullblock = -1;
+
+    memset(&level, 0, sizeof(level));
+    memset(tiles, 0, sizeof(tiles));
+    level.header.tile_count = 3;
+    level.tiles = tiles;
+
+    for (int i = 0; i < 3; i++) {
+        tiles[i].x = 32;
+        tiles[i].y = (uint8_t)(2 + i);
+        tiles[i].z = 32;
+        tiles[i].type = TILE_TYPE_WATER;
+        tiles[i].waterlogged = 1;
+    }
+
+    expect_int("stacked water query from bottom resolves",
+               mb64_find_water_query_surface(&level, 32, 2, 32, &surfaceGridY, &fullblock),
+               1);
+    expect_int("stacked water bottom query uses top surface", surfaceGridY, 4);
+    expect_int("stacked water query from above resolves",
+               mb64_find_water_query_surface(&level, 32, 5, 32, &surfaceGridY, &fullblock),
+               1);
+    expect_int("stacked water above query uses top surface", surfaceGridY, 4);
+}
+
 static void verify_render_binding_descriptors(void) {
     mb64_level_t level;
     mb64_mesh_face_t face;
@@ -1421,6 +1450,7 @@ int main(void) {
     verify_shaped_tile_rotations();
     verify_render_mesh_visitor_matches_snapshot();
     verify_water_render_predicates();
+    verify_stacked_water_query_uses_top_surface();
     verify_render_binding_descriptors();
     verify_face_surface_descriptors();
     verify_shaped_corner_under_block_keeps_shell_faces();

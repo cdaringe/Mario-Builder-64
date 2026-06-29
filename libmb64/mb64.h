@@ -1187,6 +1187,8 @@ uint8_t mb64_resolve_tile_material(const mb64_level_t *level,
 int16_t mb64_surface_for_material(uint8_t material);
 int16_t mb64_surface_for_tile(const mb64_level_t *level, const mb64_tile_t *tile);
 int16_t mb64_surface_for_mesh_face(const mb64_mesh_face_t *face);
+uint8_t mb64_surface_has_no_camera_collision(int16_t surface_type);
+uint8_t mb64_surface_is_vanish_cap_passable(int16_t surface_type);
 mb64_material_texture_animation_t mb64_texture_animation_for_material(uint8_t material);
 mb64_material_texture_animation_t mb64_texture_animation_for_water(const mb64_level_t *level);
 int mb64_render_binding_for_face(const mb64_level_t *level,
@@ -1251,6 +1253,8 @@ int mb64_find_water_query_surface(const mb64_level_t *level,
  * uses during mesh generation.
  */
 const mb64_theme_special_t *mb64_theme_specials_for_level(const mb64_level_t *level);
+uint8_t mb64_object_counts_as_star(const mb64_obj_t *object);
+uint32_t mb64_level_play_star_count(const mb64_level_t *level);
 
 /**
  * mb64_water_vertex_color() - Return animated water vertex color.

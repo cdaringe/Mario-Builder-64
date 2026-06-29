@@ -219,6 +219,31 @@ static const mb64_object_hitbox_t s_breakable_box_hitbox = {
     256, /* hurtboxHeight */
 };
 
+uint8_t mb64_object_counts_as_star(const mb64_obj_t *object) {
+    if (object == NULL) {
+        return 0;
+    }
+    return object->imbue == MB64_IMBUE_STAR ||
+           object->type == MB64_OBJECT_TYPE_STAR ||
+           object->type == MB64_OBJECT_TYPE_RED_COIN_STAR ||
+           object->type == MB64_OBJECT_TYPE_KOOPA_THE_QUICK ||
+           object->type == MB64_OBJECT_TYPE_TRIGGER_STAR;
+}
+
+uint32_t mb64_level_play_star_count(const mb64_level_t *level) {
+    if (level == NULL) {
+        return 0;
+    }
+
+    uint32_t count = level->header.coinstar > 0 ? 1 : 0;
+    for (uint32_t i = 0; i < level->header.object_count; i++) {
+        if (mb64_object_counts_as_star(&level->objects[i])) {
+            count++;
+        }
+    }
+    return count;
+}
+
 static const mb64_reinforced_box_config_t s_reinforced_box_config = {
     46.0f, /* break_coin_radius */
     6.0f,  /* shake_amplitude */

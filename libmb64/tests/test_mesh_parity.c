@@ -229,6 +229,44 @@ static void verify_bars_match_mb64_connection_rendering(void) {
     mb64_free_render_mesh(&mesh);
 }
 
+static void verify_shared_surface_semantics(void) {
+    expect_int("no cam collision base", mb64_surface_has_no_camera_collision(0x0076), 1);
+    expect_int("no cam collision unused", mb64_surface_has_no_camera_collision(0x0077), 1);
+    expect_int("no cam collision very slippery", mb64_surface_has_no_camera_collision(0x0078), 1);
+    expect_int("no cam collision switch", mb64_surface_has_no_camera_collision(0x007A), 1);
+    expect_int("no cam collision vanish walls", mb64_surface_has_no_camera_collision(0x007B), 1);
+    expect_int("no cam collision ice", mb64_surface_has_no_camera_collision(0x002E), 1);
+    expect_int("no cam collision crystal", mb64_surface_has_no_camera_collision(0x0080), 1);
+    expect_int("no cam collision hangable", mb64_surface_has_no_camera_collision(0x0005), 1);
+    expect_int("cam collides default", mb64_surface_has_no_camera_collision(0x0000), 0);
+    expect_int("vanish walls are passable", mb64_surface_is_vanish_cap_passable(0x007B), 1);
+    expect_int("hangable mesh is passable", mb64_surface_is_vanish_cap_passable(0x0005), 1);
+    expect_int("crystal is passable", mb64_surface_is_vanish_cap_passable(0x0080), 1);
+    expect_int("ice is passable", mb64_surface_is_vanish_cap_passable(0x002E), 1);
+    expect_int("switch is not vanish passable", mb64_surface_is_vanish_cap_passable(0x007A), 0);
+}
+
+static void verify_star_count_helpers(void) {
+    mb64_level_t level;
+    mb64_obj_t objects[5];
+
+    memset(&level, 0, sizeof(level));
+    memset(objects, 0, sizeof(objects));
+    level.header.coinstar = 1;
+    level.header.object_count = 5;
+    level.objects = objects;
+    objects[0].type = MB64_OBJECT_TYPE_STAR;
+    objects[1].type = MB64_OBJECT_TYPE_RED_COIN_STAR;
+    objects[2].type = MB64_OBJECT_TYPE_TRIGGER_STAR;
+    objects[3].type = MB64_OBJECT_TYPE_GOOMBA;
+    objects[3].imbue = MB64_IMBUE_STAR;
+    objects[4].type = MB64_OBJECT_TYPE_GOOMBA;
+
+    expect_int("star object counts", mb64_object_counts_as_star(&objects[0]), 1);
+    expect_int("non-star object ignored", mb64_object_counts_as_star(&objects[4]), 0);
+    expect_int("level play star count includes coinstar", (int)mb64_level_play_star_count(&level), 5);
+}
+
 static void verify_shaped_tile_rotation(uint8_t type, uint8_t rot) {
     mb64_level_t base_level;
     mb64_level_t rotated_level;
@@ -1447,6 +1485,8 @@ int main(void) {
     verify_fence_rotation(3, MB64_MESH_FACE_NEG_X, MB64_MESH_FACE_POS_X, front3, back3);
     verify_adjacent_fence_uv_phase();
     verify_bars_match_mb64_connection_rendering();
+    verify_shared_surface_semantics();
+    verify_star_count_helpers();
     verify_shaped_tile_rotations();
     verify_render_mesh_visitor_matches_snapshot();
     verify_water_render_predicates();

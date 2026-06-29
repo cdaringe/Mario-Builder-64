@@ -13,8 +13,14 @@
 #define MB64_DEATH_PLANE_GRID_Y (-40)
 #define PACK_TILESIZE(w, d) (((w) << 2) + (d))
 #define MB64_SURFACE_DEFAULT 0
+#define MB64_SURFACE_HANGABLE_MESH 0x0005
+#define MB64_SURFACE_ICE 0x002E
 #define MB64_SURFACE_NO_CAM_COLLISION 0x0076
+#define MB64_SURFACE_NO_CAM_COLLISION_77 0x0077
+#define MB64_SURFACE_NO_CAM_COL_VERY_SLIPPERY 0x0078
+#define MB64_SURFACE_SWITCH 0x007A
 #define MB64_SURFACE_VANISH_CAP_WALLS 0x007B
+#define MB64_SURFACE_CRYSTAL 0x0080
 
 #define MB64_BOUNDARY_INNER_FLOOR (1 << 0)
 #define MB64_BOUNDARY_OUTER_FLOOR (1 << 1)
@@ -773,6 +779,34 @@ int16_t mb64_surface_for_mesh_face(const mb64_mesh_face_t *face) {
             return MB64_SURFACE_VANISH_CAP_WALLS;
         default:
             return mb64_surface_for_material(face->resolved_material);
+    }
+}
+
+uint8_t mb64_surface_has_no_camera_collision(int16_t surface_type) {
+    switch (surface_type) {
+        case MB64_SURFACE_NO_CAM_COLLISION:
+        case MB64_SURFACE_NO_CAM_COLLISION_77:
+        case MB64_SURFACE_NO_CAM_COL_VERY_SLIPPERY:
+        case MB64_SURFACE_SWITCH:
+        case MB64_SURFACE_VANISH_CAP_WALLS:
+        case MB64_SURFACE_ICE:
+        case MB64_SURFACE_CRYSTAL:
+        case MB64_SURFACE_HANGABLE_MESH:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+uint8_t mb64_surface_is_vanish_cap_passable(int16_t surface_type) {
+    switch (surface_type) {
+        case MB64_SURFACE_VANISH_CAP_WALLS:
+        case MB64_SURFACE_HANGABLE_MESH:
+        case MB64_SURFACE_CRYSTAL:
+        case MB64_SURFACE_ICE:
+            return 1;
+        default:
+            return 0;
     }
 }
 

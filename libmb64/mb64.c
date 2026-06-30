@@ -800,6 +800,10 @@ uint8_t mb64_woodplat_should_stack(uint8_t bparam, float nearest_distance) {
     return bparam == MB64_WOODPLAT_FULL && nearest_distance < s_woodplat_config.stack_dist_epsilon;
 }
 
+uint8_t mb64_woodplat_should_use_water_physics(uint8_t bparam) {
+    return bparam == MB64_WOODPLAT_FULL;
+}
+
 float mb64_woodplat_water_float_accel(float water_level, float platform_y) {
     return s_woodplat_config.water_float_base +
         mb64_clampf((water_level - s_woodplat_config.water_surface_offset - platform_y) * 0.1f,

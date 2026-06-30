@@ -929,7 +929,7 @@ static void tile_bounds(const mb64_tile_t *t,
                         int16_t *z0, int16_t *z1) {
     *x0 = (int16_t)(((int)t->x - MB64_GRID_CENTRE) * MB64_TILE_SUBUNITS);
     *x1 = (int16_t)(*x0 + MB64_TILE_SUBUNITS);
-    *y0 = (int16_t)((int)t->y * MB64_TILE_SUBUNITS);
+    *y0 = (int16_t)(((int)t->y - MB64_GRID_CENTRE) * MB64_TILE_SUBUNITS);
     *y1 = (int16_t)(*y0 + MB64_TILE_SUBUNITS);
     *z0 = (int16_t)(((int)t->z - MB64_GRID_CENTRE) * MB64_TILE_SUBUNITS);
     *z1 = (int16_t)(*z0 + MB64_TILE_SUBUNITS);

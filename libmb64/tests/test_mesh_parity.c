@@ -695,6 +695,8 @@ static void verify_woodplat_helpers(void) {
     expect_int("woodplat fat stacks within epsilon", mb64_woodplat_should_stack(1, 4.99f), 1);
     expect_int("woodplat fat does not stack at epsilon", mb64_woodplat_should_stack(1, 5.0f), 0);
     expect_int("woodplat thin does not stack", mb64_woodplat_should_stack(0, 0.0f), 0);
+    expect_int("woodplat fat uses water physics", mb64_woodplat_should_use_water_physics(1), 1);
+    expect_int("woodplat thin stays static", mb64_woodplat_should_use_water_physics(0), 0);
     expect_int("woodplat simple walls normally enabled",
                mb64_woodplat_should_use_simple_wall_checks(0, 0, 1), 1);
     expect_int("woodplat simple walls stay enabled on flat conveyor",
@@ -1455,28 +1457,28 @@ static void verify_level_size_boundary_helpers(void) {
 
 int main(void) {
     static const int16_t front0[4][3] = {
-        { 0, 40, 0 }, { 0, 32, 0 }, { 16, 40, 0 }, { 16, 32, 0 },
+        { 0, -472, 0 }, { 0, -480, 0 }, { 16, -472, 0 }, { 16, -480, 0 },
     };
     static const int16_t back0[4][3] = {
-        { 16, 40, 0 }, { 16, 32, 0 }, { 0, 40, 0 }, { 0, 32, 0 },
+        { 16, -472, 0 }, { 16, -480, 0 }, { 0, -472, 0 }, { 0, -480, 0 },
     };
     static const int16_t front1[4][3] = {
-        { 0, 40, 16 }, { 0, 32, 16 }, { 0, 40, 0 }, { 0, 32, 0 },
+        { 0, -472, 16 }, { 0, -480, 16 }, { 0, -472, 0 }, { 0, -480, 0 },
     };
     static const int16_t back1[4][3] = {
-        { 0, 40, 0 }, { 0, 32, 0 }, { 0, 40, 16 }, { 0, 32, 16 },
+        { 0, -472, 0 }, { 0, -480, 0 }, { 0, -472, 16 }, { 0, -480, 16 },
     };
     static const int16_t front2[4][3] = {
-        { 16, 40, 16 }, { 16, 32, 16 }, { 0, 40, 16 }, { 0, 32, 16 },
+        { 16, -472, 16 }, { 16, -480, 16 }, { 0, -472, 16 }, { 0, -480, 16 },
     };
     static const int16_t back2[4][3] = {
-        { 0, 40, 16 }, { 0, 32, 16 }, { 16, 40, 16 }, { 16, 32, 16 },
+        { 0, -472, 16 }, { 0, -480, 16 }, { 16, -472, 16 }, { 16, -480, 16 },
     };
     static const int16_t front3[4][3] = {
-        { 16, 40, 0 }, { 16, 32, 0 }, { 16, 40, 16 }, { 16, 32, 16 },
+        { 16, -472, 0 }, { 16, -480, 0 }, { 16, -472, 16 }, { 16, -480, 16 },
     };
     static const int16_t back3[4][3] = {
-        { 16, 40, 16 }, { 16, 32, 16 }, { 16, 40, 0 }, { 16, 32, 0 },
+        { 16, -472, 16 }, { 16, -480, 16 }, { 16, -472, 0 }, { 16, -480, 0 },
     };
 
     verify_fence_rotation(0, MB64_MESH_FACE_POS_Z, MB64_MESH_FACE_NEG_Z, front0, back0);

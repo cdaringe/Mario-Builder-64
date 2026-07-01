@@ -1429,10 +1429,10 @@ static void verify_level_size_boundary_helpers(void) {
         return;
     }
     expect_int("medium boundary floor face count", (int)mesh.face_count, 16);
-    expect_vertex("medium inner boundary extent", mesh.faces[0].v[0], 384, 0, 384);
+    expect_vertex("medium inner boundary extent", mesh.faces[0].v[0], 384, -512, 384);
     expect_int("medium inner boundary tc u", mesh.faces[0].tc[0][0], 24576);
     expect_int("medium inner boundary tc v", mesh.faces[0].tc[0][1], 24576);
-    expect_vertex("medium outer boundary extent", mesh.faces[4].v[0], 576, 0, 384);
+    expect_vertex("medium outer boundary extent", mesh.faces[4].v[0], 576, -512, 384);
     mb64_free_render_mesh(&mesh);
 
     memset(&mesh, 0, sizeof(mesh));
@@ -1447,11 +1447,45 @@ static void verify_level_size_boundary_helpers(void) {
         fprintf(stderr, "medium boundary wall face count too small: %u\n", mesh.face_count);
         g_failures++;
     } else {
+        expect_vertex("medium outer floor raised to inner wall top", mesh.faces[0].v[0], 576, 128, 384);
         expect_vertex("medium wall boundary extent", mesh.faces[12].v[0], 384, 128, 0);
         expect_int("medium wall boundary direction", mesh.faces[12].direction, MB64_MESH_FACE_NEG_X);
         expect_int("medium wall boundary tc horizontal", mesh.faces[12].tc[1][0], -24576);
         expect_int("medium wall boundary tc vertical", mesh.faces[12].tc[0][1], 8192);
     }
+    mb64_free_render_mesh(&mesh);
+
+    memset(&mesh, 0, sizeof(mesh));
+    level.header.level_size = 0;
+    level.header.boundary = 4;
+    level.header.boundary_height = 0;
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "small plateau boundary render mesh failed\n");
+        g_failures++;
+        return;
+    }
+    expect_vertex("small plateau floor aligns with outer wall top", mesh.faces[0].v[0], 256, -512, 256);
+    expect_vertex("small plateau outer wall top", mesh.faces[4].v[0], 256, -512, 0);
+    mb64_free_render_mesh(&mesh);
+
+    memset(&mesh, 0, sizeof(mesh));
+    level.header.level_size = 0;
+    level.header.boundary = 3;
+    level.header.boundary_height = 32;
+    tile.x = 16;
+    tile.y = 1;
+    tile.z = 32;
+    tile.type = TILE_TYPE_BLOCK;
+    tile.mat = MB64_MAT_GRASS;
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "edge tile boundary culling mesh failed\n");
+        g_failures++;
+        return;
+    }
+    expect_int("inner boundary culls edge block wall",
+               count_faces_for_tile(&mesh, tile.x, tile.y, tile.z, MB64_MESH_FACE_NEG_X), 0);
+    expect_int("inner boundary leaves inward block wall",
+               count_faces_for_tile(&mesh, tile.x, tile.y, tile.z, MB64_MESH_FACE_POS_X), 1);
     mb64_free_render_mesh(&mesh);
 }
 

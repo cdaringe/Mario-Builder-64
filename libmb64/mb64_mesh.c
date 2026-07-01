@@ -625,6 +625,17 @@ static uint32_t boundary_wall_face_count(const mb64_level_t *level) {
     return 0;
 }
 
+static int16_t boundary_grid_y_to_subunits(int16_t y) {
+    return (int16_t)(y * MB64_TILE_SUBUNITS);
+}
+
+static int16_t boundary_outer_floor_grid_y(const mb64_level_t *level, uint8_t flags) {
+    if (flags & MB64_BOUNDARY_INNER_WALLS) {
+        return (int16_t)level->header.boundary_height - MB64_GRID_CENTRE;
+    }
+    return -MB64_GRID_CENTRE;
+}
+
 static int16_t boundary_tc_from_subunits(int16_t value) {
     return (int16_t)((int32_t)value * 64);
 }
@@ -721,17 +732,19 @@ static void emit_boundary_floor_faces(mb64_mesh_t *mesh, uint32_t *idx,
                                       const mb64_level_t *level) {
     const uint8_t flags = boundary_flags(level);
     if (flags & MB64_BOUNDARY_INNER_FLOOR) {
+        const int16_t y = boundary_grid_y_to_subunits(-MB64_GRID_CENTRE);
         for (uint32_t i = 0; i < (uint32_t)(sizeof(s_boundary_inner_floor) / sizeof(s_boundary_inner_floor[0])); i++) {
-            emit_boundary_floor_face(mesh, idx, level, &s_boundary_inner_floor[i], 0, MB64_MESH_FACE_TOP);
+            emit_boundary_floor_face(mesh, idx, level, &s_boundary_inner_floor[i], y, MB64_MESH_FACE_TOP);
         }
     }
     if (flags & MB64_BOUNDARY_OUTER_FLOOR) {
+        const int16_t y = boundary_grid_y_to_subunits(boundary_outer_floor_grid_y(level, flags));
         for (uint32_t i = 0; i < (uint32_t)(sizeof(s_boundary_outer_floor) / sizeof(s_boundary_outer_floor[0])); i++) {
-            emit_boundary_floor_face(mesh, idx, level, &s_boundary_outer_floor[i], 0, MB64_MESH_FACE_TOP);
+            emit_boundary_floor_face(mesh, idx, level, &s_boundary_outer_floor[i], y, MB64_MESH_FACE_TOP);
         }
     }
     if (flags & MB64_BOUNDARY_CEILING) {
-        int16_t y = (int16_t)(level->header.boundary_height * MB64_TILE_SUBUNITS);
+        int16_t y = boundary_grid_y_to_subunits((int16_t)level->header.boundary_height - MB64_GRID_CENTRE);
         for (uint32_t i = 0; i < (uint32_t)(sizeof(s_boundary_inner_floor) / sizeof(s_boundary_inner_floor[0])); i++) {
             emit_boundary_floor_face(mesh, idx, level, &s_boundary_inner_floor[i], y, MB64_MESH_FACE_BOTTOM);
         }
@@ -1120,6 +1133,13 @@ static uint8_t faceshape_at(int x, int y, int z, uint8_t direction, int collisio
     return MB64_FACESHAPE_EMPTY;
 }
 
+static int boundary_occludes_face_neighbor(const mb64_level_t *level,
+                                           const mb64_tile_t *t,
+                                           uint8_t direction,
+                                           int nx,
+                                           int ny,
+                                           int nz);
+
 static int shape_face_is_occluded(const mb64_level_t *level,
                                   const mb64_tile_t *t,
                                   uint8_t direction,
@@ -1156,6 +1176,9 @@ static int shape_face_is_occluded(const mb64_level_t *level,
     int ax = (int)t->x + dx;
     int ay = (int)t->y + dy;
     int az = (int)t->z + dz;
+    if (boundary_occludes_face_neighbor(level, t, direction, ax, ay, az)) {
+        return 1;
+    }
     if (!solid_at(ax, ay, az)) {
         return 0;
     }
@@ -1193,6 +1216,35 @@ static int shape_face_is_occluded(const mb64_level_t *level,
     return 0;
 }
 
+static int boundary_occludes_face_neighbor(const mb64_level_t *level,
+                                           const mb64_tile_t *t,
+                                           uint8_t direction,
+                                           int nx,
+                                           int ny,
+                                           int nz) {
+    if (level == NULL || t == NULL) {
+        return 0;
+    }
+    const uint8_t flags = boundary_flags(level);
+    if ((flags & MB64_BOUNDARY_CEILING) &&
+        level->header.boundary_height > 0 &&
+        t->y == (uint8_t)(level->header.boundary_height - 1) &&
+        direction == MB64_MESH_FACE_TOP) {
+        return 1;
+    }
+    if (coords_in_level_range(level, nx, ny, nz)) {
+        return 0;
+    }
+    if (direction == MB64_MESH_FACE_TOP) {
+        return 0;
+    }
+    if (direction == MB64_MESH_FACE_BOTTOM) {
+        return (flags & MB64_BOUNDARY_INNER_FLOOR) != 0;
+    }
+    return (flags & MB64_BOUNDARY_INNER_WALLS) &&
+           t->y < level->header.boundary_height;
+}
+
 static int full_face_is_occluded(const mb64_level_t *level,
                                  const mb64_tile_t *t,
                                  uint8_t direction,
@@ -1200,6 +1252,9 @@ static int full_face_is_occluded(const mb64_level_t *level,
                                  int ny,
                                  int nz,
                                  int collision_mesh) {
+    if (boundary_occludes_face_neighbor(level, t, direction, nx, ny, nz)) {
+        return 1;
+    }
     if (!solid_at(nx, ny, nz)) {
         return 0;
     }
@@ -1507,7 +1562,7 @@ static void check_bar_side_connections(const mb64_level_t *level,
         const int ay = (int)t->y + dy;
         const int az = (int)t->z + dz;
         if (!coords_in_level_range(level, ax, ay, az)) {
-            if ((level->header.boundary & MB64_BOUNDARY_INNER_WALLS) &&
+            if ((boundary_flags(level) & MB64_BOUNDARY_INNER_WALLS) &&
                 ay < level->header.boundary_height) {
                 connections[rot] = 1;
             }
@@ -1561,12 +1616,13 @@ static void check_bar_connections(const mb64_level_t *level,
             connections[4] |= (uint8_t)(1 << (updown + 1));
         }
     }
-    if (t->y == 0 && (level->header.boundary & MB64_BOUNDARY_INNER_FLOOR)) {
+    const uint8_t flags = boundary_flags(level);
+    if (t->y == 0 && (flags & MB64_BOUNDARY_INNER_FLOOR)) {
         for (uint8_t rot = 0; rot < 5; rot++) {
             connections[rot] |= 4;
         }
     }
-    if ((level->header.boundary & MB64_BOUNDARY_CEILING) &&
+    if ((flags & MB64_BOUNDARY_CEILING) &&
         t->y == (uint8_t)(level->header.boundary_height - 1)) {
         for (uint8_t rot = 0; rot < 5; rot++) {
             connections[rot] |= 2;

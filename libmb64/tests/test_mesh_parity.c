@@ -556,6 +556,39 @@ static void verify_water_render_predicates(void) {
     mb64_free_render_mesh(&mesh);
 }
 
+static void verify_same_material_transparent_shapes_cull_internal_faces(void) {
+    mb64_level_t level;
+    mb64_tile_t tiles[2];
+
+    memset(&level, 0, sizeof(level));
+    memset(tiles, 0, sizeof(tiles));
+    level.header.theme = MB64_TEST_THEME_CUSTOM;
+    level.header.custom_theme.mats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_ICE;
+    level.header.custom_theme.topmats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_ICE;
+    level.header.custom_theme.topmats_enabled[MB64_THEME_MATERIAL_SLOT_GRASS] = 1;
+    level.header.tile_count = 2;
+    level.tiles = tiles;
+
+    tiles[0].x = 32;
+    tiles[0].y = 2;
+    tiles[0].z = 32;
+    tiles[0].type = TILE_TYPE_BLOCK;
+    tiles[0].mat = MB64_THEME_MATERIAL_SLOT_GRASS;
+
+    tiles[1].x = 33;
+    tiles[1].y = 2;
+    tiles[1].z = 32;
+    tiles[1].type = TILE_TYPE_SLOPE;
+    tiles[1].mat = MB64_THEME_MATERIAL_SLOT_GRASS;
+
+    expect_int("same transparent material culls block-to-slope side",
+               mb64_tile_occludes_face(&level, &tiles[0], &tiles[1], MB64_MESH_FACE_POS_X),
+               1);
+    expect_int("same transparent material culls slope-to-block side",
+               mb64_tile_occludes_face(&level, &tiles[1], &tiles[0], MB64_MESH_FACE_NEG_X),
+               1);
+}
+
 static void verify_stacked_water_query_uses_top_surface(void) {
     mb64_level_t level;
     mb64_tile_t tiles[3];
@@ -839,6 +872,17 @@ static void verify_bully_helpers(void) {
     expect_int("bully predicate rejects non variant",
                mb64_object_type_is_bully_variant(MB64_OBJECT_TYPE_GOOMBA),
                0);
+    const mb64_bully_movement_config_t *smallConfig = mb64_bully_movement_config(MB64_BULLY_SIZE_SMALL);
+    const mb64_bully_movement_config_t *bigConfig = mb64_bully_movement_config(MB64_BULLY_SIZE_BIG);
+    expect_float("small bully wall radius", smallConfig->wall_hitbox_radius, 50.0f);
+    expect_float("big bully wall radius", bigConfig->wall_hitbox_radius, 100.0f);
+    expect_float("bully gravity", bigConfig->gravity, -4.0f);
+    expect_float("bully bounciness", bigConfig->bounciness, -0.5f);
+    expect_float("bully drag", bigConfig->drag_strength, 10.0f);
+    expect_float("bully friction", bigConfig->friction, 10.0f);
+    expect_float("bully buoyancy", bigConfig->buoyancy, 2.0f);
+    expect_int("bully steep slope edge guard", bigConfig->steep_slope_degrees, -78);
+    expect_float("bully midair floor delta", bigConfig->midair_floor_delta, 4.0f);
 }
 
 static void verify_bullet_bill_helpers(void) {
@@ -927,6 +971,17 @@ static void verify_floor_switch_helpers(void) {
 }
 
 static void verify_conveyor_helpers(void) {
+    const mb64_conveyor_config_t *config = mb64_conveyor_config();
+
+    expect_float("conveyor speed", config->speed, 10.76f);
+    expect_float("conveyor mario edge threshold", config->mario_edge_threshold, 105.0f);
+    expect_float("conveyor object edge threshold", config->object_edge_threshold, 80.0f);
+    expect_float("conveyor backward velocity clamp", config->max_backward_forward_vel, -15.0f);
+    expect_float("conveyor leave-floor delta", config->leave_floor_delta, 5.0f);
+    expect_float("conveyor leave-floor forward velocity", config->leave_floor_forward_vel, 5.0f);
+    expect_int("conveyor leave-floor angle", config->leave_floor_angle_threshold, 0x4000);
+    expect_int("conveyor bparam red flat", mb64_conveyor_bparam(MB64_CONVEYOR_SHAPE_FLAT, MB64_CONVEYOR_STATE_RED), 5);
+    expect_int("conveyor bparam blue slope", mb64_conveyor_bparam(MB64_CONVEYOR_SHAPE_SLOPE, MB64_CONVEYOR_STATE_BLUE), 10);
     expect_int("conveyor half shape", mb64_conveyor_shape(0), MB64_CONVEYOR_SHAPE_HALF);
     expect_int("conveyor flat shape", mb64_conveyor_shape(1), MB64_CONVEYOR_SHAPE_FLAT);
     expect_int("conveyor slope shape", mb64_conveyor_shape(2), MB64_CONVEYOR_SHAPE_SLOPE);
@@ -938,6 +993,8 @@ static void verify_conveyor_helpers(void) {
     expect_int("conveyor inactive downslope flips up", mb64_conveyor_effective_shape(7, 0), MB64_CONVEYOR_SHAPE_DOWNSLOPE);
     expect_int("conveyor active downslope flips up", mb64_conveyor_effective_shape(7, 1), MB64_CONVEYOR_SHAPE_SLOPE);
     expect_int("conveyor effective bparam preserves state bits", mb64_conveyor_effective_bparam(6, 1), 7);
+    expect_int("conveyor visual bparam follows current red state", mb64_conveyor_visual_bparam(9, MB64_CONVEYOR_STATE_RED, 0), 5);
+    expect_int("conveyor visual bparam follows current blue state", mb64_conveyor_visual_bparam(5, MB64_CONVEYOR_STATE_BLUE, 1), 9);
     expect_int("conveyor half has no vertical push", mb64_conveyor_has_vertical_push(0, 0), 0);
     expect_int("conveyor slope has vertical push", mb64_conveyor_has_vertical_push(2, 0), 1);
     expect_int("conveyor switched slope has vertical push", mb64_conveyor_has_vertical_push(6, 1), 1);
@@ -1526,6 +1583,7 @@ int main(void) {
     verify_shaped_tile_rotations();
     verify_render_mesh_visitor_matches_snapshot();
     verify_water_render_predicates();
+    verify_same_material_transparent_shapes_cull_internal_faces();
     verify_stacked_water_query_uses_top_surface();
     verify_render_binding_descriptors();
     verify_face_surface_descriptors();

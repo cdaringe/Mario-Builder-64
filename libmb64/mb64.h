@@ -328,6 +328,17 @@ typedef struct {
 } mb64_bully_variant_t;
 
 typedef struct {
+    float wall_hitbox_radius;
+    float gravity;
+    float bounciness;
+    float drag_strength;
+    float friction;
+    float buoyancy;
+    int steep_slope_degrees;
+    float midair_floor_delta;
+} mb64_bully_movement_config_t;
+
+typedef struct {
     int scale_angle_start;
     int scale_angle_step;
     int explode_frame;
@@ -436,6 +447,16 @@ enum {
     MB64_CONVEYOR_STATE_RED = 1,
     MB64_CONVEYOR_STATE_BLUE = 2,
 };
+
+typedef struct {
+    float speed;
+    float mario_edge_threshold;
+    float object_edge_threshold;
+    float max_backward_forward_vel;
+    float leave_floor_delta;
+    float leave_floor_forward_vel;
+    int leave_floor_angle_threshold;
+} mb64_conveyor_config_t;
 
 typedef struct {
     int spin_accel;
@@ -1312,6 +1333,7 @@ uint8_t mb64_goomba_size_param_for_type(uint8_t object_type);
 uint8_t mb64_koopa_behavior_param_for_type(uint8_t object_type, uint8_t authored_param);
 const mb64_bully_variant_t *mb64_bully_variant_for_type(uint8_t object_type);
 uint8_t mb64_object_type_is_bully_variant(uint8_t object_type);
+const mb64_bully_movement_config_t *mb64_bully_movement_config(uint8_t size_param);
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void);
 const mb64_exclamation_box_content_t *mb64_exclamation_box_content(uint8_t game, uint8_t bparam);
 uint8_t mb64_exclamation_box_should_explode(int timer);
@@ -1327,11 +1349,14 @@ uint8_t mb64_timed_block_is_solid(int hidden_box_timer);
 uint8_t mb64_timed_block_show_on_model(int hidden_box_timer);
 uint8_t mb64_conveyor_shape(uint8_t bparam);
 uint8_t mb64_conveyor_state(uint8_t bparam);
+uint8_t mb64_conveyor_bparam(uint8_t shape, uint8_t state);
 uint8_t mb64_conveyor_effective_shape(uint8_t bparam, uint8_t play_onoff);
 uint8_t mb64_conveyor_effective_bparam(uint8_t bparam, uint8_t play_onoff);
+uint8_t mb64_conveyor_visual_bparam(uint8_t bparam, uint8_t anim_state, uint8_t play_onoff);
 uint8_t mb64_conveyor_has_vertical_push(uint8_t bparam, uint8_t play_onoff);
 int8_t mb64_conveyor_initial_vertical_push(uint8_t bparam);
 uint8_t mb64_conveyor_should_flip_state(uint8_t anim_state, uint8_t play_onoff);
+const mb64_conveyor_config_t *mb64_conveyor_config(void);
 const mb64_noteblock_config_t *mb64_noteblock_config(void);
 int mb64_noteblock_graph_angle(int timer);
 float mb64_noteblock_next_velocity(float vel_y);

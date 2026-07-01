@@ -149,6 +149,29 @@ static const mb64_bully_variant_t s_bully_variants[] = {
     { MB64_OBJECT_TYPE_BIG_CHILL_BULLY, MB64_BULLY_SUBTYPE_CHILL, MB64_BULLY_SIZE_BIG, 1, 1 },
 };
 
+static const mb64_bully_movement_config_t s_bully_movement_configs[] = {
+    {
+        50.0f,  /* SET_OBJ_PHYSICS_DEFAULT wall radius */
+        -4.0f,  /* SET_OBJ_PHYSICS_DEFAULT gravity */
+        -0.5f,  /* SET_OBJ_PHYSICS_DEFAULT bounciness */
+        10.0f,  /* SET_OBJ_PHYSICS_DEFAULT drag */
+        10.0f,  /* SET_OBJ_PHYSICS_DEFAULT friction */
+        2.0f,   /* SET_OBJ_PHYSICS_DEFAULT buoyancy */
+        -78,    /* MB64 bully_step(FALSE) edge guard */
+        4.0f,   /* oBullyInMidair floor delta */
+    },
+    {
+        100.0f, /* SET_OBJ_PHYSICS_DEFAULT wall radius */
+        -4.0f,
+        -0.5f,
+        10.0f,
+        10.0f,
+        2.0f,
+        -78,
+        4.0f,
+    },
+};
+
 static const mb64_woodplat_config_t s_woodplat_config = {
     96.0f,   /* thin_height */
     256.0f,  /* fat_height */
@@ -332,6 +355,16 @@ static const mb64_onoff_config_t s_onoff_config = {
     0.1f,  /* pressed_scale_factor */
     0.1f,  /* scale_step_factor */
     0.11f, /* collision_min_scale_y */
+};
+
+static const mb64_conveyor_config_t s_conveyor_config = {
+    10.76f,  /* speed */
+    105.0f,  /* mario_edge_threshold */
+    80.0f,   /* object_edge_threshold */
+    -15.0f,  /* max_backward_forward_vel */
+    5.0f,    /* leave_floor_delta */
+    5.0f,    /* leave_floor_forward_vel */
+    0x4000,  /* leave_floor_angle_threshold */
 };
 
 static const mb64_badge_config_t s_badge_config = {
@@ -973,6 +1006,13 @@ uint8_t mb64_object_type_is_bully_variant(uint8_t object_type) {
     return mb64_bully_variant_for_type(object_type) != NULL;
 }
 
+const mb64_bully_movement_config_t *mb64_bully_movement_config(uint8_t size_param) {
+    if (size_param == MB64_BULLY_SIZE_BIG) {
+        return &s_bully_movement_configs[MB64_BULLY_SIZE_BIG];
+    }
+    return &s_bully_movement_configs[MB64_BULLY_SIZE_SMALL];
+}
+
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void) {
     return &s_exclamation_box_config;
 }
@@ -1049,6 +1089,10 @@ uint8_t mb64_conveyor_state(uint8_t bparam) {
     return (bparam >> 2) & 0x3;
 }
 
+uint8_t mb64_conveyor_bparam(uint8_t shape, uint8_t state) {
+    return (uint8_t)(((state & 0x3) << 2) | (shape & 0x3));
+}
+
 uint8_t mb64_conveyor_effective_shape(uint8_t bparam, uint8_t play_onoff) {
     const uint8_t shape = mb64_conveyor_shape(bparam);
     const uint8_t state = mb64_conveyor_state(bparam);
@@ -1067,6 +1111,14 @@ uint8_t mb64_conveyor_effective_shape(uint8_t bparam, uint8_t play_onoff) {
 
 uint8_t mb64_conveyor_effective_bparam(uint8_t bparam, uint8_t play_onoff) {
     return (bparam & (uint8_t) ~0x3) | mb64_conveyor_effective_shape(bparam, play_onoff);
+}
+
+uint8_t mb64_conveyor_visual_bparam(uint8_t bparam, uint8_t anim_state, uint8_t play_onoff) {
+    uint8_t state = mb64_conveyor_state(bparam);
+    if (state != MB64_CONVEYOR_STATE_ALWAYS) {
+        state = anim_state;
+    }
+    return (uint8_t)((state << 2) | mb64_conveyor_effective_shape(bparam, play_onoff));
 }
 
 uint8_t mb64_conveyor_has_vertical_push(uint8_t bparam, uint8_t play_onoff) {
@@ -1090,6 +1142,10 @@ int8_t mb64_conveyor_initial_vertical_push(uint8_t bparam) {
 
 uint8_t mb64_conveyor_should_flip_state(uint8_t anim_state, uint8_t play_onoff) {
     return anim_state > MB64_CONVEYOR_STATE_ALWAYS && anim_state != (uint8_t) (play_onoff + 1);
+}
+
+const mb64_conveyor_config_t *mb64_conveyor_config(void) {
+    return &s_conveyor_config;
 }
 
 const mb64_noteblock_config_t *mb64_noteblock_config(void) {

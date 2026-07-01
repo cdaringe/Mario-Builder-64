@@ -527,7 +527,7 @@ static int mb64_cutout_skip_culling_check(const mb64_level_t *level,
     }
     const uint8_t cur_material = mb64_resolve_face_material(level, cur, direction);
     const uint8_t other_material = mb64_resolve_face_material(level, other, direction ^ 1);
-    if (cur_material == other_material && cur->type == other->type) {
+    if (cur_material == other_material) {
         return 0;
     }
 

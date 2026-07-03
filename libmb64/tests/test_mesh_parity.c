@@ -348,6 +348,45 @@ static void verify_shaped_tile_rotations(void) {
     }
 }
 
+static void verify_vertical_material_shaped_uv_rotation(void) {
+    mb64_level_t level;
+    mb64_tile_t tile;
+    mb64_mesh_t mesh = { 0 };
+
+    memset(&level, 0, sizeof(level));
+    memset(&tile, 0, sizeof(tile));
+    level.header.theme = MB64_TEST_THEME_CUSTOM;
+    level.header.tile_count = 1;
+    level.tiles = &tile;
+    level.header.custom_theme.mats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_VOLCANO_WALL;
+    level.header.custom_theme.topmats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_VOLCANO_WALL;
+    level.header.custom_theme.topmats_enabled[MB64_THEME_MATERIAL_SLOT_GRASS] = 1;
+
+    tile.x = 32;
+    tile.y = 2;
+    tile.z = 32;
+    tile.type = TILE_TYPE_SLOPE;
+    tile.mat = MB64_THEME_MATERIAL_SLOT_GRASS;
+    tile.rot = 1;
+
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "vertical shaped UV rotation: mb64_build_render_mesh failed\n");
+        g_failures++;
+        return;
+    }
+
+    expect_int("vertical shaped UV face count", (int)mesh.face_count, 5);
+    if (mesh.face_count >= 1) {
+        expect_int("vertical shaped UV top direction", mesh.faces[0].direction, MB64_MESH_FACE_TOP);
+        expect_int("vertical shaped UV material", mesh.faces[0].resolved_material, MB64_MAT_VOLCANO_WALL);
+        expect_texcoord("vertical shaped UV v0", mesh.faces[0].tc[0], -7184, 23536);
+        expect_texcoord("vertical shaped UV v1", mesh.faces[0].tc[1], -7184, 22512);
+        expect_texcoord("vertical shaped UV v2", mesh.faces[0].tc[2], -8208, 23536);
+        expect_texcoord("vertical shaped UV v3", mesh.faces[0].tc[3], -8208, 22512);
+    }
+    mb64_free_render_mesh(&mesh);
+}
+
 static int count_faces_for_tile(const mb64_mesh_t *mesh,
                                 uint8_t x,
                                 uint8_t y,
@@ -587,6 +626,42 @@ static void verify_same_material_transparent_shapes_cull_internal_faces(void) {
     expect_int("same transparent material culls slope-to-block side",
                mb64_tile_occludes_face(&level, &tiles[1], &tiles[0], MB64_MESH_FACE_NEG_X),
                1);
+}
+
+static void verify_adjacent_full_blocks_cull_internal_faces(void) {
+    mb64_level_t level;
+    mb64_tile_t tiles[2];
+    mb64_mesh_t mesh = { 0 };
+
+    memset(&level, 0, sizeof(level));
+    memset(tiles, 0, sizeof(tiles));
+    level.header.theme = 0;
+    level.header.tile_count = 2;
+    level.tiles = tiles;
+
+    tiles[0].x = 32;
+    tiles[0].y = 2;
+    tiles[0].z = 32;
+    tiles[0].type = TILE_TYPE_BLOCK;
+    tiles[0].mat = MB64_MAT_GRASS;
+
+    tiles[1] = tiles[0];
+    tiles[1].x = 33;
+
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "adjacent full blocks: mb64_build_render_mesh failed\n");
+        g_failures++;
+        return;
+    }
+
+    expect_int("adjacent full blocks erase shared positive-x face",
+               count_faces_for_tile(&mesh, tiles[0].x, tiles[0].y, tiles[0].z, MB64_MESH_FACE_POS_X),
+               0);
+    expect_int("adjacent full blocks erase shared negative-x face",
+               count_faces_for_tile(&mesh, tiles[1].x, tiles[1].y, tiles[1].z, MB64_MESH_FACE_NEG_X),
+               0);
+    expect_int("adjacent full blocks exterior face count", (int)mesh.face_count, 10);
+    mb64_free_render_mesh(&mesh);
 }
 
 static void verify_stacked_water_query_uses_top_surface(void) {
@@ -1581,9 +1656,11 @@ int main(void) {
     verify_shared_surface_semantics();
     verify_star_count_helpers();
     verify_shaped_tile_rotations();
+    verify_vertical_material_shaped_uv_rotation();
     verify_render_mesh_visitor_matches_snapshot();
     verify_water_render_predicates();
     verify_same_material_transparent_shapes_cull_internal_faces();
+    verify_adjacent_full_blocks_cull_internal_faces();
     verify_stacked_water_query_uses_top_surface();
     verify_render_binding_descriptors();
     verify_face_surface_descriptors();

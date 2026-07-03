@@ -1070,7 +1070,7 @@ static void assign_tile_texture_coordinates(mb64_mesh_face_t *face,
                                             uint8_t use_alt_uvs) {
     uint8_t uv_direction = direction;
     if (mb64_material_vertical(material) && faceshape > MB64_FACESHAPE_EMPTY) {
-        uv_direction = (uint8_t)((faceshape - MB64_FACESHAPE_EMPTY) + 1);
+        uv_direction = rotate_direction((uint8_t)((faceshape - MB64_FACESHAPE_EMPTY) + 1), tile->rot);
     }
     uint8_t u_axis;
     uint8_t v_axis;

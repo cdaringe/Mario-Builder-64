@@ -598,6 +598,8 @@ static void verify_water_render_predicates(void) {
 static void verify_same_material_transparent_shapes_cull_internal_faces(void) {
     mb64_level_t level;
     mb64_tile_t tiles[2];
+    mb64_mesh_t mesh = { 0 };
+    mb64_render_binding_t binding;
 
     memset(&level, 0, sizeof(level));
     memset(tiles, 0, sizeof(tiles));
@@ -626,6 +628,56 @@ static void verify_same_material_transparent_shapes_cull_internal_faces(void) {
     expect_int("same transparent material culls slope-to-block side",
                mb64_tile_occludes_face(&level, &tiles[1], &tiles[0], MB64_MESH_FACE_NEG_X),
                1);
+
+    tiles[1].type = TILE_TYPE_BLOCK;
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "same transparent material full blocks: mb64_build_render_mesh failed\n");
+        g_failures++;
+        return;
+    }
+    expect_int("same transparent material erases shared positive-x face",
+               count_faces_for_tile(&mesh, tiles[0].x, tiles[0].y, tiles[0].z, MB64_MESH_FACE_POS_X),
+               0);
+    expect_int("same transparent material erases shared negative-x face",
+               count_faces_for_tile(&mesh, tiles[1].x, tiles[1].y, tiles[1].z, MB64_MESH_FACE_NEG_X),
+               0);
+    expect_int("same transparent material exterior face count", (int)mesh.face_count, 10);
+    for (uint32_t i = 0; i < mesh.face_count; i++) {
+        if (mesh.faces[i].resolved_material != MB64_MAT_ICE) {
+            continue;
+        }
+        expect_int("transparent ice binding resolves",
+                   mb64_render_binding_for_face(&level, &mesh.faces[i], &binding),
+                   1);
+        expect_int("transparent ice binding class",
+                   binding.render_class,
+                   MB64_RENDER_CLASS_TRANSPARENT);
+        expect_int("transparent ice keeps MB64 backface culling",
+                   binding.cull_backfaces,
+                   1);
+    }
+    mb64_free_render_mesh(&mesh);
+    memset(&mesh, 0, sizeof(mesh));
+
+    tiles[0].type = TILE_TYPE_SSLOPE;
+    tiles[1].type = TILE_TYPE_DSCORNER;
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "same transparent material shaped tiles: mb64_build_render_mesh failed\n");
+        g_failures++;
+        return;
+    }
+    for (uint32_t i = 0; i < mesh.face_count; i++) {
+        if (mesh.faces[i].resolved_material != MB64_MAT_ICE) {
+            continue;
+        }
+        expect_int("shaped transparent ice binding resolves",
+                   mb64_render_binding_for_face(&level, &mesh.faces[i], &binding),
+                   1);
+        expect_int("shaped transparent ice keeps MB64 backface culling",
+                   binding.cull_backfaces,
+                   1);
+    }
+    mb64_free_render_mesh(&mesh);
 }
 
 static void verify_adjacent_full_blocks_cull_internal_faces(void) {
@@ -724,6 +776,27 @@ static void verify_render_binding_descriptors(void) {
     expect_int("glass binding culls", binding.cull_backfaces, 0);
 
     memset(&face, 0, sizeof(face));
+    level.header.theme = MB64_TEST_THEME_CUSTOM;
+    level.header.custom_theme.mats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_ICE;
+    level.header.custom_theme.topmats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_ICE;
+    level.header.custom_theme.topmats_enabled[MB64_THEME_MATERIAL_SLOT_GRASS] = 1;
+    face.material = MB64_THEME_MATERIAL_SLOT_GRASS;
+    face.resolved_material = MB64_MAT_ICE;
+    face.direction = MB64_MESH_FACE_POS_X;
+    expect_int("ice binding resolves", mb64_render_binding_for_face(&level, &face, &binding), 1);
+    expect_int("ice binding kind", binding.kind, MB64_RENDER_BINDING_MATERIAL);
+    expect_int("ice binding token", binding.token, MB64_MAT_ICE);
+    expect_int("ice binding class", binding.render_class, MB64_RENDER_CLASS_TRANSPARENT);
+    expect_int("ice binding keeps MB64 backface culling", binding.cull_backfaces, 1);
+
+    level.header.custom_theme.mats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_GRASS;
+    level.header.custom_theme.topmats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_MC_GLASS;
+    face.resolved_material = MB64_MAT_GRASS;
+    expect_int("hollow cutout binding resolves", mb64_render_binding_for_face(&level, &face, &binding), 1);
+    expect_int("hollow cutout binding culls", binding.cull_backfaces, 0);
+
+    memset(&face, 0, sizeof(face));
+    level.header.theme = 0;
     face.is_water = 1;
     expect_int("water binding resolves", mb64_render_binding_for_face(&level, &face, &binding), 1);
     expect_int("water binding kind", binding.kind, MB64_RENDER_BINDING_WATER);

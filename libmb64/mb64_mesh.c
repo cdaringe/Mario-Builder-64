@@ -874,6 +874,32 @@ static uint8_t render_class_for_material_type(uint8_t type) {
     }
 }
 
+static uint8_t material_slot_for_face(const mb64_level_t *level,
+                                      uint8_t slot,
+                                      uint8_t top_face) {
+    mb64_tile_t tile;
+    memset(&tile, 0, sizeof(tile));
+    tile.mat = slot;
+    return mb64_resolve_tile_material(level, &tile, top_face);
+}
+
+static uint8_t material_face_culls_backfaces(const mb64_level_t *level,
+                                             const mb64_mesh_face_t *face,
+                                             uint8_t material_type) {
+    if (material_type == MAT_CUTOUT || material_type == MAT_CUTOUT_NOCULL) {
+        return 0;
+    }
+    if (face->direction != MB64_MESH_FACE_TOP &&
+        face->direction != MB64_MESH_FACE_BOTTOM) {
+        const uint8_t side_type = mb64_material_type(material_slot_for_face(level, face->material, 0));
+        const uint8_t top_type = mb64_material_type(material_slot_for_face(level, face->material, 1));
+        if (side_type < MAT_CUTOUT && top_type >= MAT_CUTOUT) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 int mb64_render_binding_for_face(const mb64_level_t *level,
                                  const mb64_mesh_face_t *face,
                                  mb64_render_binding_t *out) {
@@ -915,10 +941,14 @@ int mb64_render_binding_for_face(const mb64_level_t *level,
             out->render_class = MB64_RENDER_CLASS_OPAQUE;
             break;
         default:
+        {
+            const uint8_t material_type = mb64_material_type(face->resolved_material);
             out->kind = MB64_RENDER_BINDING_MATERIAL;
             out->token = face->resolved_material;
-            out->render_class = render_class_for_material_type(mb64_material_type(face->resolved_material));
+            out->render_class = render_class_for_material_type(material_type);
+            out->cull_backfaces = material_face_culls_backfaces(level, face, material_type);
             break;
+        }
     }
 
     out->animation = mb64_texture_animation_for_material(face->resolved_material);

@@ -652,9 +652,9 @@ static void verify_same_material_transparent_shapes_cull_internal_faces(void) {
         expect_int("transparent ice binding class",
                    binding.render_class,
                    MB64_RENDER_CLASS_TRANSPARENT);
-        expect_int("transparent ice keeps MB64 backface culling",
+        expect_int("transparent ice renders exterior faces double-sided",
                    binding.cull_backfaces,
-                   1);
+                   0);
     }
     mb64_free_render_mesh(&mesh);
     memset(&mesh, 0, sizeof(mesh));
@@ -673,9 +673,9 @@ static void verify_same_material_transparent_shapes_cull_internal_faces(void) {
         expect_int("shaped transparent ice binding resolves",
                    mb64_render_binding_for_face(&level, &mesh.faces[i], &binding),
                    1);
-        expect_int("shaped transparent ice keeps MB64 backface culling",
+        expect_int("shaped transparent ice renders exterior faces double-sided",
                    binding.cull_backfaces,
-                   1);
+                   0);
     }
     mb64_free_render_mesh(&mesh);
 }
@@ -787,7 +787,7 @@ static void verify_render_binding_descriptors(void) {
     expect_int("ice binding kind", binding.kind, MB64_RENDER_BINDING_MATERIAL);
     expect_int("ice binding token", binding.token, MB64_MAT_ICE);
     expect_int("ice binding class", binding.render_class, MB64_RENDER_CLASS_TRANSPARENT);
-    expect_int("ice binding keeps MB64 backface culling", binding.cull_backfaces, 1);
+    expect_int("ice binding renders exterior faces double-sided", binding.cull_backfaces, 0);
 
     level.header.custom_theme.mats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_GRASS;
     level.header.custom_theme.topmats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_MC_GLASS;

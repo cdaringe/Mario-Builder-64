@@ -886,7 +886,9 @@ static uint8_t material_slot_for_face(const mb64_level_t *level,
 static uint8_t material_face_culls_backfaces(const mb64_level_t *level,
                                              const mb64_mesh_face_t *face,
                                              uint8_t material_type) {
-    if (material_type == MAT_CUTOUT || material_type == MAT_CUTOUT_NOCULL) {
+    if (material_type == MAT_CUTOUT ||
+        material_type == MAT_CUTOUT_NOCULL ||
+        material_type == MAT_TRANSPARENT) {
         return 0;
     }
     if (face->direction != MB64_MESH_FACE_TOP &&

@@ -107,6 +107,32 @@ static void expected_rotated_vertex(uint8_t rot, const int16_t in[3], int16_t ou
     }
 }
 
+static int32_t face_direction_dot(const mb64_mesh_face_t *face) {
+    if (face == NULL || face->vertex_count < 3) {
+        return 0;
+    }
+
+    const int32_t ax = (int32_t)face->v[1][0] - face->v[0][0];
+    const int32_t ay = (int32_t)face->v[1][1] - face->v[0][1];
+    const int32_t az = (int32_t)face->v[1][2] - face->v[0][2];
+    const int32_t bx = (int32_t)face->v[2][0] - face->v[0][0];
+    const int32_t by = (int32_t)face->v[2][1] - face->v[0][1];
+    const int32_t bz = (int32_t)face->v[2][2] - face->v[0][2];
+    const int32_t nx = ay * bz - az * by;
+    const int32_t ny = az * bx - ax * bz;
+    const int32_t nz = ax * by - ay * bx;
+
+    switch (face->direction) {
+        case MB64_MESH_FACE_TOP: return ny;
+        case MB64_MESH_FACE_BOTTOM: return -ny;
+        case MB64_MESH_FACE_POS_X: return nx;
+        case MB64_MESH_FACE_NEG_X: return -nx;
+        case MB64_MESH_FACE_POS_Z: return nz;
+        case MB64_MESH_FACE_NEG_Z: return -nz;
+        default: return 0;
+    }
+}
+
 static void verify_fence_rotation(uint8_t rot,
                                   uint8_t front_dir,
                                   uint8_t back_dir,
@@ -713,6 +739,61 @@ static void verify_adjacent_full_blocks_cull_internal_faces(void) {
                count_faces_for_tile(&mesh, tiles[1].x, tiles[1].y, tiles[1].z, MB64_MESH_FACE_NEG_X),
                0);
     expect_int("adjacent full blocks exterior face count", (int)mesh.face_count, 10);
+    mb64_free_render_mesh(&mesh);
+}
+
+static void verify_render_mesh_winding_matches_face_direction(void) {
+    mb64_level_t level;
+    mb64_tile_t tile;
+    mb64_mesh_t mesh = { 0 };
+    mb64_render_binding_t binding;
+    uint8_t saw_top = 0;
+
+    memset(&level, 0, sizeof(level));
+    memset(&tile, 0, sizeof(tile));
+    level.header.theme = MB64_TEST_THEME_CUSTOM;
+    level.header.custom_theme.mats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_HMC_MAZEFLOOR;
+    level.header.custom_theme.topmats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_HMC_MAZEFLOOR;
+    level.header.custom_theme.topmats_enabled[MB64_THEME_MATERIAL_SLOT_GRASS] = 1;
+    level.header.tile_count = 1;
+    level.tiles = &tile;
+
+    tile.x = 32;
+    tile.y = 2;
+    tile.z = 32;
+    tile.type = TILE_TYPE_BLOCK;
+    tile.mat = MB64_THEME_MATERIAL_SLOT_GRASS;
+
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "winding invariant block: mb64_build_render_mesh failed\n");
+        g_failures++;
+        return;
+    }
+
+    expect_int("single opaque block face count", (int)mesh.face_count, 6);
+    for (uint32_t i = 0; i < mesh.face_count; i++) {
+        const mb64_mesh_face_t *face = &mesh.faces[i];
+        const int32_t dot = face_direction_dot(face);
+        if (dot <= 0) {
+            fprintf(stderr,
+                    "render face %u direction %u has inward/degenerate winding (dot=%d)\n",
+                    i,
+                    face->direction,
+                    (int)dot);
+            g_failures++;
+        }
+
+        if (face->direction == MB64_MESH_FACE_TOP) {
+            saw_top = 1;
+            expect_int("opaque HMC top material", face->resolved_material, MB64_MAT_HMC_MAZEFLOOR);
+            expect_int("opaque HMC top binding resolves",
+                       mb64_render_binding_for_face(&level, face, &binding),
+                       1);
+            expect_int("opaque HMC top can cull backfaces", binding.cull_backfaces, 1);
+        }
+    }
+    expect_int("opaque HMC block has top face", saw_top, 1);
+
     mb64_free_render_mesh(&mesh);
 }
 
@@ -1734,6 +1815,7 @@ int main(void) {
     verify_water_render_predicates();
     verify_same_material_transparent_shapes_cull_internal_faces();
     verify_adjacent_full_blocks_cull_internal_faces();
+    verify_render_mesh_winding_matches_face_direction();
     verify_stacked_water_query_uses_top_surface();
     verify_render_binding_descriptors();
     verify_face_surface_descriptors();

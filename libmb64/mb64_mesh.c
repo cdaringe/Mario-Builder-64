@@ -149,6 +149,53 @@ static int tile_in_range(const mb64_tile_t *t) {
            t->z < MB64_GRID_SIZE;
 }
 
+static int32_t mesh_face_direction_dot(const mb64_mesh_face_t *face) {
+    if (face == NULL || face->vertex_count < 3) {
+        return 0;
+    }
+
+    const int32_t ax = (int32_t)face->v[1][0] - face->v[0][0];
+    const int32_t ay = (int32_t)face->v[1][1] - face->v[0][1];
+    const int32_t az = (int32_t)face->v[1][2] - face->v[0][2];
+    const int32_t bx = (int32_t)face->v[2][0] - face->v[0][0];
+    const int32_t by = (int32_t)face->v[2][1] - face->v[0][1];
+    const int32_t bz = (int32_t)face->v[2][2] - face->v[0][2];
+    const int32_t nx = ay * bz - az * by;
+    const int32_t ny = az * bx - ax * bz;
+    const int32_t nz = ax * by - ay * bx;
+
+    switch (face->direction) {
+        case MB64_MESH_FACE_TOP: return ny;
+        case MB64_MESH_FACE_BOTTOM: return -ny;
+        case MB64_MESH_FACE_POS_X: return nx;
+        case MB64_MESH_FACE_NEG_X: return -nx;
+        case MB64_MESH_FACE_POS_Z: return nz;
+        case MB64_MESH_FACE_NEG_Z: return -nz;
+        default: return 0;
+    }
+}
+
+static void swap_face_vertices(mb64_mesh_face_t *face, uint8_t a, uint8_t b) {
+    int16_t v[3];
+
+    memcpy(v, face->v[a], sizeof(v));
+    memcpy(face->v[a], face->v[b], sizeof(face->v[a]));
+    memcpy(face->v[b], v, sizeof(face->v[b]));
+
+    if (face->use_tc) {
+        int16_t tc[2];
+        memcpy(tc, face->tc[a], sizeof(tc));
+        memcpy(face->tc[a], face->tc[b], sizeof(face->tc[a]));
+        memcpy(face->tc[b], tc, sizeof(face->tc[b]));
+    }
+}
+
+static void orient_face_to_direction(mb64_mesh_face_t *face) {
+    if (mesh_face_direction_dot(face) < 0) {
+        swap_face_vertices(face, 1, 2);
+    }
+}
+
 static uint8_t mb64_material_type(uint8_t material) {
     if (material < (uint8_t)(sizeof(s_material_types) / sizeof(s_material_types[0]))) {
         return s_material_types[material];
@@ -672,6 +719,7 @@ static void emit_boundary_floor_face(mb64_mesh_t *mesh, uint32_t *idx,
         face->tc[i][0] = boundary_tc_from_subunits(face->v[i][0]);
         face->tc[i][1] = boundary_tc_from_subunits(face->v[i][2]);
     }
+    orient_face_to_direction(face);
 }
 
 static uint8_t boundary_wall_direction(const mb64_boundary_wall_quad_t *quad, uint8_t reverse) {
@@ -726,6 +774,7 @@ static void emit_boundary_wall_face(mb64_mesh_t *mesh, uint32_t *idx,
             face->direction == MB64_MESH_FACE_NEG_X ? face->v[i][2] : face->v[i][0]);
         face->tc[i][1] = boundary_tc_from_subunits(face->v[i][1]);
     }
+    orient_face_to_direction(face);
 }
 
 static void emit_boundary_floor_faces(mb64_mesh_t *mesh, uint32_t *idx,
@@ -1019,6 +1068,7 @@ static void emit_face(mb64_mesh_t *mesh, uint32_t *idx,
                                         MB64_FACESHAPE_FULL, face->resolved_material,
                                         NULL, 0);
     }
+    orient_face_to_direction(face);
 }
 
 static uint8_t rotate_direction(uint8_t direction, uint8_t rot) {
@@ -1386,6 +1436,7 @@ static void emit_base_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
                                         src->faceshape, face->resolved_material,
                                         uv->alt_uvs, uv->has_alt_uvs);
     }
+    orient_face_to_direction(face);
 }
 
 static void bar_direction_offset(uint8_t direction, int *dx, int *dy, int *dz) {

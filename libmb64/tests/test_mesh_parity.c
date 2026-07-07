@@ -1052,6 +1052,37 @@ static void verify_koopa_helpers(void) {
                1);
 }
 
+static void verify_music_catalog_helpers(void) {
+    enum {
+        MB64_MUSIC_BTCM_ALBUM = 1,
+        MB64_MUSIC_LONELY_FLOATING_FARM_SONG = 2,
+        MB64_MUSIC_LONELY_FLOATING_FARM_INDEX = 16,
+        MB64_SEQ_FARM = 0x25,
+    };
+
+    const mb64_music_entry_t *entry =
+        mb64_music_entry_from_album_song(MB64_MUSIC_BTCM_ALBUM, MB64_MUSIC_LONELY_FLOATING_FARM_SONG);
+    expect_int("Lonely Floating Farm entry exists", entry != NULL, 1);
+    if (entry != NULL) {
+        expect_int("Lonely Floating Farm flattened index", entry->index, MB64_MUSIC_LONELY_FLOATING_FARM_INDEX);
+        expect_int("Lonely Floating Farm sequence", entry->sequence, MB64_SEQ_FARM);
+        expect_int("Lonely Floating Farm album index", entry->album_index, MB64_MUSIC_BTCM_ALBUM);
+        expect_int("Lonely Floating Farm song index", entry->song_index, MB64_MUSIC_LONELY_FLOATING_FARM_SONG);
+        expect_int("Lonely Floating Farm album name", strcmp(entry->album, "Beyond the Cursed Mirror OST"), 0);
+        expect_int("Lonely Floating Farm song name", strcmp(entry->song, "Lonely Floating Farm"), 0);
+    }
+
+    const mb64_music_entry_t *byIndex =
+        mb64_music_entry_from_index(MB64_MUSIC_LONELY_FLOATING_FARM_INDEX);
+    expect_int("Lonely Floating Farm index lookup matches album/song", byIndex == entry, 1);
+    const mb64_music_entry_t *byName =
+        mb64_music_entry_from_album_song_names("beyond the cursed mirror ost", "lonely floating farm");
+    expect_int("Lonely Floating Farm name lookup matches album/song", byName == entry, 1);
+    expect_int("Lonely Floating Farm sequence lookup",
+               mb64_music_sequence_from_index(MB64_MUSIC_LONELY_FLOATING_FARM_INDEX),
+               MB64_SEQ_FARM);
+}
+
 static void expect_bully_variant(const char *name, uint8_t object_type, uint8_t subtype,
                                  uint8_t size_param, uint8_t is_chill, uint8_t is_big) {
     const mb64_bully_variant_t *variant = mb64_bully_variant_for_type(object_type);
@@ -1827,6 +1858,7 @@ int main(void) {
     verify_fire_spinner_helpers();
     verify_goomba_helpers();
     verify_koopa_helpers();
+    verify_music_catalog_helpers();
     verify_bully_helpers();
     verify_bullet_bill_helpers();
     verify_exclamation_box_helpers();

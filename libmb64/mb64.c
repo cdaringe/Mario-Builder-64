@@ -33,6 +33,7 @@
 
 #define TILE_SIZE  4   /* u32 packed */
 #define OBJ_SIZE   8   /* bparam,x,y,z,type,rot,imbue,pad */
+#define MB64_ARRAY_COUNT(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 /* Mirrors src/mb64/data.c:seq_musicmenu_array. Keep music index semantics in
  * libmb64 so external loaders do not maintain partial duplicate mappings. */
@@ -141,6 +142,145 @@ static const uint8_t s_music_sequence_by_index[] = {
     SEQ_SMW_ATHLETIC,
     SEQ_SMW_CASTLE,
 };
+
+static const char *s_music_album_names[] = {
+    "Super Mario 64 OST",
+    "Beyond the Cursed Mirror OST",
+    "ROM Hack Music Ports",
+    "Retro 2D Mario Music",
+};
+
+static const char *s_music_vanilla_song_names[] = {
+    "Bob-omb Battlefield",
+    "Slider",
+    "Dire, Dire Docks",
+    "Dire, Dire Docks (Underwater)",
+    "Lethal Lava Land",
+    "Cool, Cool Mountain",
+    "Big Boo's Haunt",
+    "Hazy Maze Cave",
+    "Hazy Maze Cave (Haze)",
+    "Koopa's Road",
+    "Stage Boss",
+    "Koopa's Theme",
+    "Ultimate Koopa",
+    "Inside the Castle Walls",
+};
+
+static const char *s_music_btcm_song_names[] = {
+    "Cosmic Castle",
+    "Red-Hot Reservoir",
+    "Lonely Floating Farm",
+    "Jurassic Savanna",
+    "The Phantom Strider",
+    "Virtuaplex",
+    "Immense Residence",
+    "Thwomp Towers",
+    "Cursed Boss",
+    "Road To The Boss",
+    "Urbowser",
+    "The Show's Finale",
+    "Parasite Moon",
+    "AGAMEMNON",
+};
+
+static const char *s_music_romhack_song_names[] = {
+    "Bianco Hills (Super Mario Sunshine)",
+    "Sky and Sea (Super Mario Sunshine)",
+    "Secret Course (Super Mario Sunshine)",
+    "Comet Observatory (Mario Galaxy)",
+    "Buoy Base Galaxy (Mario Galaxy)",
+    "Battlerock Galaxy (Mario Galaxy)",
+    "Ghostly Galaxy (Mario Galaxy)",
+    "Purple Comet (Mario Galaxy)",
+    "Honeybloom Galaxy (Mario Galaxy 2)",
+    "Piranha Creeper Creek (3D World)",
+    "Desert (New Super Mario Bros.)",
+    "Koopa Troopa Beach (Mario Kart 64)",
+    "Frappe Snowland (Mario Kart 64)",
+    "Bowser's Castle (Mario Kart 64)",
+    "Rainbow Road (Mario Kart 64)",
+    "Waluigi Pinball (Mario Kart DS)",
+    "Rainbow Road (Mario Kart 8)",
+    "Mario's Pad (Super Mario RPG)",
+    "Nimbus Land (Super Mario RPG)",
+    "Forest Maze (Super Mario RPG)",
+    "Sunken Ship (Super Mario RPG)",
+    "Dry Dry Desert (Paper Mario 64)",
+    "Forever Forest (Paper Mario 64)",
+    "Petal Meadows (Paper Mario: TTYD)",
+    "Riddle Tower (Paper Mario: TTYD)",
+    "Rogueport Sewers (Paper Mario: TTYD)",
+    "X-Naut Fortress (Paper Mario: TTYD)",
+    "Flipside (Super Paper Mario)",
+    "Lineland Road (Super Paper Mario)",
+    "Sammer Kingdom (Super Paper Mario)",
+    "Floro Caverns (Super Paper Mario)",
+    "Overthere Stair (Super Paper Mario)",
+    "Yoshi's Tropical Island (Mario Party)",
+    "Rainbow Castle (Mario Party)",
+    "Behind Yoshi Village (Partners in Time)",
+    "Gritzy Desert (Partners in Time)",
+    "Bumpsy Plains (Bowser's Inside Story)",
+    "Deep Castle (Bowser's Inside Story)",
+    "Overworld (Yoshi's Island)",
+    "Underground (Yoshi's Island)",
+    "Title (Yoshi's Story)",
+    "Kokiri Forest (Ocarina of Time)",
+    "Lost Woods (Ocarina of Time)",
+    "Gerudo Valley (Ocarina of Time)",
+    "Stone Tower Temple (Majora's Mask)",
+    "Outset Island (Wind Waker)",
+    "Lake Hylia (Twilight Princess)",
+    "Gerudo Desert (Twilight Princess)",
+    "Skyloft (Skyward Sword)",
+    "Frantic Factory (Donkey Kong 64)",
+    "Hideout Helm (Donkey Kong 64)",
+    "Creepy Castle (Donkey Kong 64)",
+    "Gloomy Galleon (Donkey Kong 64)",
+    "Fungi Forest (Donkey Kong 64)",
+    "Crystal Caves (Donkey Kong 64)",
+    "Angry Aztec (Donkey Kong 64)",
+    "In a Snow-Bound Land (DKC 2)",
+    "Bubblegloop Swamp (Banjo-Kazooie)",
+    "Freezeezy Peak (Banjo-Kazooie)",
+    "Gobi's Valley (Banjo-Kazooie)",
+    "Factory Inspection (Kirby 64)",
+    "Green Garden (Bomberman 64)",
+    "Black Fortress (Bomberman 64)",
+    "Windy Hill (Sonic Adventure)",
+    "Sky Tower (Pokemon Mystery Dungeon)",
+    "Youkai Mountain (Touhou 10)",
+    "Forest Temple (Final Fantasy VII)",
+    "Band Land (Rayman)",
+};
+
+static const char *s_music_retro_song_names[] = {
+    "Overworld (Super Mario Bros.)",
+    "Castle Mix (Super Mario Bros.)",
+    "Overworld (Super Mario Bros. 2)",
+    "Overworld Mix (Super Mario Bros. 3)",
+    "Fortress (Super Mario Bros. 3)",
+    "Athletic (Super Mario World)",
+    "Castle (Super Mario World)",
+};
+
+static const char **s_music_song_tables[] = {
+    s_music_vanilla_song_names,
+    s_music_btcm_song_names,
+    s_music_romhack_song_names,
+    s_music_retro_song_names,
+};
+
+static const uint8_t s_music_song_table_lengths[] = {
+    MB64_ARRAY_COUNT(s_music_vanilla_song_names),
+    MB64_ARRAY_COUNT(s_music_btcm_song_names),
+    MB64_ARRAY_COUNT(s_music_romhack_song_names),
+    MB64_ARRAY_COUNT(s_music_retro_song_names),
+};
+
+static mb64_music_entry_t s_music_entries[MB64_ARRAY_COUNT(s_music_sequence_by_index)];
+static int s_music_entries_initialized = 0;
 
 static const mb64_bully_variant_t s_bully_variants[] = {
     { MB64_OBJECT_TYPE_BULLY, MB64_BULLY_SUBTYPE_GENERIC, MB64_BULLY_SIZE_SMALL, 0, 0 },
@@ -801,10 +941,86 @@ static float mb64_clampf(float value, float min, float max) {
 }
 
 uint8_t mb64_music_sequence_from_index(uint8_t music_index) {
-    if (music_index >= sizeof(s_music_sequence_by_index) / sizeof(s_music_sequence_by_index[0])) {
+    if (music_index >= MB64_ARRAY_COUNT(s_music_sequence_by_index)) {
         return 0;
     }
     return s_music_sequence_by_index[music_index];
+}
+
+static int mb64_music_name_equals(const char *a, const char *b) {
+    if (a == NULL || b == NULL) {
+        return 0;
+    }
+    while (*a != '\0' && *b != '\0') {
+        if (tolower((unsigned char)*a) != tolower((unsigned char)*b)) {
+            return 0;
+        }
+        a++;
+        b++;
+    }
+    return *a == '\0' && *b == '\0';
+}
+
+static void mb64_music_init_entries(void) {
+    if (s_music_entries_initialized) {
+        return;
+    }
+
+    uint8_t index = 0;
+    for (uint8_t album = 0; album < MB64_ARRAY_COUNT(s_music_song_tables); album++) {
+        for (uint8_t song = 0; song < s_music_song_table_lengths[album]; song++) {
+            if (index >= MB64_ARRAY_COUNT(s_music_entries)) {
+                s_music_entries_initialized = 1;
+                return;
+            }
+            s_music_entries[index] = (mb64_music_entry_t) {
+                index,
+                album,
+                song,
+                s_music_sequence_by_index[index],
+                s_music_album_names[album],
+                s_music_song_tables[album][song],
+            };
+            index++;
+        }
+    }
+    s_music_entries_initialized = 1;
+}
+
+size_t mb64_music_entry_count(void) {
+    return MB64_ARRAY_COUNT(s_music_sequence_by_index);
+}
+
+const mb64_music_entry_t *mb64_music_entry_from_index(uint8_t music_index) {
+    if (music_index >= MB64_ARRAY_COUNT(s_music_sequence_by_index)) {
+        return NULL;
+    }
+    mb64_music_init_entries();
+    return &s_music_entries[music_index];
+}
+
+const mb64_music_entry_t *mb64_music_entry_from_album_song(uint8_t album_index, uint8_t song_index) {
+    if (album_index >= MB64_ARRAY_COUNT(s_music_song_tables) ||
+        song_index >= s_music_song_table_lengths[album_index]) {
+        return NULL;
+    }
+    uint8_t index = song_index;
+    for (uint8_t album = 0; album < album_index; album++) {
+        index = (uint8_t)(index + s_music_song_table_lengths[album]);
+    }
+    return mb64_music_entry_from_index(index);
+}
+
+const mb64_music_entry_t *mb64_music_entry_from_album_song_names(const char *album, const char *song) {
+    mb64_music_init_entries();
+    for (size_t i = 0; i < MB64_ARRAY_COUNT(s_music_entries); i++) {
+        const mb64_music_entry_t *entry = &s_music_entries[i];
+        if (mb64_music_name_equals(entry->album, album) &&
+            mb64_music_name_equals(entry->song, song)) {
+            return entry;
+        }
+    }
+    return NULL;
 }
 
 const mb64_woodplat_config_t *mb64_woodplat_config(void) {

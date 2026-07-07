@@ -1171,6 +1171,15 @@ mb64_level_t *mb64_load(const char *path);
  */
 void mb64_free(mb64_level_t *level);
 
+typedef struct {
+    uint8_t index;
+    uint8_t album_index;
+    uint8_t song_index;
+    uint8_t sequence;
+    const char *album;
+    const char *song;
+} mb64_music_entry_t;
+
 /**
  * mb64_music_sequence_from_index() - Convert MB64 music menu index to sequence.
  *
@@ -1179,6 +1188,10 @@ void mb64_free(mb64_level_t *level);
  * 0 when the index is outside the authored table.
  */
 uint8_t mb64_music_sequence_from_index(uint8_t music_index);
+size_t mb64_music_entry_count(void);
+const mb64_music_entry_t *mb64_music_entry_from_index(uint8_t music_index);
+const mb64_music_entry_t *mb64_music_entry_from_album_song(uint8_t album_index, uint8_t song_index);
+const mb64_music_entry_t *mb64_music_entry_from_album_song_names(const char *album, const char *song);
 
 int mb64_build_render_mesh(const mb64_level_t *level, mb64_mesh_t *mesh);
 int mb64_build_collision_mesh(const mb64_level_t *level, mb64_mesh_t *mesh);

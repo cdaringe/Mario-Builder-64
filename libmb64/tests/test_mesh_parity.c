@@ -661,6 +661,123 @@ static void verify_water_render_predicates(void) {
     mb64_free_render_mesh(&mesh);
 }
 
+static void verify_global_water_plane_matches_mb64_boundary(void) {
+    mb64_level_t level;
+    mb64_tile_t tile;
+    mb64_mesh_t render_mesh = { 0 };
+    mb64_mesh_t collision_mesh = { 0 };
+
+    memset(&level, 0, sizeof(level));
+    memset(&tile, 0, sizeof(tile));
+    level.header.theme = 0;
+    level.header.level_size = 2;
+    level.header.waterlevel = 6;
+    level.header.tile_count = 1;
+    level.tiles = &tile;
+    tile.x = 32;
+    tile.y = 2;
+    tile.z = 32;
+    tile.type = TILE_TYPE_BLOCK;
+    tile.mat = MB64_MAT_GRASS;
+
+    if (!mb64_build_render_mesh(&level, &render_mesh)) {
+        fprintf(stderr, "global water render mesh failed\n");
+        g_failures++;
+        return;
+    }
+
+    int global_water_faces = 0;
+    int min_x = 32767;
+    int max_x = -32768;
+    int min_z = 32767;
+    int max_z = -32768;
+    for (uint32_t i = 0; i < render_mesh.face_count; i++) {
+        const mb64_mesh_face_t *face = &render_mesh.faces[i];
+        if (!face->is_water || face->tile_x != UINT8_MAX ||
+            face->tile_y != UINT8_MAX || face->tile_z != UINT8_MAX) {
+            continue;
+        }
+        global_water_faces++;
+        expect_int("global water is a top face", face->direction, MB64_MESH_FACE_TOP);
+        expect_int("global water uses boundary texture coordinates", face->use_tc, 1);
+        for (uint8_t v = 0; v < face->vertex_count; v++) {
+            expect_int("global water exact source height", face->v[v][1], -418);
+            if (face->v[v][0] < min_x) { min_x = face->v[v][0]; }
+            if (face->v[v][0] > max_x) { max_x = face->v[v][0]; }
+            if (face->v[v][2] < min_z) { min_z = face->v[v][2]; }
+            if (face->v[v][2] > max_z) { max_z = face->v[v][2]; }
+        }
+    }
+    expect_int("global water uses four inner and twelve edge faces", global_water_faces, 16);
+    expect_int("global water minimum x", min_x, -768);
+    expect_int("global water maximum x", max_x, 768);
+    expect_int("global water minimum z", min_z, -768);
+    expect_int("global water maximum z", max_z, 768);
+    mb64_free_render_mesh(&render_mesh);
+
+    if (!mb64_build_collision_mesh(&level, &collision_mesh)) {
+        fprintf(stderr, "global water collision mesh failed\n");
+        g_failures++;
+        return;
+    }
+    global_water_faces = 0;
+    for (uint32_t i = 0; i < collision_mesh.face_count; i++) {
+        const mb64_mesh_face_t *face = &collision_mesh.faces[i];
+        if (face->is_water && face->tile_x == UINT8_MAX) {
+            global_water_faces++;
+        }
+    }
+    expect_int("global water is not terrain collision", global_water_faces, 0);
+    mb64_free_render_mesh(&collision_mesh);
+}
+
+static void verify_sparse_water_faces_stay_inside_authored_tiles(void) {
+    mb64_level_t level;
+    mb64_tile_t tiles[2];
+    mb64_mesh_t mesh = { 0 };
+
+    memset(&level, 0, sizeof(level));
+    memset(tiles, 0, sizeof(tiles));
+    level.header.theme = 0;
+    level.header.level_size = 2;
+    level.header.tile_count = 2;
+    level.tiles = tiles;
+    tiles[0].x = 20;
+    tiles[0].y = 5;
+    tiles[0].z = 20;
+    tiles[0].type = TILE_TYPE_WATER;
+    tiles[1].x = 40;
+    tiles[1].y = 5;
+    tiles[1].z = 40;
+    tiles[1].type = TILE_TYPE_WATER;
+
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "sparse authored water render mesh failed\n");
+        g_failures++;
+        return;
+    }
+
+    int water_faces = 0;
+    for (uint32_t i = 0; i < mesh.face_count; i++) {
+        const mb64_mesh_face_t *face = &mesh.faces[i];
+        if (!face->is_water) { continue; }
+        water_faces++;
+        const int min_x = ((int)face->tile_x - 32) * 16;
+        const int min_z = ((int)face->tile_z - 32) * 16;
+        expect_int("sparse water face belongs to an authored tile",
+                   (face->tile_x == 20 && face->tile_z == 20) ||
+                   (face->tile_x == 40 && face->tile_z == 40), 1);
+        for (uint8_t v = 0; v < face->vertex_count; v++) {
+            expect_int("sparse water vertex x inside tile",
+                       face->v[v][0] >= min_x && face->v[v][0] <= min_x + 16, 1);
+            expect_int("sparse water vertex z inside tile",
+                       face->v[v][2] >= min_z && face->v[v][2] <= min_z + 16, 1);
+        }
+    }
+    expect_int("sparse authored water emits bounded faces", water_faces > 0, 1);
+    mb64_free_render_mesh(&mesh);
+}
+
 static void verify_same_material_transparent_shapes_cull_internal_faces(void) {
     mb64_level_t level;
     mb64_tile_t tiles[2];
@@ -1047,10 +1164,29 @@ static void verify_breakable_box_helpers(void) {
     const mb64_object_hitbox_t *hitbox = mb64_breakable_box_hitbox();
 
     expect_float("breakable box break coin radius", config->break_coin_radius, 46.0f);
-    expect_float("breakable box triangle size", config->break_triangle_size, 3.0f);
-    expect_int("breakable box triangle count", config->break_triangle_count, 10);
-    expect_int("breakable box triangle anim state", config->break_triangle_anim_state,
+    expect_float("breakable box fragment scale", config->fragment_scale, 3.0f);
+    expect_float("breakable box fragment spawn y", config->fragment_spawn_y_offset, 100.0f);
+    expect_float("breakable box fragment vertical velocity diameter",
+                 config->fragment_vertical_velocity_diameter, 50.0f);
+    expect_float("breakable box fragment forward velocity", config->fragment_forward_velocity, 30.0f);
+    expect_int("breakable box fragment count", config->fragment_count, 10);
+    expect_int("breakable box fragment anim state", config->fragment_anim_state,
                MB64_BREAK_PARTICLE_ANIM_YELLOW);
+    expect_int("breakable box fragment pitch velocity", config->fragment_angle_velocity_pitch, 0xF00);
+    expect_int("breakable box fragment yaw velocity", config->fragment_angle_velocity_yaw, 0x500);
+    expect_int("breakable box fragment lifetime", config->fragment_lifetime_frames, 18);
+    expect_int("breakable box fragment model", config->fragment_model,
+               MB64_BREAK_FRAGMENT_MODEL_DIRT_ANIMATION);
+    expect_float("breakable box fragment minimum vertical velocity",
+                 mb64_breakable_box_fragment_vertical_velocity(0.0f), -25.0f);
+    expect_float("breakable box fragment maximum vertical velocity",
+                 mb64_breakable_box_fragment_vertical_velocity(1.0f), 25.0f);
+    expect_int("breakable box fragment active first frame",
+               mb64_breakable_box_fragment_is_active(0), 1);
+    expect_int("breakable box fragment active last frame",
+               mb64_breakable_box_fragment_is_active(17), 1);
+    expect_int("breakable box fragment inactive after lifetime",
+               mb64_breakable_box_fragment_is_active(18), 0);
     expect_int("breakable box cork anim state", config->cork_anim_state, 1);
     expect_int("breakable box initial loot coins", config->initial_loot_coins, 0);
     expect_float("breakable box imbue drop y offset", config->imbue_drop_y_offset, 150.0f);
@@ -1187,6 +1323,12 @@ static void verify_bully_helpers(void) {
     expect_float("bully buoyancy", bigConfig->buoyancy, 2.0f);
     expect_int("bully steep slope edge guard", bigConfig->steep_slope_degrees, -78);
     expect_float("bully midair floor delta", bigConfig->midair_floor_delta, 4.0f);
+    expect_int("bully backup remains active before recovery frame",
+               mb64_bully_back_up_should_end(14), 0);
+    expect_int("bully backup ends on recovery frame",
+               mb64_bully_back_up_should_end(15), 1);
+    expect_int("bully backup remains recoverable after missed frame",
+               mb64_bully_back_up_should_end(16), 1);
 }
 
 static void verify_bullet_bill_helpers(void) {
@@ -1929,6 +2071,8 @@ int main(void) {
     verify_vertical_material_shaped_uv_rotation();
     verify_render_mesh_visitor_matches_snapshot();
     verify_water_render_predicates();
+    verify_global_water_plane_matches_mb64_boundary();
+    verify_sparse_water_faces_stay_inside_authored_tiles();
     verify_same_material_transparent_shapes_cull_internal_faces();
     verify_adjacent_full_blocks_cull_internal_faces();
     verify_render_mesh_winding_matches_face_direction();

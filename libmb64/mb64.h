@@ -276,19 +276,30 @@ typedef struct {
     int clank_cooldown_timer;
 } mb64_reinforced_box_config_t;
 
+typedef enum {
+    MB64_BREAK_PARTICLE_ANIM_YELLOW = 4,
+} mb64_break_particle_anim_t;
+
+typedef enum {
+    MB64_BREAK_FRAGMENT_MODEL_DIRT_ANIMATION = 1,
+} mb64_break_fragment_model_t;
+
 typedef struct {
     float break_coin_radius;
-    float break_triangle_size;
-    int break_triangle_count;
-    int break_triangle_anim_state;
+    float fragment_scale;
+    float fragment_spawn_y_offset;
+    float fragment_vertical_velocity_diameter;
+    float fragment_forward_velocity;
+    int fragment_count;
+    int fragment_anim_state;
+    int fragment_angle_velocity_pitch;
+    int fragment_angle_velocity_yaw;
+    int fragment_lifetime_frames;
+    mb64_break_fragment_model_t fragment_model;
     int cork_anim_state;
     int initial_loot_coins;
     float imbue_drop_y_offset;
 } mb64_breakable_box_config_t;
-
-typedef enum {
-    MB64_BREAK_PARTICLE_ANIM_YELLOW = 4,
-} mb64_break_particle_anim_t;
 
 typedef struct {
     float first_flame_distance;
@@ -1344,6 +1355,8 @@ uint8_t mb64_bullet_bill_should_timeout(int timer);
 uint8_t mb64_bullet_bill_should_reset_after_explosion(int timer);
 const mb64_breakable_box_config_t *mb64_breakable_box_config(void);
 const mb64_object_hitbox_t *mb64_breakable_box_hitbox(void);
+float mb64_breakable_box_fragment_vertical_velocity(float random_unit);
+uint8_t mb64_breakable_box_fragment_is_active(int timer);
 const mb64_reinforced_box_config_t *mb64_reinforced_box_config(void);
 const mb64_object_hitbox_t *mb64_reinforced_box_hitbox(void);
 uint8_t mb64_reinforced_box_should_clank(int timer);
@@ -1356,6 +1369,7 @@ uint8_t mb64_koopa_behavior_param_for_type(uint8_t object_type, uint8_t authored
 const mb64_bully_variant_t *mb64_bully_variant_for_type(uint8_t object_type);
 uint8_t mb64_object_type_is_bully_variant(uint8_t object_type);
 const mb64_bully_movement_config_t *mb64_bully_movement_config(uint8_t size_param);
+uint8_t mb64_bully_back_up_should_end(int timer);
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void);
 const mb64_exclamation_box_content_t *mb64_exclamation_box_content(uint8_t game, uint8_t bparam);
 uint8_t mb64_exclamation_box_should_explode(int timer);

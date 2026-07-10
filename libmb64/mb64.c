@@ -368,9 +368,16 @@ static const mb64_object_hitbox_t s_bullet_bill_hitbox = {
 
 static const mb64_breakable_box_config_t s_breakable_box_config = {
     46.0f, /* break_coin_radius */
-    3.0f,  /* break_triangle_size */
-    10,    /* break_triangle_count */
-    MB64_BREAK_PARTICLE_ANIM_YELLOW,
+    3.0f,  /* fragment_scale */
+    100.0f, /* fragment_spawn_y_offset */
+    50.0f, /* fragment_vertical_velocity_diameter */
+    30.0f, /* fragment_forward_velocity */
+    10,    /* fragment_count */
+    MB64_BREAK_PARTICLE_ANIM_YELLOW, /* fragment_anim_state */
+    0xF00, /* fragment_angle_velocity_pitch */
+    0x500, /* fragment_angle_velocity_yaw */
+    18,    /* fragment_lifetime_frames */
+    MB64_BREAK_FRAGMENT_MODEL_DIRT_ANIMATION,
     1,     /* BREAKABLE_BOX_ANIM_STATE_CORK_BOX */
     0,     /* MB64 clears loot coins after cork-box init */
     150.0f, /* imbue drop y offset */
@@ -1164,6 +1171,15 @@ const mb64_object_hitbox_t *mb64_breakable_box_hitbox(void) {
     return &s_breakable_box_hitbox;
 }
 
+float mb64_breakable_box_fragment_vertical_velocity(float random_unit) {
+    return random_unit * s_breakable_box_config.fragment_vertical_velocity_diameter -
+           s_breakable_box_config.fragment_vertical_velocity_diameter * 0.5f;
+}
+
+uint8_t mb64_breakable_box_fragment_is_active(int timer) {
+    return timer >= 0 && timer < s_breakable_box_config.fragment_lifetime_frames;
+}
+
 const mb64_reinforced_box_config_t *mb64_reinforced_box_config(void) {
     return &s_reinforced_box_config;
 }
@@ -1232,6 +1248,10 @@ const mb64_bully_movement_config_t *mb64_bully_movement_config(uint8_t size_para
         return &s_bully_movement_configs[MB64_BULLY_SIZE_BIG];
     }
     return &s_bully_movement_configs[MB64_BULLY_SIZE_SMALL];
+}
+
+uint8_t mb64_bully_back_up_should_end(int timer) {
+    return timer >= 15;
 }
 
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void) {

@@ -11,6 +11,8 @@
 #define MB64_THEME_CUSTOM 10
 #define MB64_MATERIAL_SLOT_COUNT 10
 #define MB64_DEATH_PLANE_GRID_Y (-40)
+#define MB64_WATER_LEVEL_ORIGIN 32
+#define MB64_WATER_SURFACE_SUBUNIT_OFFSET 2
 #define PACK_TILESIZE(w, d) (((w) << 2) + (d))
 #define MB64_SURFACE_DEFAULT 0
 #define MB64_SURFACE_HANGABLE_MESH 0x0005
@@ -664,6 +666,14 @@ static uint32_t boundary_floor_face_count(const mb64_level_t *level) {
     return count;
 }
 
+static uint32_t global_water_face_count(const mb64_level_t *level, int collision_mesh) {
+    if (collision_mesh || level == NULL || level->header.waterlevel == 0) {
+        return 0;
+    }
+    return (uint32_t)(sizeof(s_boundary_inner_floor) / sizeof(s_boundary_inner_floor[0])) +
+           (uint32_t)(sizeof(s_boundary_outer_floor) / sizeof(s_boundary_outer_floor[0]));
+}
+
 static uint32_t boundary_wall_face_count(const mb64_level_t *level) {
     uint8_t flags = boundary_flags(level);
     if (flags & (MB64_BOUNDARY_INNER_WALLS | MB64_BOUNDARY_OUTER_WALLS)) {
@@ -720,6 +730,39 @@ static void emit_boundary_floor_face(mb64_mesh_t *mesh, uint32_t *idx,
         face->tc[i][1] = boundary_tc_from_subunits(face->v[i][2]);
     }
     orient_face_to_direction(face);
+}
+
+static void emit_global_water_face(mb64_mesh_t *mesh, uint32_t *idx,
+                                   const mb64_level_t *level,
+                                   const mb64_boundary_floor_quad_t *quad,
+                                   int16_t y) {
+    emit_boundary_floor_face(mesh, idx, level, quad, y, MB64_MESH_FACE_TOP);
+    mesh->faces[*idx - 1].is_water = 1;
+}
+
+static void emit_global_water_faces(mb64_mesh_t *mesh, uint32_t *idx,
+                                    const mb64_level_t *level,
+                                    int collision_mesh) {
+    if (global_water_face_count(level, collision_mesh) == 0) {
+        return;
+    }
+
+    /* This is the source MB64 render_water_plane() height converted from
+     * world units to libmb64's one-sixteenth-tile coordinate system. */
+    const int16_t y = (int16_t)(
+        ((int16_t)level->header.waterlevel - MB64_WATER_LEVEL_ORIGIN) * MB64_TILE_SUBUNITS -
+        MB64_WATER_SURFACE_SUBUNIT_OFFSET
+    );
+    for (uint32_t i = 0;
+         i < (uint32_t)(sizeof(s_boundary_inner_floor) / sizeof(s_boundary_inner_floor[0]));
+         i++) {
+        emit_global_water_face(mesh, idx, level, &s_boundary_inner_floor[i], y);
+    }
+    for (uint32_t i = 0;
+         i < (uint32_t)(sizeof(s_boundary_outer_floor) / sizeof(s_boundary_outer_floor[0]));
+         i++) {
+        emit_global_water_face(mesh, idx, level, &s_boundary_outer_floor[i], y);
+    }
 }
 
 static uint8_t boundary_wall_direction(const mb64_boundary_wall_quad_t *quad, uint8_t reverse) {
@@ -1929,6 +1972,7 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
     }
     face_count += boundary_floor_face_count(level);
     face_count += boundary_wall_face_count(level);
+    face_count += global_water_face_count(level, collision_mesh);
 
     if (face_count == 0) { return 0; }
     mesh->faces = calloc(face_count, sizeof(*mesh->faces));
@@ -1951,6 +1995,7 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
         if (!mb64_tile_renders_water(level, t)) { continue; }
         emit_water_faces_for_tile(mesh, &out, level, t, collision_mesh);
     }
+    emit_global_water_faces(mesh, &out, level, collision_mesh);
 
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];

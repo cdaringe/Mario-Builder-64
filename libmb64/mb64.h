@@ -301,6 +301,47 @@ typedef struct {
     float imbue_drop_y_offset;
 } mb64_breakable_box_config_t;
 
+typedef enum {
+    MB64_FLAMETHROWER_VARIANT_RED = 0,
+    MB64_FLAMETHROWER_VARIANT_BLUE,
+    MB64_FLAMETHROWER_VARIANT_SLOW,
+    MB64_FLAMETHROWER_VARIANT_TALL_HITBOX,
+    MB64_FLAMETHROWER_VARIANT_UPWARDS,
+} mb64_flamethrower_variant_t;
+
+typedef enum {
+    MB64_FLAMETHROWER_ACT_IDLE = 0,
+    MB64_FLAMETHROWER_ACT_BLOW_FIRE,
+    MB64_FLAMETHROWER_ACT_COOLDOWN,
+} mb64_flamethrower_action_t;
+
+typedef enum {
+    MB64_FLAMETHROWER_FLAME_MODEL_RED = 0,
+    MB64_FLAMETHROWER_FLAME_MODEL_BLUE,
+} mb64_flamethrower_flame_model_t;
+
+typedef struct {
+    float activation_distance;
+    float flame_spawn_y_offset;
+    float default_forward_velocity;
+    float slow_forward_velocity;
+    float random_translation_diameter;
+    float scale_divisor;
+    float default_scale_velocity_offset;
+    float slow_scale_velocity_offset;
+    float default_initial_scale;
+    float slow_initial_scale;
+    float tall_hitbox_height;
+    float tall_hitbox_down_offset;
+    float tall_fall_velocity;
+    int steady_blow_frames;
+    int taper_end_frame;
+    int steady_flame_lifetime;
+    int transition_flame_lifetime;
+    int taper_lifetime_base;
+    int cooldown_frames;
+} mb64_flamethrower_config_t;
+
 typedef struct {
     float first_flame_distance;
     float flame_spacing;
@@ -1357,6 +1398,11 @@ const mb64_breakable_box_config_t *mb64_breakable_box_config(void);
 const mb64_object_hitbox_t *mb64_breakable_box_hitbox(void);
 float mb64_breakable_box_fragment_vertical_velocity(float random_unit);
 uint8_t mb64_breakable_box_fragment_is_active(int timer);
+const mb64_flamethrower_config_t *mb64_flamethrower_config(void);
+float mb64_flamethrower_forward_velocity(uint8_t variant);
+int mb64_flamethrower_flame_lifetime(int action_timer);
+float mb64_flamethrower_flame_scale(uint8_t variant, int timer, float forward_velocity);
+mb64_flamethrower_flame_model_t mb64_flamethrower_flame_model(uint8_t variant);
 const mb64_reinforced_box_config_t *mb64_reinforced_box_config(void);
 const mb64_object_hitbox_t *mb64_reinforced_box_hitbox(void);
 uint8_t mb64_reinforced_box_should_clank(int timer);

@@ -1208,6 +1208,33 @@ static void verify_fire_spinner_helpers(void) {
     expect_int("fire spinner bparam five flames", mb64_fire_spinner_flames_per_arm(5), 7);
 }
 
+static void verify_flamethrower_helpers(void) {
+    const mb64_flamethrower_config_t *config = mb64_flamethrower_config();
+
+    expect_float("flamethrower activation distance", config->activation_distance, 2000.0f);
+    expect_float("flamethrower spawn y offset", config->flame_spawn_y_offset, 40.0f);
+    expect_float("flamethrower default velocity",
+                 mb64_flamethrower_forward_velocity(MB64_FLAMETHROWER_VARIANT_RED), 95.0f);
+    expect_float("flamethrower slow velocity",
+                 mb64_flamethrower_forward_velocity(MB64_FLAMETHROWER_VARIANT_SLOW), 50.0f);
+    expect_int("flamethrower steady lifetime", mb64_flamethrower_flame_lifetime(59), 15);
+    expect_int("flamethrower taper lifetime", mb64_flamethrower_flame_lifetime(60), 15);
+    expect_int("flamethrower last taper lifetime", mb64_flamethrower_flame_lifetime(73), 2);
+    expect_int("flamethrower transition lifetime", mb64_flamethrower_flame_lifetime(74), 1);
+    expect_float("flamethrower initial scale",
+                 mb64_flamethrower_flame_scale(MB64_FLAMETHROWER_VARIANT_RED, 0, 95.0f), 1.0f);
+    expect_float("flamethrower aged scale",
+                 mb64_flamethrower_flame_scale(MB64_FLAMETHROWER_VARIANT_RED, 8, 95.0f), 7.0f);
+    expect_float("flamethrower slow initial scale",
+                 mb64_flamethrower_flame_scale(MB64_FLAMETHROWER_VARIANT_SLOW, 0, 50.0f), 2.0f);
+    expect_int("flamethrower red model",
+               mb64_flamethrower_flame_model(MB64_FLAMETHROWER_VARIANT_RED),
+               MB64_FLAMETHROWER_FLAME_MODEL_RED);
+    expect_int("flamethrower blue model",
+               mb64_flamethrower_flame_model(MB64_FLAMETHROWER_VARIANT_BLUE),
+               MB64_FLAMETHROWER_FLAME_MODEL_BLUE);
+}
+
 static void verify_goomba_helpers(void) {
     expect_int("goomba regular size param",
                mb64_goomba_size_param_for_type(MB64_OBJECT_TYPE_GOOMBA),
@@ -2083,6 +2110,7 @@ int main(void) {
     verify_woodplat_helpers();
     verify_looping_platform_helpers();
     verify_breakable_box_helpers();
+    verify_flamethrower_helpers();
     verify_reinforced_box_helpers();
     verify_fire_spinner_helpers();
     verify_goomba_helpers();

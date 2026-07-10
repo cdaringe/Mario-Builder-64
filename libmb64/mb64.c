@@ -383,6 +383,28 @@ static const mb64_breakable_box_config_t s_breakable_box_config = {
     150.0f, /* imbue drop y offset */
 };
 
+static const mb64_flamethrower_config_t s_flamethrower_config = {
+    2000.0f, /* activation_distance */
+    40.0f,   /* flame_spawn_y_offset */
+    95.0f,   /* default_forward_velocity */
+    50.0f,   /* slow_forward_velocity */
+    10.0f,   /* random_translation_diameter */
+    100.0f,  /* scale_divisor */
+    20.0f,   /* default_scale_velocity_offset */
+    6.0f,    /* slow_scale_velocity_offset */
+    1.0f,    /* default_initial_scale */
+    2.0f,    /* slow_initial_scale */
+    200.0f,  /* tall_hitbox_height */
+    150.0f,  /* tall_hitbox_down_offset */
+    -28.0f,  /* tall_fall_velocity */
+    60,      /* steady_blow_frames */
+    74,      /* taper_end_frame */
+    15,      /* steady_flame_lifetime */
+    1,       /* transition_flame_lifetime */
+    75,      /* taper_lifetime_base */
+    60,      /* cooldown_frames */
+};
+
 static const mb64_object_hitbox_t s_breakable_box_hitbox = {
     0,   /* damageOrCoinValue */
     1,   /* health */
@@ -1178,6 +1200,44 @@ float mb64_breakable_box_fragment_vertical_velocity(float random_unit) {
 
 uint8_t mb64_breakable_box_fragment_is_active(int timer) {
     return timer >= 0 && timer < s_breakable_box_config.fragment_lifetime_frames;
+}
+
+const mb64_flamethrower_config_t *mb64_flamethrower_config(void) {
+    return &s_flamethrower_config;
+}
+
+float mb64_flamethrower_forward_velocity(uint8_t variant) {
+    return variant == MB64_FLAMETHROWER_VARIANT_SLOW
+        ? s_flamethrower_config.slow_forward_velocity
+        : s_flamethrower_config.default_forward_velocity;
+}
+
+int mb64_flamethrower_flame_lifetime(int action_timer) {
+    if (action_timer < s_flamethrower_config.steady_blow_frames) {
+        return s_flamethrower_config.steady_flame_lifetime;
+    }
+    if (action_timer < s_flamethrower_config.taper_end_frame) {
+        return s_flamethrower_config.taper_lifetime_base - action_timer;
+    }
+    return s_flamethrower_config.transition_flame_lifetime;
+}
+
+float mb64_flamethrower_flame_scale(uint8_t variant, int timer, float forward_velocity) {
+    const uint8_t slow = variant == MB64_FLAMETHROWER_VARIANT_SLOW;
+    const float velocity_offset = slow
+        ? s_flamethrower_config.slow_scale_velocity_offset
+        : s_flamethrower_config.default_scale_velocity_offset;
+    const float initial_scale = slow
+        ? s_flamethrower_config.slow_initial_scale
+        : s_flamethrower_config.default_initial_scale;
+    return timer * (forward_velocity - velocity_offset) /
+        s_flamethrower_config.scale_divisor + initial_scale;
+}
+
+mb64_flamethrower_flame_model_t mb64_flamethrower_flame_model(uint8_t variant) {
+    return variant == MB64_FLAMETHROWER_VARIANT_BLUE
+        ? MB64_FLAMETHROWER_FLAME_MODEL_BLUE
+        : MB64_FLAMETHROWER_FLAME_MODEL_RED;
 }
 
 const mb64_reinforced_box_config_t *mb64_reinforced_box_config(void) {

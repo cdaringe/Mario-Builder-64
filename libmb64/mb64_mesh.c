@@ -1414,7 +1414,12 @@ static void emit_base_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     }
 
     uint8_t direction = rotate_direction(src->direction, t->rot);
-    if (shape_face_is_occluded(level, t, direction, src->faceshape, collision_mesh)) {
+    /* Original MB64 always processes the complete fence collision shape.
+     * Retaining both wall faces prevents a solid neighbor from turning the
+     * thin barrier into one-way collision. */
+    const int keepFenceCollisionFace = collision_mesh && t->type == TILE_TYPE_FENCE;
+    if (!keepFenceCollisionFace &&
+        shape_face_is_occluded(level, t, direction, src->faceshape, collision_mesh)) {
         return;
     }
     mb64_mesh_face_t *face = &mesh->faces[(*idx)++];

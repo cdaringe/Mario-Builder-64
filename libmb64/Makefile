@@ -31,7 +31,7 @@ $(MESH_DATA): ../tools/gen_libmb64_mesh_data.py ../src/mb64/data.c ../src/mb64/b
 
 mb64_mesh.o: $(THEME_DATA) $(MESH_DATA) mb64_faceshapes.h mb64_tile_types.h
 
-$(TEST_BIN): tests/test_mesh_parity.c $(LIB) mb64.h mb64_tile_types.h
+$(TEST_BIN): tests/test_mesh_parity.c $(LIB) mb64.h mb64_object_types.h mb64_tile_types.h
 	$(CC) $(CFLAGS) tests/test_mesh_parity.c $(LIB) -o $@
 
 test: $(TEST_BIN)

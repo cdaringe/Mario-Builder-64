@@ -339,6 +339,7 @@ static const mb64_looping_platform_config_t s_looping_platform_config = {
 };
 
 static const mb64_bullet_bill_config_t s_bullet_bill_config = {
+    128.0f,  /* cannon_collision_distance */
     400.0f,  /* wake_min_distance */
     1500.0f, /* wake_max_distance */
     3.0f,    /* shake_forward_speed */
@@ -351,6 +352,7 @@ static const mb64_bullet_bill_config_t s_bullet_bill_config = {
     150,     /* timeout_frame */
     90,      /* explosion_reset_frame */
     0x100,   /* rotate_step */
+    1,       /* cannon_exact_tile_size */
 };
 
 static const mb64_object_hitbox_t s_bullet_bill_hitbox = {
@@ -366,6 +368,9 @@ static const mb64_object_hitbox_t s_bullet_bill_hitbox = {
 
 static const mb64_breakable_box_config_t s_breakable_box_config = {
     46.0f, /* break_coin_radius */
+    3.0f,  /* break_triangle_size */
+    10,    /* break_triangle_count */
+    MB64_BREAK_PARTICLE_ANIM_YELLOW,
     1,     /* BREAKABLE_BOX_ANIM_STATE_CORK_BOX */
     0,     /* MB64 clears loot coins after cork-box init */
     150.0f, /* imbue drop y offset */

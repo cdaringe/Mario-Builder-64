@@ -112,6 +112,245 @@ typedef enum {
 #define MB64_OBJECT_TYPE_SPAWN MB64_OBJECT_TYPE_MARIO_SPAWN
 #define MB64_OBJECT_TYPE_TIMED_BLOCK MB64_OBJECT_TYPE_TIMEDBLOCK
 
+/*
+ * Runtime networking policy exported for ports that instantiate MB64 objects
+ * in a multiplayer engine. Behavior-specific fields remain owned by the
+ * behavior; these flags describe the common state and child lifecycle that a
+ * port must preserve for periodic updates and late-join snapshots.
+ */
+typedef enum {
+    MB64_OBJECT_NETWORK_SKIP = 0,
+    MB64_OBJECT_NETWORK_STATIC,
+    MB64_OBJECT_NETWORK_COLLECTIBLE,
+    MB64_OBJECT_NETWORK_EVENT,
+    MB64_OBJECT_NETWORK_CONTINUOUS,
+    MB64_OBJECT_NETWORK_CONTROLLER,
+} mb64_object_network_policy_t;
+
+enum {
+    MB64_OBJECT_NETWORK_FIELD_VISUAL      = 1u << 0,
+    MB64_OBJECT_NETWORK_FIELD_ORIENTATION = 1u << 1,
+    MB64_OBJECT_NETWORK_FIELD_MOVE_FLAGS  = 1u << 2,
+    MB64_OBJECT_NETWORK_FIELD_HEALTH      = 1u << 3,
+};
+
+enum {
+    MB64_OBJECT_NETWORK_CHILDREN_NONE          = 0,
+    MB64_OBJECT_NETWORK_CHILDREN_INITIAL       = 1u << 0,
+    MB64_OBJECT_NETWORK_CHILDREN_RUNTIME_SPAWN = 1u << 1,
+    MB64_OBJECT_NETWORK_CHILDREN_RIDABLE       = 1u << 2,
+    MB64_OBJECT_NETWORK_CHILDREN_DERIVED       = 1u << 3,
+};
+
+typedef struct {
+    mb64_object_network_policy_t policy;
+    unsigned char common_fields;
+    unsigned char child_policy;
+    unsigned char collection_identity;
+    unsigned char late_join_snapshot;
+} mb64_object_network_descriptor_t;
+
+static inline const mb64_object_network_descriptor_t *
+mb64_object_network_descriptor_for_type(unsigned char type) {
+    static const mb64_object_network_descriptor_t skip = {
+        MB64_OBJECT_NETWORK_SKIP, 0, MB64_OBJECT_NETWORK_CHILDREN_NONE, 0, 0,
+    };
+    static const mb64_object_network_descriptor_t static_object = {
+        MB64_OBJECT_NETWORK_STATIC, 0, MB64_OBJECT_NETWORK_CHILDREN_NONE, 0, 1,
+    };
+    static const mb64_object_network_descriptor_t collectible = {
+        MB64_OBJECT_NETWORK_COLLECTIBLE,
+        MB64_OBJECT_NETWORK_FIELD_VISUAL,
+        MB64_OBJECT_NETWORK_CHILDREN_NONE, 1, 1,
+    };
+    static const mb64_object_network_descriptor_t event = {
+        MB64_OBJECT_NETWORK_EVENT,
+        MB64_OBJECT_NETWORK_FIELD_VISUAL | MB64_OBJECT_NETWORK_FIELD_HEALTH,
+        MB64_OBJECT_NETWORK_CHILDREN_NONE, 0, 1,
+    };
+    static const mb64_object_network_descriptor_t continuous = {
+        MB64_OBJECT_NETWORK_CONTINUOUS,
+        MB64_OBJECT_NETWORK_FIELD_VISUAL |
+            MB64_OBJECT_NETWORK_FIELD_ORIENTATION |
+            MB64_OBJECT_NETWORK_FIELD_MOVE_FLAGS |
+            MB64_OBJECT_NETWORK_FIELD_HEALTH,
+        MB64_OBJECT_NETWORK_CHILDREN_NONE, 0, 1,
+    };
+    static const mb64_object_network_descriptor_t controller = {
+        MB64_OBJECT_NETWORK_CONTROLLER,
+        MB64_OBJECT_NETWORK_FIELD_VISUAL |
+            MB64_OBJECT_NETWORK_FIELD_ORIENTATION |
+            MB64_OBJECT_NETWORK_FIELD_MOVE_FLAGS |
+            MB64_OBJECT_NETWORK_FIELD_HEALTH,
+        MB64_OBJECT_NETWORK_CHILDREN_RUNTIME_SPAWN, 0, 1,
+    };
+    static const mb64_object_network_descriptor_t controller_derived = {
+        MB64_OBJECT_NETWORK_CONTROLLER,
+        MB64_OBJECT_NETWORK_FIELD_VISUAL |
+            MB64_OBJECT_NETWORK_FIELD_ORIENTATION |
+            MB64_OBJECT_NETWORK_FIELD_MOVE_FLAGS |
+            MB64_OBJECT_NETWORK_FIELD_HEALTH,
+        MB64_OBJECT_NETWORK_CHILDREN_RUNTIME_SPAWN |
+            MB64_OBJECT_NETWORK_CHILDREN_DERIVED,
+        0, 1,
+    };
+    static const mb64_object_network_descriptor_t derived = {
+        MB64_OBJECT_NETWORK_CONTINUOUS,
+        MB64_OBJECT_NETWORK_FIELD_VISUAL |
+            MB64_OBJECT_NETWORK_FIELD_ORIENTATION |
+            MB64_OBJECT_NETWORK_FIELD_MOVE_FLAGS |
+            MB64_OBJECT_NETWORK_FIELD_HEALTH,
+        MB64_OBJECT_NETWORK_CHILDREN_DERIVED, 0, 1,
+    };
+    static const mb64_object_network_descriptor_t initial_children = {
+        MB64_OBJECT_NETWORK_CONTROLLER,
+        MB64_OBJECT_NETWORK_FIELD_VISUAL,
+        MB64_OBJECT_NETWORK_CHILDREN_INITIAL, 0, 1,
+    };
+    static const mb64_object_network_descriptor_t initial_controller = {
+        MB64_OBJECT_NETWORK_CONTROLLER,
+        MB64_OBJECT_NETWORK_FIELD_VISUAL |
+            MB64_OBJECT_NETWORK_FIELD_ORIENTATION |
+            MB64_OBJECT_NETWORK_FIELD_MOVE_FLAGS |
+            MB64_OBJECT_NETWORK_FIELD_HEALTH,
+        MB64_OBJECT_NETWORK_CHILDREN_INITIAL, 0, 1,
+    };
+    static const mb64_object_network_descriptor_t koopa = {
+        MB64_OBJECT_NETWORK_CONTINUOUS,
+        MB64_OBJECT_NETWORK_FIELD_VISUAL |
+            MB64_OBJECT_NETWORK_FIELD_ORIENTATION |
+            MB64_OBJECT_NETWORK_FIELD_MOVE_FLAGS |
+            MB64_OBJECT_NETWORK_FIELD_HEALTH,
+        MB64_OBJECT_NETWORK_CHILDREN_RUNTIME_SPAWN |
+            MB64_OBJECT_NETWORK_CHILDREN_DERIVED |
+            MB64_OBJECT_NETWORK_CHILDREN_RIDABLE,
+        0, 1,
+    };
+
+    switch (type) {
+        case MB64_OBJECT_TYPE_SETTINGS:
+        case MB64_OBJECT_TYPE_1:
+        case MB64_OBJECT_TYPE_MARIO_SPAWN:
+        case MB64_OBJECT_TYPE_TEST_MARIO:
+        case MB64_OBJECT_TYPE_CULL_PREVIEW:
+            return &skip;
+
+        case MB64_OBJECT_TYPE_TREE:
+        case MB64_OBJECT_TYPE_WARP_PIPE:
+        case MB64_OBJECT_TYPE_RED_FLAME:
+        case MB64_OBJECT_TYPE_BLUE_FLAME:
+        case MB64_OBJECT_TYPE_SIGN:
+        case MB64_OBJECT_TYPE_BUDDY:
+        case MB64_OBJECT_TYPE_TOAD:
+        case MB64_OBJECT_TYPE_TUXIE:
+        case MB64_OBJECT_TYPE_UKIKI:
+        case MB64_OBJECT_TYPE_MOLEMAN:
+        case MB64_OBJECT_TYPE_COBIE:
+            return &static_object;
+
+        case MB64_OBJECT_TYPE_STAR:
+        case MB64_OBJECT_TYPE_RED_COIN_STAR:
+        case MB64_OBJECT_TYPE_COIN:
+        case MB64_OBJECT_TYPE_GREEN_COIN:
+        case MB64_OBJECT_TYPE_RED_COIN:
+        case MB64_OBJECT_TYPE_BLUE_COIN:
+        case MB64_OBJECT_TYPE_RECOVERY_HEART:
+        case MB64_OBJECT_TYPE_BADGE:
+        case MB64_OBJECT_TYPE_CROWBAR:
+        case MB64_OBJECT_TYPE_MASK:
+        case MB64_OBJECT_TYPE_TRIGGER_STAR:
+            return &collectible;
+
+        case MB64_OBJECT_TYPE_BLUE_COIN_SWITCH:
+        case MB64_OBJECT_TYPE_NOTEBLOCK:
+        case MB64_OBJECT_TYPE_PURPLE_SWITCH:
+        case MB64_OBJECT_TYPE_TIMED_BOX:
+        case MB64_OBJECT_TYPE_BBOX_SMALL:
+        case MB64_OBJECT_TYPE_BBOX_NORMAL:
+        case MB64_OBJECT_TYPE_BBOX_CRAZY:
+        case MB64_OBJECT_TYPE_DIAMOND:
+        case MB64_OBJECT_TYPE_BUTTON:
+        case MB64_OBJECT_TYPE_ON_OFF_BLOCK:
+        case MB64_OBJECT_TYPE_RFBOX:
+        case MB64_OBJECT_TYPE_TIMEDBLOCK:
+        case MB64_OBJECT_TYPE_TRIGGER:
+            return &event;
+
+        case MB64_OBJECT_TYPE_COIN_FORMATION:
+            return &initial_children;
+
+        case MB64_OBJECT_TYPE_KOOPA:
+        case MB64_OBJECT_TYPE_KOOPA_THE_QUICK:
+            return &koopa;
+
+        case MB64_OBJECT_TYPE_BULLET_BILL:
+            return &initial_controller;
+
+        case MB64_OBJECT_TYPE_FIRE_SPINNER:
+        case MB64_OBJECT_TYPE_WOODPLAT:
+        case MB64_OBJECT_TYPE_MR_BLIZZARD:
+        case MB64_OBJECT_TYPE_WIGGLER:
+            return &derived;
+
+        case MB64_OBJECT_TYPE_PIRANHA_PLANT:
+        case MB64_OBJECT_TYPE_BIG_PIRANHA_PLANT:
+        case MB64_OBJECT_TYPE_TINY_PIRANHA_PLANT:
+        case MB64_OBJECT_TYPE_EXCL_BOX:
+        case MB64_OBJECT_TYPE_BOWSER:
+        case MB64_OBJECT_TYPE_BOWLING_BALL:
+        case MB64_OBJECT_TYPE_FIRE_SPITTER:
+        case MB64_OBJECT_TYPE_FLAMETHROWER:
+        case MB64_OBJECT_TYPE_SHOWRUNNER:
+        case MB64_OBJECT_TYPE_HAMMER_BRO:
+        case MB64_OBJECT_TYPE_FIRE_BRO:
+        case MB64_OBJECT_TYPE_PHANTASM:
+        case MB64_OBJECT_TYPE_FLY_GUY:
+        case MB64_OBJECT_TYPE_SNUFIT:
+        case MB64_OBJECT_TYPE_MONEYBAG:
+            return &controller;
+
+        case MB64_OBJECT_TYPE_LAKITU:
+        case MB64_OBJECT_TYPE_MR_I:
+        case MB64_OBJECT_TYPE_POKEY:
+        case MB64_OBJECT_TYPE_MOTOS:
+            return &controller_derived;
+
+        case MB64_OBJECT_TYPE_GOOMBA:
+        case MB64_OBJECT_TYPE_BIG_GOOMBA:
+        case MB64_OBJECT_TYPE_TINY_GOOMBA:
+        case MB64_OBJECT_TYPE_BOBOMB:
+        case MB64_OBJECT_TYPE_CHUCKYA:
+        case MB64_OBJECT_TYPE_BULLY:
+        case MB64_OBJECT_TYPE_CHILL_BULLY:
+        case MB64_OBJECT_TYPE_HEAVE_HO:
+        case MB64_OBJECT_TYPE_REX:
+        case MB64_OBJECT_TYPE_PODOBOO:
+        case MB64_OBJECT_TYPE_CRABLET:
+        case MB64_OBJECT_TYPE_CHICKEN:
+        case MB64_OBJECT_TYPE_KING_BOBOMB:
+        case MB64_OBJECT_TYPE_KING_WHOMP:
+        case MB64_OBJECT_TYPE_BIG_BOO:
+        case MB64_OBJECT_TYPE_BIG_BULLY:
+        case MB64_OBJECT_TYPE_BIG_CHILL_BULLY:
+        case MB64_OBJECT_TYPE_PLATFORM_TRACK:
+        case MB64_OBJECT_TYPE_PLATFORM_LOOPING:
+        case MB64_OBJECT_TYPE_THWOMP:
+        case MB64_OBJECT_TYPE_WHOMP:
+        case MB64_OBJECT_TYPE_GRINDEL:
+        case MB64_OBJECT_TYPE_AMP:
+        case MB64_OBJECT_TYPE_BOO:
+        case MB64_OBJECT_TYPE_SCUTTLEBUG:
+        case MB64_OBJECT_TYPE_BOWSER_BOMB:
+        case MB64_OBJECT_TYPE_SPINDRIFT:
+        case MB64_OBJECT_TYPE_SKEETER:
+        case MB64_OBJECT_TYPE_CONVEYOR:
+            return &continuous;
+
+        default:
+            return 0;
+    }
+}
+
 typedef enum {
     MB64_TREE_TYPE_BUBBLY = 0,
     MB64_TREE_TYPE_PALM,

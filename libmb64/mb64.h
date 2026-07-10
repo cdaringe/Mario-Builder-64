@@ -251,6 +251,7 @@ typedef struct {
 } mb64_looping_platform_config_t;
 
 typedef struct {
+    float cannon_collision_distance;
     float wake_min_distance;
     float wake_max_distance;
     float shake_forward_speed;
@@ -263,6 +264,7 @@ typedef struct {
     int timeout_frame;
     int explosion_reset_frame;
     int rotate_step;
+    uint8_t cannon_exact_tile_size;
 } mb64_bullet_bill_config_t;
 
 typedef struct {
@@ -276,10 +278,17 @@ typedef struct {
 
 typedef struct {
     float break_coin_radius;
+    float break_triangle_size;
+    int break_triangle_count;
+    int break_triangle_anim_state;
     int cork_anim_state;
     int initial_loot_coins;
     float imbue_drop_y_offset;
 } mb64_breakable_box_config_t;
+
+typedef enum {
+    MB64_BREAK_PARTICLE_ANIM_YELLOW = 4,
+} mb64_break_particle_anim_t;
 
 typedef struct {
     float first_flame_distance;

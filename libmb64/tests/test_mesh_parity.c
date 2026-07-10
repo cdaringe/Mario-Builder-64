@@ -213,6 +213,46 @@ static void verify_adjacent_fence_uv_phase(void) {
     mb64_free_render_mesh(&mesh);
 }
 
+static void verify_fence_collision_keeps_both_sides_next_to_solid(void) {
+    mb64_level_t level;
+    mb64_tile_t tiles[2];
+    mb64_mesh_t mesh = { 0 };
+
+    set_level(&level, &tiles[0], 0);
+    memset(&tiles[1], 0, sizeof(tiles[1]));
+    tiles[1].x = tiles[0].x;
+    tiles[1].y = tiles[0].y;
+    tiles[1].z = (uint8_t)(tiles[0].z - 1);
+    tiles[1].type = TILE_TYPE_BLOCK;
+    tiles[1].mat = MB64_MAT_GRASS;
+    level.header.tile_count = 2;
+    level.tiles = tiles;
+
+    if (!mb64_build_collision_mesh(&level, &mesh)) {
+        fprintf(stderr, "fence beside solid: mb64_build_collision_mesh failed\n");
+        g_failures++;
+        return;
+    }
+
+    int positiveWalls = 0;
+    int negativeWalls = 0;
+    for (uint32_t i = 0; i < mesh.face_count; i++) {
+        const mb64_mesh_face_t *face = &mesh.faces[i];
+        if (face->tile_type != TILE_TYPE_FENCE ||
+            face->tile_x != tiles[0].x ||
+            face->tile_y != tiles[0].y ||
+            face->tile_z != tiles[0].z) {
+            continue;
+        }
+        positiveWalls += face->direction == MB64_MESH_FACE_POS_Z;
+        negativeWalls += face->direction == MB64_MESH_FACE_NEG_Z;
+    }
+    expect_int("fence beside solid positive collision wall", positiveWalls, 1);
+    expect_int("fence beside solid negative collision wall", negativeWalls, 1);
+
+    mb64_free_render_mesh(&mesh);
+}
+
 static void verify_bars_match_mb64_connection_rendering(void) {
     mb64_level_t level;
     mb64_tile_t tile;
@@ -1007,6 +1047,10 @@ static void verify_breakable_box_helpers(void) {
     const mb64_object_hitbox_t *hitbox = mb64_breakable_box_hitbox();
 
     expect_float("breakable box break coin radius", config->break_coin_radius, 46.0f);
+    expect_float("breakable box triangle size", config->break_triangle_size, 3.0f);
+    expect_int("breakable box triangle count", config->break_triangle_count, 10);
+    expect_int("breakable box triangle anim state", config->break_triangle_anim_state,
+               MB64_BREAK_PARTICLE_ANIM_YELLOW);
     expect_int("breakable box cork anim state", config->cork_anim_state, 1);
     expect_int("breakable box initial loot coins", config->initial_loot_coins, 0);
     expect_float("breakable box imbue drop y offset", config->imbue_drop_y_offset, 150.0f);
@@ -1149,6 +1193,8 @@ static void verify_bullet_bill_helpers(void) {
     const mb64_bullet_bill_config_t *config = mb64_bullet_bill_config();
     const mb64_object_hitbox_t *hitbox = mb64_bullet_bill_hitbox();
 
+    expect_float("bullet bill cannon collision distance", config->cannon_collision_distance, 128.0f);
+    expect_int("bullet bill cannon exact tile", config->cannon_exact_tile_size, 1);
     expect_float("bullet bill wake min", config->wake_min_distance, 400.0f);
     expect_int("bullet bill hitbox radius", hitbox->radius, 200);
     expect_int("bullet bill hitbox down offset", hitbox->down_offset, 250);
@@ -1806,6 +1852,44 @@ static void verify_level_size_boundary_helpers(void) {
     mb64_free_render_mesh(&mesh);
 }
 
+static void verify_object_network_descriptors(void) {
+    for (unsigned int type = 0; type < MB64_OBJECT_TYPE_COUNT; type++) {
+        const mb64_object_network_descriptor_t *descriptor =
+            mb64_object_network_descriptor_for_type((unsigned char)type);
+        if (descriptor == NULL) {
+            fprintf(stderr, "missing object network descriptor for type %u\n", type);
+            g_failures++;
+            continue;
+        }
+        if (descriptor->policy > MB64_OBJECT_NETWORK_CONTROLLER) {
+            fprintf(stderr, "invalid object network policy for type %u\n", type);
+            g_failures++;
+        }
+    }
+
+    const mb64_object_network_descriptor_t *green =
+        mb64_object_network_descriptor_for_type(MB64_OBJECT_TYPE_GREEN_COIN);
+    const mb64_object_network_descriptor_t *formation =
+        mb64_object_network_descriptor_for_type(MB64_OBJECT_TYPE_COIN_FORMATION);
+    const mb64_object_network_descriptor_t *koopa =
+        mb64_object_network_descriptor_for_type(MB64_OBJECT_TYPE_KOOPA);
+    const mb64_object_network_descriptor_t *bullet =
+        mb64_object_network_descriptor_for_type(MB64_OBJECT_TYPE_BULLET_BILL);
+    const mb64_object_network_descriptor_t *showrunner =
+        mb64_object_network_descriptor_for_type(MB64_OBJECT_TYPE_SHOWRUNNER);
+    expect_int("green coin collection identity", green->collection_identity, 1);
+    expect_int("green coin late join snapshot", green->late_join_snapshot, 1);
+    expect_int("coin formation initial children",
+               formation->child_policy, MB64_OBJECT_NETWORK_CHILDREN_INITIAL);
+    expect_int("koopa runtime ridable child",
+               koopa->child_policy & MB64_OBJECT_NETWORK_CHILDREN_RIDABLE,
+               MB64_OBJECT_NETWORK_CHILDREN_RIDABLE);
+    expect_int("bullet bill initial child",
+               bullet->child_policy, MB64_OBJECT_NETWORK_CHILDREN_INITIAL);
+    expect_int("showrunner runtime children",
+               showrunner->child_policy, MB64_OBJECT_NETWORK_CHILDREN_RUNTIME_SPAWN);
+}
+
 int main(void) {
     static const int16_t front0[4][3] = {
         { 0, -472, 0 }, { 0, -480, 0 }, { 16, -472, 0 }, { 16, -480, 0 },
@@ -1837,6 +1921,7 @@ int main(void) {
     verify_fence_rotation(2, MB64_MESH_FACE_NEG_Z, MB64_MESH_FACE_POS_Z, front2, back2);
     verify_fence_rotation(3, MB64_MESH_FACE_NEG_X, MB64_MESH_FACE_POS_X, front3, back3);
     verify_adjacent_fence_uv_phase();
+    verify_fence_collision_keeps_both_sides_next_to_solid();
     verify_bars_match_mb64_connection_rendering();
     verify_shared_surface_semantics();
     verify_star_count_helpers();
@@ -1881,6 +1966,7 @@ int main(void) {
     verify_podoboo_helpers();
     verify_pokey_helpers();
     verify_level_size_boundary_helpers();
+    verify_object_network_descriptors();
 
     if (g_failures != 0) {
         fprintf(stderr, "mesh parity tests failed: %d\n", g_failures);

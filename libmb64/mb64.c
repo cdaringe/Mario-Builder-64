@@ -1303,6 +1303,11 @@ uint8_t mb64_object_type_is_bully_variant(uint8_t object_type) {
     return mb64_bully_variant_for_type(object_type) != NULL;
 }
 
+uint8_t mb64_object_type_is_boo_variant(uint8_t object_type) {
+    return object_type == MB64_OBJECT_TYPE_BOO ||
+           object_type == MB64_OBJECT_TYPE_BIG_BOO;
+}
+
 const mb64_bully_movement_config_t *mb64_bully_movement_config(uint8_t size_param) {
     if (size_param == MB64_BULLY_SIZE_BIG) {
         return &s_bully_movement_configs[MB64_BULLY_SIZE_BIG];

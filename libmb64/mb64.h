@@ -1414,6 +1414,7 @@ uint8_t mb64_goomba_size_param_for_type(uint8_t object_type);
 uint8_t mb64_koopa_behavior_param_for_type(uint8_t object_type, uint8_t authored_param);
 const mb64_bully_variant_t *mb64_bully_variant_for_type(uint8_t object_type);
 uint8_t mb64_object_type_is_bully_variant(uint8_t object_type);
+uint8_t mb64_object_type_is_boo_variant(uint8_t object_type);
 const mb64_bully_movement_config_t *mb64_bully_movement_config(uint8_t size_param);
 uint8_t mb64_bully_back_up_should_end(int timer);
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void);

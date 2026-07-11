@@ -1339,6 +1339,15 @@ static void verify_bully_helpers(void) {
     expect_int("bully predicate rejects non variant",
                mb64_object_type_is_bully_variant(MB64_OBJECT_TYPE_GOOMBA),
                0);
+    expect_int("boo predicate accepts boo",
+               mb64_object_type_is_boo_variant(MB64_OBJECT_TYPE_BOO),
+               1);
+    expect_int("boo predicate accepts big boo",
+               mb64_object_type_is_boo_variant(MB64_OBJECT_TYPE_BIG_BOO),
+               1);
+    expect_int("boo predicate rejects coin",
+               mb64_object_type_is_boo_variant(MB64_OBJECT_TYPE_COIN),
+               0);
     const mb64_bully_movement_config_t *smallConfig = mb64_bully_movement_config(MB64_BULLY_SIZE_SMALL);
     const mb64_bully_movement_config_t *bigConfig = mb64_bully_movement_config(MB64_BULLY_SIZE_BIG);
     expect_float("small bully wall radius", smallConfig->wall_hitbox_radius, 50.0f);

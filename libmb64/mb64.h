@@ -113,10 +113,12 @@ typedef struct {
 /* Dialog selectors stored in the bparam of MB64 signs and talking NPCs. These
  * belong to Mario Builder 64's dialog catalog, not the host dialog table. */
 typedef enum {
+    MB64_DIALOG_SELECTOR_DEFAULT = 0,
     MB64_DIALOG_SELECTOR_HELLO_THERE = 4,
     MB64_DIALOG_SELECTOR_HOWS_IT_GOING = 6,
     MB64_DIALOG_SELECTOR_WHATS_UP = 7,
     MB64_DIALOG_SELECTOR_HOWDY = 8,
+    MB64_DIALOG_SELECTOR_TUXIE_LOST_BABY = 20,
     MB64_DIALOG_SELECTOR_METAL_CAP_REQUIRED = 32,
     MB64_DIALOG_SELECTOR_HMM = 39,
     MB64_DIALOG_SELECTOR_WHAT_IS_THIS = 40,

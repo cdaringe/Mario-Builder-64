@@ -2244,6 +2244,10 @@ static void verify_dialog_descriptors(void) {
                mb64_object_type_uses_dialog_selector(MB64_OBJECT_TYPE_TOAD), 1);
     expect_int("coin does not use dialog selector",
                mb64_object_type_uses_dialog_selector(MB64_OBJECT_TYPE_COIN), 0);
+    expect_int("default selector remains host-owned",
+               mb64_dialog_descriptor_for_selector(MB64_DIALOG_SELECTOR_DEFAULT) == NULL, 1);
+    expect_int("Tuxie selector remains host-owned",
+               mb64_dialog_descriptor_for_selector(MB64_DIALOG_SELECTOR_TUXIE_LOST_BABY) == NULL, 1);
     expect_int("unsupported selector has no misleading fallback",
                mb64_dialog_descriptor_for_selector(255) == NULL, 1);
 }

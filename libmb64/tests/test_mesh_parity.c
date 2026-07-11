@@ -27,6 +27,14 @@ static void expect_float(const char *label, float actual, float expected) {
     }
 }
 
+static void expect_string(const char *label, const char *actual, const char *expected) {
+    if (actual == NULL || strcmp(actual, expected) != 0) {
+        fprintf(stderr, "%s: expected \"%s\", got \"%s\"\n",
+                label, expected, actual != NULL ? actual : "(null)");
+        g_failures++;
+    }
+}
+
 static void expect_vertex(const char *label,
                           const int16_t actual[3],
                           int16_t x,
@@ -899,6 +907,55 @@ static void verify_adjacent_full_blocks_cull_internal_faces(void) {
     mb64_free_render_mesh(&mesh);
 }
 
+static void verify_adjacent_gentle_tiles_cull_internal_faces(void) {
+    mb64_level_t level;
+    mb64_tile_t tiles[2];
+    mb64_mesh_t mesh = { 0 };
+
+    memset(&level, 0, sizeof(level));
+    memset(tiles, 0, sizeof(tiles));
+    level.header.theme = MB64_TEST_THEME_CUSTOM;
+    level.header.custom_theme.mats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_ICE;
+    level.header.custom_theme.topmats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_ICE;
+    level.header.custom_theme.topmats_enabled[MB64_THEME_MATERIAL_SLOT_GRASS] = 1;
+    level.header.tile_count = 2;
+    level.tiles = tiles;
+
+    tiles[0].x = 32;
+    tiles[0].y = 48;
+    tiles[0].z = 20;
+    tiles[0].type = TILE_TYPE_UGENTLE;
+    tiles[0].mat = MB64_THEME_MATERIAL_SLOT_GRASS;
+    tiles[0].rot = MB64_TILE_ROT_180;
+
+    tiles[1] = tiles[0];
+    tiles[1].x = (uint8_t)(tiles[0].x + 1);
+
+    if (!mb64_build_render_mesh(&level, &mesh)) {
+        fprintf(stderr, "adjacent gentle tiles: mb64_build_render_mesh failed\n");
+        g_failures++;
+        return;
+    }
+
+    expect_int("adjacent gentle tile A erases every shared triangle and quad",
+               count_faces_for_tile(&mesh, tiles[0].x, tiles[0].y, tiles[0].z,
+                                    MB64_MESH_FACE_POS_X),
+               0);
+    expect_int("adjacent gentle tile B erases every shared triangle and quad",
+               count_faces_for_tile(&mesh, tiles[1].x, tiles[1].y, tiles[1].z,
+                                    MB64_MESH_FACE_NEG_X),
+               0);
+    expect_int("adjacent gentle tiles retain both sloped exterior tops",
+               count_faces_for_tile(&mesh, tiles[0].x, tiles[0].y, tiles[0].z,
+                                    MB64_MESH_FACE_TOP) +
+               count_faces_for_tile(&mesh, tiles[1].x, tiles[1].y, tiles[1].z,
+                                    MB64_MESH_FACE_TOP),
+               2);
+    expect_int("adjacent gentle tiles retain exterior shell", (int)mesh.face_count, 12);
+
+    mb64_free_render_mesh(&mesh);
+}
+
 static void verify_render_mesh_winding_matches_face_direction(void) {
     mb64_level_t level;
     mb64_tile_t tile;
@@ -1288,6 +1345,78 @@ static void verify_music_catalog_helpers(void) {
     expect_int("Lonely Floating Farm sequence lookup",
                mb64_music_sequence_from_index(MB64_MUSIC_LONELY_FLOATING_FARM_INDEX),
                MB64_SEQ_FARM);
+
+    enum {
+        MB64_MUSIC_ROM_HACK_ALBUM = 2,
+        MB64_MUSIC_BUBBLEGLOOP_SWAMP_SONG = 57,
+        MB64_MUSIC_BUBBLEGLOOP_SWAMP_INDEX = 85,
+        MB64_SEQ_BUBBLEGLOOP_SWAMP = 0x37,
+    };
+    const mb64_music_entry_t *bubblegloop = mb64_music_entry_from_album_song(
+        MB64_MUSIC_ROM_HACK_ALBUM,
+        MB64_MUSIC_BUBBLEGLOOP_SWAMP_SONG);
+    expect_int("Bubblegloop Swamp entry exists", bubblegloop != NULL, 1);
+    if (bubblegloop != NULL) {
+        expect_int("Bubblegloop Swamp flattened index",
+                   bubblegloop->index, MB64_MUSIC_BUBBLEGLOOP_SWAMP_INDEX);
+        expect_int("Bubblegloop Swamp sequence",
+                   bubblegloop->sequence, MB64_SEQ_BUBBLEGLOOP_SWAMP);
+        expect_int("Bubblegloop Swamp album name",
+                   strcmp(bubblegloop->album, "ROM Hack Music Ports"), 0);
+        expect_int("Bubblegloop Swamp song name",
+                   strcmp(bubblegloop->song, "Bubblegloop Swamp (Banjo-Kazooie)"), 0);
+    }
+}
+
+static void verify_bbh_theme_and_water_shade(void) {
+    enum { MB64_THEME_BBH = 7 };
+    static const uint8_t expected_side[MB64_THEME_MATERIAL_SLOT_COUNT] = {
+        MB64_MAT_BBH_BRICKS,
+        MB64_MAT_BBH_HAUNTED_PLANKS,
+        MB64_MAT_BBH_STONE_PATTERN,
+        MB64_MAT_BBH_BRICKS,
+        MB64_MAT_BBH_ROOF,
+        MB64_MAT_BBH_WOOD_WALL,
+        MB64_MAT_BBH_STONE,
+        MB64_MAT_BBH_PILLAR,
+        MB64_MAT_LAVA,
+        MB64_MAT_BBH_WINDOW,
+    };
+    static const uint8_t expected_top[MB64_THEME_MATERIAL_SLOT_COUNT] = {
+        MB64_MAT_BBH_STONE,
+        MB64_MAT_BBH_HAUNTED_PLANKS,
+        MB64_MAT_BBH_WOOD_FLOOR,
+        MB64_MAT_BBH_METAL,
+        MB64_MAT_BBH_ROOF,
+        MB64_MAT_BBH_WOOD_WALL,
+        MB64_MAT_BBH_STONE,
+        MB64_MAT_BBH_STONE,
+        MB64_MAT_LAVA,
+        MB64_MAT_BBH_WINDOW,
+    };
+    mb64_level_t level;
+    memset(&level, 0, sizeof(level));
+    level.header.theme = MB64_THEME_BBH;
+    for (uint8_t slot = 0; slot < MB64_THEME_MATERIAL_SLOT_COUNT; slot++) {
+        mb64_tile_t tile;
+        memset(&tile, 0, sizeof(tile));
+        tile.mat = slot;
+        expect_int("BBH side material matches source theme",
+                   mb64_resolve_tile_material(&level, &tile, 0), expected_side[slot]);
+        expect_int("BBH top material matches source theme",
+                   mb64_resolve_tile_material(&level, &tile, 1), expected_top[slot]);
+    }
+
+    for (uint8_t water = MB64_WATER_DEFAULT; water <= MB64_WATER_MC; water++) {
+        uint8_t rgba[4] = { 0, 0, 0, 0 };
+        level.header.theme = 10;
+        level.header.custom_theme.water = water;
+        mb64_water_vertex_color(&level, 15, rgba);
+        expect_int("water neutral shade red", rgba[0], 255);
+        expect_int("water neutral shade green", rgba[1], 255);
+        expect_int("water neutral shade blue", rgba[2], 255);
+        expect_int("water source vertex alpha", rgba[3], 255);
+    }
 }
 
 static void expect_bully_variant(const char *name, uint8_t object_type, uint8_t subtype,
@@ -2068,6 +2197,25 @@ static void verify_object_network_descriptors(void) {
                showrunner->child_policy, MB64_OBJECT_NETWORK_CHILDREN_RUNTIME_SPAWN);
 }
 
+static void verify_dialog_descriptors(void) {
+    const mb64_dialog_descriptor_t *howdy =
+        mb64_dialog_descriptor_for_selector(MB64_DIALOG_SELECTOR_HOWDY);
+    const mb64_dialog_descriptor_t *whichWay =
+        mb64_dialog_descriptor_for_selector(MB64_DIALOG_SELECTOR_WHICH_WAY);
+
+    if (howdy == NULL || whichWay == NULL) {
+        fprintf(stderr, "missing Banshee Bog dialog descriptors\n");
+        g_failures++;
+        return;
+    }
+    expect_string("Howdy selector text", howdy->text, "Howdy!");
+    expect_int("Howdy selector lines", howdy->lines_per_box, 1);
+    expect_string("Which way selector text", whichWay->text, "Which way!");
+    expect_int("Which way selector lines", whichWay->lines_per_box, 1);
+    expect_int("unsupported selector has no misleading fallback",
+               mb64_dialog_descriptor_for_selector(255) == NULL, 1);
+}
+
 int main(void) {
     static const int16_t front0[4][3] = {
         { 0, -472, 0 }, { 0, -480, 0 }, { 16, -472, 0 }, { 16, -480, 0 },
@@ -2111,6 +2259,7 @@ int main(void) {
     verify_sparse_water_faces_stay_inside_authored_tiles();
     verify_same_material_transparent_shapes_cull_internal_faces();
     verify_adjacent_full_blocks_cull_internal_faces();
+    verify_adjacent_gentle_tiles_cull_internal_faces();
     verify_render_mesh_winding_matches_face_direction();
     verify_stacked_water_query_uses_top_surface();
     verify_render_binding_descriptors();
@@ -2125,6 +2274,7 @@ int main(void) {
     verify_goomba_helpers();
     verify_koopa_helpers();
     verify_music_catalog_helpers();
+    verify_bbh_theme_and_water_shade();
     verify_bully_helpers();
     verify_bullet_bill_helpers();
     verify_exclamation_box_helpers();
@@ -2148,6 +2298,7 @@ int main(void) {
     verify_pokey_helpers();
     verify_level_size_boundary_helpers();
     verify_object_network_descriptors();
+    verify_dialog_descriptors();
 
     if (g_failures != 0) {
         fprintf(stderr, "mesh parity tests failed: %d\n", g_failures);

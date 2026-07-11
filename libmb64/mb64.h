@@ -110,6 +110,26 @@ typedef struct {
     /* pad byte skipped */
 } mb64_obj_t;
 
+/* Dialog selectors stored in the bparam of MB64 signs. These belong to
+ * Mario Builder 64's dialog catalog, not the host game's dialog table. */
+typedef enum {
+    MB64_DIALOG_SELECTOR_WHATS_UP = 7,
+    MB64_DIALOG_SELECTOR_HOWDY = 8,
+    MB64_DIALOG_SELECTOR_HMM = 39,
+    MB64_DIALOG_SELECTOR_WHICH_WAY = 44,
+    MB64_DIALOG_SELECTOR_WARNING_BOTTOMLESS_PIT = 45,
+    MB64_DIALOG_SELECTOR_WARNING_QUICKSAND = 47,
+    MB64_DIALOG_SELECTOR_WARNING_ENEMIES = 48,
+} mb64_dialog_selector_t;
+
+typedef struct {
+    uint8_t selector;
+    uint8_t lines_per_box;
+    int16_t left_offset;
+    int16_t width;
+    const char *text;
+} mb64_dialog_descriptor_t;
+
 typedef struct mb64_comptraj mb64_traj_t;
 
 typedef enum {
@@ -1350,6 +1370,7 @@ int mb64_find_water_query_surface(const mb64_level_t *level,
 const mb64_theme_special_t *mb64_theme_specials_for_level(const mb64_level_t *level);
 uint8_t mb64_object_counts_as_star(const mb64_obj_t *object);
 uint32_t mb64_level_play_star_count(const mb64_level_t *level);
+const mb64_dialog_descriptor_t *mb64_dialog_descriptor_for_selector(uint8_t selector);
 
 /**
  * mb64_water_vertex_color() - Return animated water vertex color.

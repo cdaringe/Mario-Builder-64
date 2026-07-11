@@ -35,6 +35,31 @@
 #define OBJ_SIZE   8   /* bparam,x,y,z,type,rot,imbue,pad */
 #define MB64_ARRAY_COUNT(arr) (sizeof(arr) / sizeof((arr)[0]))
 
+/* These strings and layout values are the authored MB64 dialog entries used
+ * by the sign selectors found in the compatibility corpus. Keep the selector
+ * namespace here so host engines never interpret it as their own dialog ids. */
+static const mb64_dialog_descriptor_t s_dialog_descriptors[] = {
+    { MB64_DIALOG_SELECTOR_WHATS_UP, 1, 95, 180, "What's up?" },
+    { MB64_DIALOG_SELECTOR_HOWDY, 1, 95, 180, "Howdy!" },
+    { MB64_DIALOG_SELECTOR_HMM, 1, 95, 180, "Hmm..." },
+    { MB64_DIALOG_SELECTOR_WHICH_WAY, 1, 95, 180, "Which way!" },
+    { MB64_DIALOG_SELECTOR_WARNING_BOTTOMLESS_PIT, 2, 95, 180,
+      "Warning!\nBottomless pit ahead." },
+    { MB64_DIALOG_SELECTOR_WARNING_QUICKSAND, 2, 95, 180,
+      "Warning!\nDangerous quicksand ahead." },
+    { MB64_DIALOG_SELECTOR_WARNING_ENEMIES, 2, 95, 180,
+      "Warning!\nHostile enemies ahead." },
+};
+
+const mb64_dialog_descriptor_t *mb64_dialog_descriptor_for_selector(uint8_t selector) {
+    for (size_t i = 0; i < MB64_ARRAY_COUNT(s_dialog_descriptors); i++) {
+        if (s_dialog_descriptors[i].selector == selector) {
+            return &s_dialog_descriptors[i];
+        }
+    }
+    return NULL;
+}
+
 /* Mirrors src/mb64/data.c:seq_musicmenu_array. Keep music index semantics in
  * libmb64 so external loaders do not maintain partial duplicate mappings. */
 static const uint8_t s_music_sequence_by_index[] = {

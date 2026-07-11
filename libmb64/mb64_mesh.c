@@ -1051,13 +1051,19 @@ int mb64_render_binding_for_face(const mb64_level_t *level,
 
 void mb64_water_vertex_color(const mb64_level_t *level, uint8_t wave, uint8_t rgba[4]) {
     (void)level;
+    (void)wave;
     if (rgba == NULL) {
         return;
     }
-    rgba[0] = (uint8_t)(54 + wave);
-    rgba[1] = (uint8_t)(132 + wave * 2);
-    rgba[2] = (uint8_t)(128 + wave * 2);
-    rgba[3] = (uint8_t)(136 + wave);
+    /* Source MB64 renders water with an upward normal and opaque vertex alpha;
+     * the water material supplies its authored texture and primitive alpha.
+     * CoopDx renders MB64 mesh vertices unlit, so white is the equivalent
+     * neutral shade. Tinting here multiplies the source texture and changes
+     * every water palette, including the light blue default water. */
+    rgba[0] = 255;
+    rgba[1] = 255;
+    rgba[2] = 255;
+    rgba[3] = 255;
 }
 
 static void tile_bounds(const mb64_tile_t *t,
@@ -1250,8 +1256,19 @@ static uint8_t faceshape_at(int x, int y, int z, uint8_t direction, int collisio
         return solid_at(x, y, z) ? MB64_FACESHAPE_FULL : MB64_FACESHAPE_EMPTY;
     }
     uint8_t local_dir = (uint8_t)(rotate_direction(direction, (uint8_t)((4 - (tile->rot & 3)) & 3)) ^ 1);
+    /* MB64 get_faceshape() checks terrain triangles before quads. Some gentle
+     * shapes have both on one side, and the triangle carries the culling shape
+     * that pairs with the neighboring tile. The generated catalog stores both
+     * kinds together, so preserve the native lookup priority explicitly. */
     for (uint8_t i = 0; i < shape->face_count; i++) {
-        if (shape->faces[i].geometry.direction == local_dir) {
+        if (shape->faces[i].geometry.vertex_count == 3 &&
+            shape->faces[i].geometry.direction == local_dir) {
+            return shape->faces[i].geometry.faceshape;
+        }
+    }
+    for (uint8_t i = 0; i < shape->face_count; i++) {
+        if (shape->faces[i].geometry.vertex_count != 3 &&
+            shape->faces[i].geometry.direction == local_dir) {
             return shape->faces[i].geometry.faceshape;
         }
     }

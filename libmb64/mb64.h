@@ -110,12 +110,19 @@ typedef struct {
     /* pad byte skipped */
 } mb64_obj_t;
 
-/* Dialog selectors stored in the bparam of MB64 signs. These belong to
- * Mario Builder 64's dialog catalog, not the host game's dialog table. */
+/* Dialog selectors stored in the bparam of MB64 signs and talking NPCs. These
+ * belong to Mario Builder 64's dialog catalog, not the host dialog table. */
 typedef enum {
+    MB64_DIALOG_SELECTOR_HELLO_THERE = 4,
+    MB64_DIALOG_SELECTOR_HOWS_IT_GOING = 6,
     MB64_DIALOG_SELECTOR_WHATS_UP = 7,
     MB64_DIALOG_SELECTOR_HOWDY = 8,
+    MB64_DIALOG_SELECTOR_METAL_CAP_REQUIRED = 32,
     MB64_DIALOG_SELECTOR_HMM = 39,
+    MB64_DIALOG_SELECTOR_WHAT_IS_THIS = 40,
+    MB64_DIALOG_SELECTOR_WHAT = 41,
+    MB64_DIALOG_SELECTOR_PECULIAR = 42,
+    MB64_DIALOG_SELECTOR_THINK_OUTSIDE_BOX = 43,
     MB64_DIALOG_SELECTOR_WHICH_WAY = 44,
     MB64_DIALOG_SELECTOR_WARNING_BOTTOMLESS_PIT = 45,
     MB64_DIALOG_SELECTOR_WARNING_QUICKSAND = 47,
@@ -1371,6 +1378,7 @@ const mb64_theme_special_t *mb64_theme_specials_for_level(const mb64_level_t *le
 uint8_t mb64_object_counts_as_star(const mb64_obj_t *object);
 uint32_t mb64_level_play_star_count(const mb64_level_t *level);
 const mb64_dialog_descriptor_t *mb64_dialog_descriptor_for_selector(uint8_t selector);
+uint8_t mb64_object_type_uses_dialog_selector(uint8_t object_type);
 
 /**
  * mb64_water_vertex_color() - Return animated water vertex color.

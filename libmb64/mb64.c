@@ -35,13 +35,22 @@
 #define OBJ_SIZE   8   /* bparam,x,y,z,type,rot,imbue,pad */
 #define MB64_ARRAY_COUNT(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-/* These strings and layout values are the authored MB64 dialog entries used
- * by the sign selectors found in the compatibility corpus. Keep the selector
- * namespace here so host engines never interpret it as their own dialog ids. */
+/* These strings and layout values are authored MB64 dialog entries used by
+ * signs and talking NPCs. Keep the selector namespace here so host engines
+ * never interpret it as their own dialog ids. */
 static const mb64_dialog_descriptor_t s_dialog_descriptors[] = {
+    { MB64_DIALOG_SELECTOR_HELLO_THERE, 1, 95, 180, "Hello there!" },
+    { MB64_DIALOG_SELECTOR_HOWS_IT_GOING, 1, 95, 180, "How's it going?" },
     { MB64_DIALOG_SELECTOR_WHATS_UP, 1, 95, 180, "What's up?" },
     { MB64_DIALOG_SELECTOR_HOWDY, 1, 95, 180, "Howdy!" },
+    { MB64_DIALOG_SELECTOR_METAL_CAP_REQUIRED, 2, 95, 180,
+      "You'll need the metal cap\nto get through here." },
     { MB64_DIALOG_SELECTOR_HMM, 1, 95, 180, "Hmm..." },
+    { MB64_DIALOG_SELECTOR_WHAT_IS_THIS, 1, 95, 180, "What is this?" },
+    { MB64_DIALOG_SELECTOR_WHAT, 1, 95, 180, "What?" },
+    { MB64_DIALOG_SELECTOR_PECULIAR, 1, 95, 180, "Peculiar..." },
+    { MB64_DIALOG_SELECTOR_THINK_OUTSIDE_BOX, 3, 95, 180,
+      "You'll have to think\noutside the box to solve\nthis puzzle." },
     { MB64_DIALOG_SELECTOR_WHICH_WAY, 1, 95, 180, "Which way!" },
     { MB64_DIALOG_SELECTOR_WARNING_BOTTOMLESS_PIT, 2, 95, 180,
       "Warning!\nBottomless pit ahead." },
@@ -58,6 +67,21 @@ const mb64_dialog_descriptor_t *mb64_dialog_descriptor_for_selector(uint8_t sele
         }
     }
     return NULL;
+}
+
+uint8_t mb64_object_type_uses_dialog_selector(uint8_t object_type) {
+    switch (object_type) {
+        case MB64_OBJECT_TYPE_SIGN:
+        case MB64_OBJECT_TYPE_BUDDY:
+        case MB64_OBJECT_TYPE_TOAD:
+        case MB64_OBJECT_TYPE_TUXIE:
+        case MB64_OBJECT_TYPE_UKIKI:
+        case MB64_OBJECT_TYPE_MOLEMAN:
+        case MB64_OBJECT_TYPE_COBIE:
+            return 1;
+        default:
+            return 0;
+    }
 }
 
 /* Mirrors src/mb64/data.c:seq_musicmenu_array. Keep music index semantics in

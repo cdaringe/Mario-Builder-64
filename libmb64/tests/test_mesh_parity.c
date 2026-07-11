@@ -1366,6 +1366,18 @@ static void verify_music_catalog_helpers(void) {
         expect_int("Bubblegloop Swamp song name",
                    strcmp(bubblegloop->song, "Bubblegloop Swamp (Banjo-Kazooie)"), 0);
     }
+
+    const mb64_music_entry_t *foreverForest = mb64_music_entry_from_index(50);
+    expect_int("Forever Forest entry exists", foreverForest != NULL, 1);
+    if (foreverForest != NULL) {
+        expect_int("Forever Forest album index", foreverForest->album_index, 2);
+        expect_int("Forever Forest song index", foreverForest->song_index, 22);
+        expect_int("Forever Forest sequence", foreverForest->sequence, 0x72);
+        expect_int("Forever Forest album name",
+                   strcmp(foreverForest->album, "ROM Hack Music Ports"), 0);
+        expect_int("Forever Forest song name",
+                   strcmp(foreverForest->song, "Forever Forest (Paper Mario 64)"), 0);
+    }
 }
 
 static void verify_bbh_theme_and_water_shade(void) {
@@ -2212,6 +2224,26 @@ static void verify_dialog_descriptors(void) {
     expect_int("Howdy selector lines", howdy->lines_per_box, 1);
     expect_string("Which way selector text", whichWay->text, "Which way!");
     expect_int("Which way selector lines", whichWay->lines_per_box, 1);
+    expect_string("Ukiki hello selector text",
+                  mb64_dialog_descriptor_for_selector(MB64_DIALOG_SELECTOR_HELLO_THERE)->text,
+                  "Hello there!");
+    expect_string("Ukiki greeting selector text",
+                  mb64_dialog_descriptor_for_selector(MB64_DIALOG_SELECTOR_HOWS_IT_GOING)->text,
+                  "How's it going?");
+    expect_string("Banshee metal cap selector text",
+                  mb64_dialog_descriptor_for_selector(MB64_DIALOG_SELECTOR_METAL_CAP_REQUIRED)->text,
+                  "You'll need the metal cap\nto get through here.");
+    expect_string("Banshee puzzle selector text",
+                  mb64_dialog_descriptor_for_selector(MB64_DIALOG_SELECTOR_THINK_OUTSIDE_BOX)->text,
+                  "You'll have to think\noutside the box to solve\nthis puzzle.");
+    expect_int("sign uses dialog selector",
+               mb64_object_type_uses_dialog_selector(MB64_OBJECT_TYPE_SIGN), 1);
+    expect_int("Ukiki uses dialog selector",
+               mb64_object_type_uses_dialog_selector(MB64_OBJECT_TYPE_UKIKI), 1);
+    expect_int("Toad uses dialog selector",
+               mb64_object_type_uses_dialog_selector(MB64_OBJECT_TYPE_TOAD), 1);
+    expect_int("coin does not use dialog selector",
+               mb64_object_type_uses_dialog_selector(MB64_OBJECT_TYPE_COIN), 0);
     expect_int("unsupported selector has no misleading fallback",
                mb64_dialog_descriptor_for_selector(255) == NULL, 1);
 }

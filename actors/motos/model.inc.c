@@ -430,12 +430,15 @@ static unsigned short motos_body2_txt[] = {
         0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  
 };
 
+#if !IS_BIG_ENDIAN
 static void motos_swap_texture_bytes(unsigned short *texture, size_t count) {
     for (size_t i = 0; i < count; i++) {
         texture[i] = (unsigned short)((texture[i] << 8) | (texture[i] >> 8));
     }
 }
+#endif
 
+#ifndef TARGET_N64
 void motos_prepare_pc_textures(void) {
     static bool prepared = false;
     if (prepared) {
@@ -454,6 +457,7 @@ void motos_prepare_pc_textures(void) {
     motos_swap_texture_bytes(motos_body2_txt, ARRAY_COUNT(motos_body2_txt));
 #endif
 }
+#endif
 
 /* ========================================================================	
 		: motos body sprite.

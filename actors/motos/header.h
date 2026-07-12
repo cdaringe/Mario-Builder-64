@@ -1,6 +1,8 @@
 extern const GeoLayout RCP_HmsEnemymotos_basedata_A[];
 extern const struct Animation *const motos_anime[];
+#ifndef TARGET_N64
 void motos_prepare_pc_textures(void);
+#endif
 extern const Gfx RCP_motos_body[];
 extern const Gfx RCP_motos_arm[];
 extern const Gfx RCP_motos_leg[];

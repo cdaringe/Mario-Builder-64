@@ -143,7 +143,11 @@ AnimeRecord motos_basedata_A_anm={
 	36,
 	motos_basedata_A_prm,
 	motos_basedata_A_tbl,
-    0
+    0,
+#ifndef TARGET_N64
+    ARRAY_COUNT(motos_basedata_A_prm),
+    ARRAY_COUNT(motos_basedata_A_tbl),
+#endif
 };
 
 
@@ -429,7 +433,11 @@ AnimeRecord motos_carry_anm={
 	36,
 	motos_carry_prm,
 	motos_carry_tbl,
-    0
+    0,
+#ifndef TARGET_N64
+    ARRAY_COUNT(motos_carry_prm),
+    ARRAY_COUNT(motos_carry_tbl),
+#endif
 };
 
 /*-------------------------------------------------------------*/
@@ -592,7 +600,11 @@ AnimeRecord motos_carry_run_anm={
 	36,
 	motos_carry_run_prm,
 	motos_carry_run_tbl,
-    0
+    0,
+#ifndef TARGET_N64
+    ARRAY_COUNT(motos_carry_run_prm),
+    ARRAY_COUNT(motos_carry_run_tbl),
+#endif
 };
 
 /*-------------------------------------------------------------*/
@@ -762,7 +774,11 @@ AnimeRecord motos_carry_start_anm={
 	36,
 	motos_carry_start_prm,
 	motos_carry_start_tbl,
-    0
+    0,
+#ifndef TARGET_N64
+    ARRAY_COUNT(motos_carry_start_prm),
+    ARRAY_COUNT(motos_carry_start_tbl),
+#endif
 };
 
 /*-------------------------------------------------------------*/
@@ -953,7 +969,11 @@ AnimeRecord motos_down_recover_anm={
 	36,
 	motos_down_recover_prm,
 	motos_down_recover_tbl,
-    0
+    0,
+#ifndef TARGET_N64
+    ARRAY_COUNT(motos_down_recover_prm),
+    ARRAY_COUNT(motos_down_recover_tbl),
+#endif
 };
 
 /*-------------------------------------------------------------*/
@@ -1156,7 +1176,11 @@ AnimeRecord motos_down_stop_anm={
 	36,
 	motos_down_stop_prm,
 	motos_down_stop_tbl,
-    0
+    0,
+#ifndef TARGET_N64
+    ARRAY_COUNT(motos_down_stop_prm),
+    ARRAY_COUNT(motos_down_stop_tbl),
+#endif
 };
 
 /*-------------------------------------------------------------*/
@@ -1429,7 +1453,11 @@ AnimeRecord motos_pitch_anm={
 	36,
 	motos_pitch_prm,
 	motos_pitch_tbl,
-    0
+    0,
+#ifndef TARGET_N64
+    ARRAY_COUNT(motos_pitch_prm),
+    ARRAY_COUNT(motos_pitch_tbl),
+#endif
 };
 
 /*-------------------------------------------------------------*/
@@ -1636,7 +1664,11 @@ AnimeRecord motos_safe_down_anm={
 	36,
 	motos_safe_down_prm,
 	motos_safe_down_tbl,
-    0
+    0,
+#ifndef TARGET_N64
+    ARRAY_COUNT(motos_safe_down_prm),
+    ARRAY_COUNT(motos_safe_down_tbl),
+#endif
 };
 
 /*-------------------------------------------------------------*/
@@ -1828,7 +1860,11 @@ AnimeRecord motos_wait_anm={
 	36,
 	motos_wait_prm,
 	motos_wait_tbl,
-    0
+    0,
+#ifndef TARGET_N64
+    ARRAY_COUNT(motos_wait_prm),
+    ARRAY_COUNT(motos_wait_tbl),
+#endif
 };
 
 /*-------------------------------------------------------------*/
@@ -2057,7 +2093,11 @@ AnimeRecord motos_walk_anm={
 	36,
 	motos_walk_prm,
 	motos_walk_tbl,
-    0
+    0,
+#ifndef TARGET_N64
+    ARRAY_COUNT(motos_walk_prm),
+    ARRAY_COUNT(motos_walk_tbl),
+#endif
 };
 
 /*-------------------------------------------------------------*/

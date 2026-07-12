@@ -347,6 +347,11 @@ static const mb64_bully_movement_config_t s_bully_movement_configs[] = {
         10.0f,  /* SET_OBJ_PHYSICS_DEFAULT friction */
         2.0f,   /* SET_OBJ_PHYSICS_DEFAULT buoyancy */
         -78,    /* MB64 bully_step(FALSE) edge guard */
+        78,     /* MB64 bully_step(TRUE) knockback allows ledge movement */
+        0.92f,  /* small bully knockback damping */
+        10.0f,  /* recovery begins below this speed */
+        1.0f,   /* recovery walk speed */
+        18,     /* recovery counter frames */
         4.0f,   /* oBullyInMidair floor delta */
     },
     {
@@ -357,8 +362,21 @@ static const mb64_bully_movement_config_t s_bully_movement_configs[] = {
         10.0f,
         2.0f,
         -78,
+        78,
+        0.95f,  /* big bully knockback damping */
+        10.0f,
+        1.0f,
+        18,
         4.0f,
     },
+};
+
+static const mb64_wiggler_config_t s_wiggler_config = {
+    8.0f,   /* defeated walking speed */
+    20,     /* shrink delay */
+    1.0f,   /* one quarter of the normal scale of four */
+    0.1f,   /* shrink step */
+    384.0f, /* MB64_STAR_HEIGHT */
 };
 
 static const mb64_woodplat_config_t s_woodplat_config = {
@@ -1366,6 +1384,10 @@ const mb64_bully_movement_config_t *mb64_bully_movement_config(uint8_t size_para
 
 uint8_t mb64_bully_back_up_should_end(int timer) {
     return timer >= 15;
+}
+
+const mb64_wiggler_config_t *mb64_wiggler_config(void) {
+    return &s_wiggler_config;
 }
 
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void) {

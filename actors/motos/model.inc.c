@@ -430,6 +430,31 @@ static unsigned short motos_body2_txt[] = {
         0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  0x0846,  
 };
 
+static void motos_swap_texture_bytes(unsigned short *texture, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        texture[i] = (unsigned short)((texture[i] << 8) | (texture[i] >> 8));
+    }
+}
+
+void motos_prepare_pc_textures(void) {
+    static bool prepared = false;
+    if (prepared) {
+        return;
+    }
+    prepared = true;
+
+#if !IS_BIG_ENDIAN
+    motos_swap_texture_bytes(motos_skinA_txt, ARRAY_COUNT(motos_skinA_txt));
+    motos_swap_texture_bytes(motos_skinB_txt, ARRAY_COUNT(motos_skinB_txt));
+    motos_swap_texture_bytes(motos_skinC_txt, ARRAY_COUNT(motos_skinC_txt));
+    motos_swap_texture_bytes(motos_skinD_txt, ARRAY_COUNT(motos_skinD_txt));
+    motos_swap_texture_bytes(motos_eye_txt, ARRAY_COUNT(motos_eye_txt));
+    motos_swap_texture_bytes(motos_parts_txt, ARRAY_COUNT(motos_parts_txt));
+    motos_swap_texture_bytes(motos_body1_txt, ARRAY_COUNT(motos_body1_txt));
+    motos_swap_texture_bytes(motos_body2_txt, ARRAY_COUNT(motos_body2_txt));
+#endif
+}
+
 /* ========================================================================	
 		: motos body sprite.
 =========================================================================== */

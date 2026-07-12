@@ -1347,7 +1347,6 @@ static void verify_music_catalog_helpers(void) {
                MB64_SEQ_FARM);
 
     enum {
-        MB64_MUSIC_ROM_HACK_ALBUM = 2,
         MB64_MUSIC_BUBBLEGLOOP_SWAMP_SONG = 57,
         MB64_MUSIC_BUBBLEGLOOP_SWAMP_INDEX = 85,
         MB64_SEQ_BUBBLEGLOOP_SWAMP = 0x37,
@@ -1378,6 +1377,27 @@ static void verify_music_catalog_helpers(void) {
         expect_int("Forever Forest song name",
                    strcmp(foreverForest->song, "Forever Forest (Paper Mario 64)"), 0);
     }
+
+    const mb64_music_entry_t *linelandRoad = mb64_music_entry_from_album_song(
+        MB64_MUSIC_ROM_HACK_ALBUM,
+        MB64_MUSIC_SPM_LINELAND_ROAD_SONG);
+    expect_int("Lineland Road entry exists", linelandRoad != NULL, 1);
+    if (linelandRoad != NULL) {
+        expect_int("Lineland Road flattened index",
+                   linelandRoad->index, MB64_MUSIC_SPM_LINELAND_ROAD_INDEX);
+        expect_int("Lineland Road sequence",
+                   linelandRoad->sequence, MB64_SEQ_SPM_LINELAND_ROAD);
+        expect_int("Lineland Road album name",
+                   strcmp(linelandRoad->album, "ROM Hack Music Ports"), 0);
+        expect_int("Lineland Road song name",
+                   strcmp(linelandRoad->song, "Lineland Road (Super Paper Mario)"), 0);
+    }
+    expect_int("Lineland Road index lookup matches album/song",
+               mb64_music_entry_from_index(MB64_MUSIC_SPM_LINELAND_ROAD_INDEX) == linelandRoad,
+               1);
+    expect_int("Lineland Road sequence lookup",
+               mb64_music_sequence_from_index(MB64_MUSIC_SPM_LINELAND_ROAD_INDEX),
+               MB64_SEQ_SPM_LINELAND_ROAD);
 }
 
 static void verify_bbh_theme_and_water_shade(void) {
@@ -1499,6 +1519,13 @@ static void verify_bully_helpers(void) {
     expect_float("bully friction", bigConfig->friction, 10.0f);
     expect_float("bully buoyancy", bigConfig->buoyancy, 2.0f);
     expect_int("bully steep slope edge guard", bigConfig->steep_slope_degrees, -78);
+    expect_int("bully knockback permits ledge movement",
+               bigConfig->knockback_steep_slope_degrees, 78);
+    expect_float("small bully knockback damping", smallConfig->knockback_speed_scale, 0.92f);
+    expect_float("big bully knockback damping", bigConfig->knockback_speed_scale, 0.95f);
+    expect_float("bully knockback stop speed", bigConfig->knockback_stop_speed, 10.0f);
+    expect_float("bully knockback recovery speed", bigConfig->knockback_recovery_speed, 1.0f);
+    expect_int("bully knockback recovery frames", bigConfig->knockback_recovery_frames, 18);
     expect_float("bully midair floor delta", bigConfig->midair_floor_delta, 4.0f);
     expect_int("bully backup remains active before recovery frame",
                mb64_bully_back_up_should_end(14), 0);
@@ -1506,6 +1533,13 @@ static void verify_bully_helpers(void) {
                mb64_bully_back_up_should_end(15), 1);
     expect_int("bully backup remains recoverable after missed frame",
                mb64_bully_back_up_should_end(16), 1);
+
+    const mb64_wiggler_config_t *wigglerConfig = mb64_wiggler_config();
+    expect_float("defeated Wiggler walking speed", wigglerConfig->defeated_walk_speed, 8.0f);
+    expect_int("Wiggler shrink delay", wigglerConfig->shrink_delay_frames, 20);
+    expect_float("Wiggler defeated scale", wigglerConfig->shrink_target_scale, 1.0f);
+    expect_float("Wiggler shrink step", wigglerConfig->shrink_step, 0.1f);
+    expect_float("Wiggler imbue drop height", wigglerConfig->imbue_drop_y_offset, 384.0f);
 }
 
 static void verify_bullet_bill_helpers(void) {
@@ -1765,6 +1799,28 @@ static void verify_motos_helpers(void) {
     expect_int("motos no escape at boundary", mb64_motos_escape_succeeds(20), 0);
     expect_int("motos escape after boundary", mb64_motos_escape_succeeds(21), 1);
     expect_int("motos recover wait", mb64_motos_should_leave_recover_wait(36), 1);
+}
+
+static void verify_child_model_dependencies(void) {
+    const mb64_child_model_dependency_t *snufit =
+        mb64_object_child_model_dependency(MB64_OBJECT_TYPE_SNUFIT, 0);
+    expect_int("snufit projectile dependency exists", snufit != NULL, 1);
+    if (snufit != NULL) {
+        expect_int("snufit projectile uses bowling ball",
+                   snufit->model, MB64_CHILD_MODEL_BOWLING_BALL);
+        expect_int("snufit projectile is runtime spawned", snufit->runtime_spawn, 1);
+    }
+    expect_int("snufit has one projectile dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_SNUFIT, 1) == NULL, 1);
+    expect_int("wiggler body dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_WIGGLER, 0)->model,
+               MB64_CHILD_MODEL_WIGGLER_BODY);
+    expect_int("mr i iris dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_MR_I, 0)->model,
+               MB64_CHILD_MODEL_MR_I_IRIS);
+    expect_int("lakitu spiny dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_LAKITU, 0)->model,
+               MB64_CHILD_MODEL_SPINY_BALL);
 }
 
 static void verify_chicken_helpers(void) {
@@ -2324,6 +2380,7 @@ int main(void) {
     verify_phantasm_helpers();
     verify_showrunner_helpers();
     verify_motos_helpers();
+    verify_child_model_dependencies();
     verify_chicken_helpers();
     verify_crablet_helpers();
     verify_fire_bro_helpers();

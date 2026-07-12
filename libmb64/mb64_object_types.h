@@ -109,6 +109,59 @@ typedef enum {
     MB64_OBJECT_TYPE_COUNT,
 } mb64_object_type_t;
 
+/* Models spawned by an object's behavior after the authored parent exists. */
+typedef enum {
+    MB64_CHILD_MODEL_NONE = 0,
+    MB64_CHILD_MODEL_BOWLING_BALL,
+    MB64_CHILD_MODEL_SPINY_BALL,
+    MB64_CHILD_MODEL_WIGGLER_BODY,
+    MB64_CHILD_MODEL_MR_I_IRIS,
+} mb64_child_model_t;
+
+typedef struct {
+    mb64_child_model_t model;
+    unsigned char runtime_spawn;
+} mb64_child_model_dependency_t;
+
+static inline const mb64_child_model_dependency_t *
+mb64_object_child_model_dependency(unsigned char type, unsigned char index) {
+    static const mb64_child_model_dependency_t snufit[] = {
+        { MB64_CHILD_MODEL_BOWLING_BALL, 1 },
+    };
+    static const mb64_child_model_dependency_t lakitu[] = {
+        { MB64_CHILD_MODEL_SPINY_BALL, 1 },
+    };
+    static const mb64_child_model_dependency_t wiggler[] = {
+        { MB64_CHILD_MODEL_WIGGLER_BODY, 0 },
+    };
+    static const mb64_child_model_dependency_t mr_i[] = {
+        { MB64_CHILD_MODEL_MR_I_IRIS, 1 },
+    };
+    const mb64_child_model_dependency_t *dependencies = 0;
+    unsigned char count = 0;
+    switch (type) {
+        case MB64_OBJECT_TYPE_SNUFIT:
+            dependencies = snufit;
+            count = sizeof(snufit) / sizeof(snufit[0]);
+            break;
+        case MB64_OBJECT_TYPE_LAKITU:
+            dependencies = lakitu;
+            count = sizeof(lakitu) / sizeof(lakitu[0]);
+            break;
+        case MB64_OBJECT_TYPE_WIGGLER:
+            dependencies = wiggler;
+            count = sizeof(wiggler) / sizeof(wiggler[0]);
+            break;
+        case MB64_OBJECT_TYPE_MR_I:
+            dependencies = mr_i;
+            count = sizeof(mr_i) / sizeof(mr_i[0]);
+            break;
+        default:
+            break;
+    }
+    return index < count ? &dependencies[index] : 0;
+}
+
 #define MB64_OBJECT_TYPE_SPAWN MB64_OBJECT_TYPE_MARIO_SPAWN
 #define MB64_OBJECT_TYPE_TIMED_BLOCK MB64_OBJECT_TYPE_TIMEDBLOCK
 

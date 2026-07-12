@@ -425,8 +425,21 @@ typedef struct {
     float friction;
     float buoyancy;
     int steep_slope_degrees;
+    int knockback_steep_slope_degrees;
+    float knockback_speed_scale;
+    float knockback_stop_speed;
+    float knockback_recovery_speed;
+    int knockback_recovery_frames;
     float midair_floor_delta;
 } mb64_bully_movement_config_t;
+
+typedef struct {
+    float defeated_walk_speed;
+    int shrink_delay_frames;
+    float shrink_target_scale;
+    float shrink_step;
+    float imbue_drop_y_offset;
+} mb64_wiggler_config_t;
 
 typedef struct {
     int scale_angle_start;
@@ -1270,6 +1283,14 @@ typedef struct {
     const char *song;
 } mb64_music_entry_t;
 
+enum {
+    MB64_MUSIC_ROM_HACK_ALBUM = 2,
+    MB64_MUSIC_SPM_LINELAND_ROAD_SONG = 28,
+    MB64_MUSIC_SPM_LINELAND_ROAD_INDEX = 56,
+    MB64_SEQ_SPM_LINELAND_ROAD = 0x67,
+    MB64_BANK_SPM_LINELAND_ROAD = 0x25,
+};
+
 /**
  * mb64_music_sequence_from_index() - Convert MB64 music menu index to sequence.
  *
@@ -1448,6 +1469,7 @@ uint8_t mb64_object_type_is_bully_variant(uint8_t object_type);
 uint8_t mb64_object_type_is_boo_variant(uint8_t object_type);
 const mb64_bully_movement_config_t *mb64_bully_movement_config(uint8_t size_param);
 uint8_t mb64_bully_back_up_should_end(int timer);
+const mb64_wiggler_config_t *mb64_wiggler_config(void);
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void);
 const mb64_exclamation_box_content_t *mb64_exclamation_box_content(uint8_t game, uint8_t bparam);
 uint8_t mb64_exclamation_box_should_explode(int timer);

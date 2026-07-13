@@ -123,6 +123,20 @@ typedef struct {
     unsigned char runtime_spawn;
 } mb64_child_model_dependency_t;
 
+/* MB64 display functions that replace the base object-table model. Ports use
+ * this descriptor instead of inferring a visual from the host behavior. */
+typedef enum {
+    MB64_OBJECT_DISPLAY_DEFAULT = 0,
+    MB64_OBJECT_DISPLAY_TIMED_BOX,
+} mb64_object_display_t;
+
+static inline mb64_object_display_t
+mb64_object_display_for_type(unsigned char type) {
+    return type == MB64_OBJECT_TYPE_TIMED_BOX
+        ? MB64_OBJECT_DISPLAY_TIMED_BOX
+        : MB64_OBJECT_DISPLAY_DEFAULT;
+}
+
 static inline const mb64_child_model_dependency_t *
 mb64_object_child_model_dependency(unsigned char type, unsigned char index) {
     static const mb64_child_model_dependency_t snufit[] = {

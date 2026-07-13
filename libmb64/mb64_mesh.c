@@ -979,10 +979,12 @@ static uint8_t material_face_culls_backfaces(const mb64_level_t *level,
                                              const mb64_mesh_face_t *face,
                                              uint8_t material_type) {
     if (material_type == MAT_CUTOUT ||
-        material_type == MAT_CUTOUT_NOCULL ||
-        material_type == MAT_TRANSPARENT) {
+        material_type == MAT_CUTOUT_NOCULL) {
         return 0;
     }
+    /* Native MB64 only disables G_CULL_BACK for cutout terrain here.
+     * Transparent materials such as Ice keep it enabled so the far exterior
+     * shell cannot show backward through a connected translucent volume. */
     if (face->direction != MB64_MESH_FACE_TOP &&
         face->direction != MB64_MESH_FACE_BOTTOM) {
         const uint8_t side_type = mb64_material_type(material_slot_for_face(level, face->material, 0));

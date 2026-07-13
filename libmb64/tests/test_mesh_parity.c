@@ -843,9 +843,9 @@ static void verify_same_material_transparent_shapes_cull_internal_faces(void) {
         expect_int("transparent ice binding class",
                    binding.render_class,
                    MB64_RENDER_CLASS_TRANSPARENT);
-        expect_int("transparent ice renders exterior faces double-sided",
+        expect_int("transparent ice hides backward exterior faces",
                    binding.cull_backfaces,
-                   0);
+                   1);
     }
     mb64_free_render_mesh(&mesh);
     memset(&mesh, 0, sizeof(mesh));
@@ -864,9 +864,9 @@ static void verify_same_material_transparent_shapes_cull_internal_faces(void) {
         expect_int("shaped transparent ice binding resolves",
                    mb64_render_binding_for_face(&level, &mesh.faces[i], &binding),
                    1);
-        expect_int("shaped transparent ice renders exterior faces double-sided",
+        expect_int("shaped transparent ice hides backward exterior faces",
                    binding.cull_backfaces,
-                   0);
+                   1);
     }
     mb64_free_render_mesh(&mesh);
 }
@@ -1082,7 +1082,7 @@ static void verify_render_binding_descriptors(void) {
     expect_int("ice binding kind", binding.kind, MB64_RENDER_BINDING_MATERIAL);
     expect_int("ice binding token", binding.token, MB64_MAT_ICE);
     expect_int("ice binding class", binding.render_class, MB64_RENDER_CLASS_TRANSPARENT);
-    expect_int("ice binding renders exterior faces double-sided", binding.cull_backfaces, 0);
+    expect_int("ice binding hides backward exterior faces", binding.cull_backfaces, 1);
 
     level.header.custom_theme.mats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_GRASS;
     level.header.custom_theme.topmats[MB64_THEME_MATERIAL_SLOT_GRASS] = MB64_MAT_MC_GLASS;
@@ -1318,11 +1318,42 @@ static void verify_koopa_helpers(void) {
 
 static void verify_music_catalog_helpers(void) {
     enum {
-        MB64_MUSIC_BTCM_ALBUM = 1,
         MB64_MUSIC_LONELY_FLOATING_FARM_SONG = 2,
         MB64_MUSIC_LONELY_FLOATING_FARM_INDEX = 16,
         MB64_SEQ_FARM = 0x25,
     };
+
+    const mb64_music_entry_t *redHotReservoir =
+        mb64_music_entry_from_album_song(
+            MB64_MUSIC_BTCM_ALBUM,
+            MB64_MUSIC_RED_HOT_RESERVOIR_SONG);
+    expect_int("Red-Hot Reservoir entry exists", redHotReservoir != NULL, 1);
+    if (redHotReservoir != NULL) {
+        expect_int("Red-Hot Reservoir flattened index",
+                   redHotReservoir->index, MB64_MUSIC_RED_HOT_RESERVOIR_INDEX);
+        expect_int("Red-Hot Reservoir sequence",
+                   redHotReservoir->sequence, MB64_SEQ_RED_HOT_RESERVOIR);
+        expect_int("Red-Hot Reservoir album index",
+                   redHotReservoir->album_index, MB64_MUSIC_BTCM_ALBUM);
+        expect_int("Red-Hot Reservoir song index",
+                   redHotReservoir->song_index, MB64_MUSIC_RED_HOT_RESERVOIR_SONG);
+        expect_int("Red-Hot Reservoir album name",
+                   strcmp(redHotReservoir->album, "Beyond the Cursed Mirror OST"), 0);
+        expect_int("Red-Hot Reservoir song name",
+                   strcmp(redHotReservoir->song, "Red-Hot Reservoir"), 0);
+    }
+    expect_int("Red-Hot Reservoir index lookup matches album/song",
+               mb64_music_entry_from_index(MB64_MUSIC_RED_HOT_RESERVOIR_INDEX) ==
+                   redHotReservoir,
+               1);
+    expect_int("Red-Hot Reservoir name lookup matches album/song",
+               mb64_music_entry_from_album_song_names(
+                   "Beyond the Cursed Mirror OST", "Red-Hot Reservoir") ==
+                   redHotReservoir,
+               1);
+    expect_int("Red-Hot Reservoir sequence lookup",
+               mb64_music_sequence_from_index(MB64_MUSIC_RED_HOT_RESERVOIR_INDEX),
+               MB64_SEQ_RED_HOT_RESERVOIR);
 
     const mb64_music_entry_t *entry =
         mb64_music_entry_from_album_song(MB64_MUSIC_BTCM_ALBUM, MB64_MUSIC_LONELY_FLOATING_FARM_SONG);
@@ -1398,6 +1429,13 @@ static void verify_music_catalog_helpers(void) {
     expect_int("Lineland Road sequence lookup",
                mb64_music_sequence_from_index(MB64_MUSIC_SPM_LINELAND_ROAD_INDEX),
                MB64_SEQ_SPM_LINELAND_ROAD);
+
+    expect_int("timed box owns timed-box display",
+               mb64_object_display_for_type(MB64_OBJECT_TYPE_TIMED_BOX),
+               MB64_OBJECT_DISPLAY_TIMED_BOX);
+    expect_int("on/off block does not own timed-box display",
+               mb64_object_display_for_type(MB64_OBJECT_TYPE_ON_OFF_BLOCK),
+               MB64_OBJECT_DISPLAY_DEFAULT);
 }
 
 static void verify_bbh_theme_and_water_shade(void) {

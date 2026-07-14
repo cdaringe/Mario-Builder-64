@@ -371,6 +371,11 @@ static const mb64_bully_movement_config_t s_bully_movement_configs[] = {
     },
 };
 
+static const mb64_ledge_grab_config_t s_ledge_grab_config = {
+    -30.0f, /* find_ceil probe below the resolved ledge floor */
+    80.0f,  /* minimum vertical clearance at the hang position */
+};
+
 static const mb64_wiggler_config_t s_wiggler_config = {
     8.0f,   /* defeated walking speed */
     20,     /* shrink delay */
@@ -1126,6 +1131,24 @@ const mb64_music_entry_t *mb64_music_entry_from_album_song_names(const char *alb
 
 const mb64_woodplat_config_t *mb64_woodplat_config(void) {
     return &s_woodplat_config;
+}
+
+const mb64_ledge_grab_config_t *mb64_ledge_grab_config(void) {
+    return &s_ledge_grab_config;
+}
+
+uint8_t mb64_ledge_grab_blocked_by_ceiling(uint8_t has_ceiling,
+                                           float ledge_y,
+                                           float ceiling_y) {
+    float clearance = ceiling_y - ledge_y;
+
+    if (!has_ceiling) {
+        return 0;
+    }
+    if (clearance < 0.0f) {
+        clearance = -clearance;
+    }
+    return clearance < s_ledge_grab_config.minimum_ceiling_clearance;
 }
 
 float mb64_woodplat_piece_height(uint8_t bparam) {

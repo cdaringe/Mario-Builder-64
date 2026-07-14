@@ -1190,6 +1190,23 @@ static void verify_woodplat_helpers(void) {
                mb64_thwomp_should_die_on_death_barrier(1, 1, 100.0f, 0.0f), 0);
 }
 
+static void verify_ledge_grab_helpers(void) {
+    const mb64_ledge_grab_config_t *config = mb64_ledge_grab_config();
+
+    expect_float("ledge ceiling probe offset", config->ceiling_probe_offset_y, -30.0f);
+    expect_float("ledge minimum ceiling clearance", config->minimum_ceiling_clearance, 80.0f);
+    expect_int("ledge without ceiling stays available",
+               mb64_ledge_grab_blocked_by_ceiling(0, 100.0f, 100.0f), 0);
+    expect_int("ledge sharing a ceiling is blocked",
+               mb64_ledge_grab_blocked_by_ceiling(1, 100.0f, 100.0f), 1);
+    expect_int("ledge below clearance threshold is blocked",
+               mb64_ledge_grab_blocked_by_ceiling(1, 100.0f, 179.0f), 1);
+    expect_int("ledge below a nearby ceiling surface is blocked",
+               mb64_ledge_grab_blocked_by_ceiling(1, 100.0f, 21.0f), 1);
+    expect_int("ledge at exact clearance threshold stays available",
+               mb64_ledge_grab_blocked_by_ceiling(1, 100.0f, 180.0f), 0);
+}
+
 static void verify_looping_platform_helpers(void) {
     const mb64_looping_platform_config_t *config = mb64_looping_platform_config();
 
@@ -1430,11 +1447,21 @@ static void verify_music_catalog_helpers(void) {
                mb64_music_sequence_from_index(MB64_MUSIC_SPM_LINELAND_ROAD_INDEX),
                MB64_SEQ_SPM_LINELAND_ROAD);
 
-    expect_int("timed box owns timed-box display",
-               mb64_object_display_for_type(MB64_OBJECT_TYPE_TIMED_BOX),
+    const mb64_object_display_spec_t timed_box_display =
+        mb64_object_display_spec_for_type(MB64_OBJECT_TYPE_TIMED_BOX);
+    const mb64_object_display_spec_t on_off_display =
+        mb64_object_display_spec_for_type(MB64_OBJECT_TYPE_ON_OFF_BLOCK);
+    expect_int("timed box runtime retains object-table display",
+               timed_box_display.runtime,
+               MB64_OBJECT_DISPLAY_DEFAULT);
+    expect_int("timed box owns editor-preview display",
+               timed_box_display.preview,
                MB64_OBJECT_DISPLAY_TIMED_BOX);
-    expect_int("on/off block does not own timed-box display",
-               mb64_object_display_for_type(MB64_OBJECT_TYPE_ON_OFF_BLOCK),
+    expect_int("on/off block runtime retains object-table display",
+               on_off_display.runtime,
+               MB64_OBJECT_DISPLAY_DEFAULT);
+    expect_int("on/off block does not own timed-box preview display",
+               on_off_display.preview,
                MB64_OBJECT_DISPLAY_DEFAULT);
 }
 
@@ -1850,15 +1877,120 @@ static void verify_child_model_dependencies(void) {
     }
     expect_int("snufit has one projectile dependency",
                mb64_object_child_model_dependency(MB64_OBJECT_TYPE_SNUFIT, 1) == NULL, 1);
+    expect_int("bowling ball controller dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_BOWLING_BALL, 0)->model,
+               MB64_CHILD_MODEL_BOWLING_BALL);
+    expect_int("bowling ball controller dependency count",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_BOWLING_BALL, 1) == NULL,
+               1);
     expect_int("wiggler body dependency",
                mb64_object_child_model_dependency(MB64_OBJECT_TYPE_WIGGLER, 0)->model,
                MB64_CHILD_MODEL_WIGGLER_BODY);
     expect_int("mr i iris dependency",
                mb64_object_child_model_dependency(MB64_OBJECT_TYPE_MR_I, 0)->model,
                MB64_CHILD_MODEL_MR_I_IRIS);
+    expect_int("mr i purple particle dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_MR_I, 1)->model,
+               MB64_CHILD_MODEL_PURPLE_MARBLE);
+    expect_int("mr i dependency count",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_MR_I, 2) == NULL,
+               1);
     expect_int("lakitu spiny dependency",
                mb64_object_child_model_dependency(MB64_OBJECT_TYPE_LAKITU, 0)->model,
                MB64_CHILD_MODEL_SPINY_BALL);
+    expect_int("red coin star marker dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_RED_COIN_STAR, 0)->model,
+               MB64_CHILD_MODEL_TRANSPARENT_STAR);
+    expect_int("red coin star reward dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_RED_COIN_STAR, 1)->model,
+               MB64_CHILD_MODEL_STAR);
+    expect_int("red coin star number dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_RED_COIN_STAR, 2)->model,
+               MB64_CHILD_MODEL_NUMBER);
+    expect_int("red coin star dependency count",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_RED_COIN_STAR, 3) == NULL,
+               1);
+    expect_int("bullet bill projectile dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_BULLET_BILL, 0)->model,
+               MB64_CHILD_MODEL_BULLET_BILL);
+    expect_int("bullet bill smoke trail dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_BULLET_BILL, 1)->model,
+               MB64_CHILD_MODEL_SMOKE);
+    expect_int("bullet bill mist burst dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_BULLET_BILL, 2)->model,
+               MB64_CHILD_MODEL_MIST);
+    expect_int("bullet bill explosion dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_BULLET_BILL, 3)->model,
+               MB64_CHILD_MODEL_EXPLOSION);
+    expect_int("bullet bill dependency count",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_BULLET_BILL, 4) == NULL,
+               1);
+    expect_int("skeeter water wave dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_SKEETER, 0)->model,
+               MB64_CHILD_MODEL_IDLE_WATER_WAVE);
+    expect_int("skeeter water wave dependency count",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_SKEETER, 1) == NULL,
+               1);
+    expect_int("mr blizzard white particle dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_MR_BLIZZARD, 0)->model,
+               MB64_CHILD_MODEL_WHITE_PARTICLE);
+    expect_int("mr blizzard white particle dependency count",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_MR_BLIZZARD, 1) == NULL,
+               1);
+    expect_int("star number dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_STAR, 0)->model,
+               MB64_CHILD_MODEL_NUMBER);
+    expect_int("blue coin switch number dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_BLUE_COIN_SWITCH, 0)->model,
+               MB64_CHILD_MODEL_NUMBER);
+    expect_int("flamethrower mist dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_FLAMETHROWER, 0)->model,
+               MB64_CHILD_MODEL_MIST);
+    expect_int("fire spitter flame dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_FIRE_SPITTER, 0)->model,
+               MB64_CHILD_MODEL_RED_FLAME_SHADOW);
+    expect_int("wooden platform nonvisual collision dependency",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_WOODPLAT, 0)->model,
+               MB64_CHILD_MODEL_NONE);
+    expect_int("wooden platform nonvisual dependency is not runtime visual",
+               mb64_object_child_model_dependency(MB64_OBJECT_TYPE_WOODPLAT, 0)->runtime_spawn,
+               0);
+    expect_int("generic coin sparkle dependency",
+               mb64_object_runtime_effect_model_dependency(0)->model,
+               MB64_CHILD_MODEL_SPARKLES);
+    expect_int("generic sparkle animation dependency",
+               mb64_object_runtime_effect_model_dependency(1)->model,
+               MB64_CHILD_MODEL_SPARKLES_ANIMATION);
+    expect_int("generic mist dependency",
+               mb64_object_runtime_effect_model_dependency(2)->model,
+               MB64_CHILD_MODEL_MIST);
+    expect_int("generic red coin marker dependency",
+               mb64_object_runtime_effect_model_dependency(3)->model,
+               MB64_CHILD_MODEL_TRANSPARENT_STAR);
+    expect_int("generic death smoke dependency",
+               mb64_object_runtime_effect_model_dependency(4)->model,
+               MB64_CHILD_MODEL_SMOKE);
+    expect_int("generic runtime effect dependency count",
+               mb64_object_runtime_effect_model_dependency(5) == NULL,
+               1);
+    expect_string("bowling ball dependency diagnostic name",
+                  mb64_child_model_name(MB64_CHILD_MODEL_BOWLING_BALL),
+                  "bowling_ball");
+    expect_string("number dependency diagnostic name",
+                  mb64_child_model_name(MB64_CHILD_MODEL_NUMBER),
+                  "number");
+    expect_string("sparkle dependency diagnostic name",
+                  mb64_child_model_name(MB64_CHILD_MODEL_SPARKLES_ANIMATION),
+                  "sparkles_animation");
+    expect_string("coin sparkles dependency diagnostic name",
+                  mb64_child_model_name(MB64_CHILD_MODEL_SPARKLES),
+                  "sparkles");
+    expect_string("fire spitter dependency diagnostic name",
+                  mb64_child_model_name(MB64_CHILD_MODEL_RED_FLAME_SHADOW),
+                  "red_flame_shadow");
+    expect_string("unknown dependency diagnostic name",
+                  mb64_child_model_name((mb64_child_model_t)99),
+                  "none");
 }
 
 static void verify_chicken_helpers(void) {
@@ -2395,6 +2527,7 @@ int main(void) {
     verify_render_binding_descriptors();
     verify_face_surface_descriptors();
     verify_shaped_corner_under_block_keeps_shell_faces();
+    verify_ledge_grab_helpers();
     verify_woodplat_helpers();
     verify_looping_platform_helpers();
     verify_breakable_box_helpers();

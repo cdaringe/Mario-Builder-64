@@ -273,6 +273,11 @@ typedef struct {
 } mb64_woodplat_config_t;
 
 typedef struct {
+    float ceiling_probe_offset_y;
+    float minimum_ceiling_clearance;
+} mb64_ledge_grab_config_t;
+
+typedef struct {
     float forward_vel;
     uint8_t activates_immediately;
     uint8_t returns_to_start;
@@ -1407,6 +1412,17 @@ uint8_t mb64_object_counts_as_star(const mb64_obj_t *object);
 uint32_t mb64_level_play_star_count(const mb64_level_t *level);
 const mb64_dialog_descriptor_t *mb64_dialog_descriptor_for_selector(uint8_t selector);
 uint8_t mb64_object_type_uses_dialog_selector(uint8_t object_type);
+
+/**
+ * mb64_ledge_grab_config() - Return MB64 ledge headroom constants.
+ *
+ * The probe and clearance mirror check_ledge_grab in Mario Builder 64. The
+ * host engine owns its collision query and passes the resulting ceiling here.
+ */
+const mb64_ledge_grab_config_t *mb64_ledge_grab_config(void);
+uint8_t mb64_ledge_grab_blocked_by_ceiling(uint8_t has_ceiling,
+                                           float ledge_y,
+                                           float ceiling_y);
 
 /**
  * mb64_water_vertex_color() - Return animated water vertex color.

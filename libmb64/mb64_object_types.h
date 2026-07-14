@@ -109,13 +109,27 @@ typedef enum {
     MB64_OBJECT_TYPE_COUNT,
 } mb64_object_type_t;
 
-/* Models spawned by an object's behavior after the authored parent exists. */
+/* Runtime descendants spawned after the authored parent exists. NONE records
+ * an intentional nonvisual helper; every other token names its render model. */
 typedef enum {
     MB64_CHILD_MODEL_NONE = 0,
     MB64_CHILD_MODEL_BOWLING_BALL,
     MB64_CHILD_MODEL_SPINY_BALL,
     MB64_CHILD_MODEL_WIGGLER_BODY,
     MB64_CHILD_MODEL_MR_I_IRIS,
+    MB64_CHILD_MODEL_TRANSPARENT_STAR,
+    MB64_CHILD_MODEL_STAR,
+    MB64_CHILD_MODEL_BULLET_BILL,
+    MB64_CHILD_MODEL_SMOKE,
+    MB64_CHILD_MODEL_MIST,
+    MB64_CHILD_MODEL_EXPLOSION,
+    MB64_CHILD_MODEL_IDLE_WATER_WAVE,
+    MB64_CHILD_MODEL_WHITE_PARTICLE,
+    MB64_CHILD_MODEL_PURPLE_MARBLE,
+    MB64_CHILD_MODEL_NUMBER,
+    MB64_CHILD_MODEL_SPARKLES_ANIMATION,
+    MB64_CHILD_MODEL_SPARKLES,
+    MB64_CHILD_MODEL_RED_FLAME_SHADOW,
 } mb64_child_model_t;
 
 typedef struct {
@@ -123,23 +137,64 @@ typedef struct {
     unsigned char runtime_spawn;
 } mb64_child_model_dependency_t;
 
-/* MB64 display functions that replace the base object-table model. Ports use
- * this descriptor instead of inferring a visual from the host behavior. */
+static inline const char *mb64_child_model_name(mb64_child_model_t model) {
+    switch (model) {
+        case MB64_CHILD_MODEL_BOWLING_BALL: return "bowling_ball";
+        case MB64_CHILD_MODEL_SPINY_BALL: return "spiny_ball";
+        case MB64_CHILD_MODEL_WIGGLER_BODY: return "wiggler_body";
+        case MB64_CHILD_MODEL_MR_I_IRIS: return "mr_i_iris";
+        case MB64_CHILD_MODEL_TRANSPARENT_STAR: return "transparent_star";
+        case MB64_CHILD_MODEL_STAR: return "star";
+        case MB64_CHILD_MODEL_BULLET_BILL: return "bullet_bill";
+        case MB64_CHILD_MODEL_SMOKE: return "smoke";
+        case MB64_CHILD_MODEL_MIST: return "mist";
+        case MB64_CHILD_MODEL_EXPLOSION: return "explosion";
+        case MB64_CHILD_MODEL_IDLE_WATER_WAVE: return "idle_water_wave";
+        case MB64_CHILD_MODEL_WHITE_PARTICLE: return "white_particle";
+        case MB64_CHILD_MODEL_PURPLE_MARBLE: return "purple_marble";
+        case MB64_CHILD_MODEL_NUMBER: return "number";
+        case MB64_CHILD_MODEL_SPARKLES_ANIMATION: return "sparkles_animation";
+        case MB64_CHILD_MODEL_SPARKLES: return "sparkles";
+        case MB64_CHILD_MODEL_RED_FLAME_SHADOW: return "red_flame_shadow";
+        case MB64_CHILD_MODEL_NONE:
+        default: return "none";
+    }
+}
+
+/* Editor preview display functions are distinct from the model spawned while
+ * playing a level. Timed Box previews use MODEL_MAKER_TIMEDBOX, while runtime
+ * objects retain the object-table breakable-box model. */
 typedef enum {
     MB64_OBJECT_DISPLAY_DEFAULT = 0,
     MB64_OBJECT_DISPLAY_TIMED_BOX,
 } mb64_object_display_t;
 
-static inline mb64_object_display_t
-mb64_object_display_for_type(unsigned char type) {
-    return type == MB64_OBJECT_TYPE_TIMED_BOX
-        ? MB64_OBJECT_DISPLAY_TIMED_BOX
-        : MB64_OBJECT_DISPLAY_DEFAULT;
+typedef struct {
+    mb64_object_display_t runtime;
+    mb64_object_display_t preview;
+} mb64_object_display_spec_t;
+
+static inline mb64_object_display_spec_t
+mb64_object_display_spec_for_type(unsigned char type) {
+    mb64_object_display_spec_t spec = {
+        MB64_OBJECT_DISPLAY_DEFAULT,
+        MB64_OBJECT_DISPLAY_DEFAULT,
+    };
+    if (type == MB64_OBJECT_TYPE_TIMED_BOX) {
+        spec.preview = MB64_OBJECT_DISPLAY_TIMED_BOX;
+    }
+    return spec;
 }
+
+typedef enum {
+    MB64_TIMED_BOX_ACTION_HIDDEN = 0,
+    MB64_TIMED_BOX_ACTION_ACTIVE,
+    MB64_TIMED_BOX_ACTION_BROKEN,
+} mb64_timed_box_action_t;
 
 static inline const mb64_child_model_dependency_t *
 mb64_object_child_model_dependency(unsigned char type, unsigned char index) {
-    static const mb64_child_model_dependency_t snufit[] = {
+    static const mb64_child_model_dependency_t bowling_ball[] = {
         { MB64_CHILD_MODEL_BOWLING_BALL, 1 },
     };
     static const mb64_child_model_dependency_t lakitu[] = {
@@ -150,13 +205,47 @@ mb64_object_child_model_dependency(unsigned char type, unsigned char index) {
     };
     static const mb64_child_model_dependency_t mr_i[] = {
         { MB64_CHILD_MODEL_MR_I_IRIS, 1 },
+        { MB64_CHILD_MODEL_PURPLE_MARBLE, 1 },
+    };
+    static const mb64_child_model_dependency_t red_coin_star[] = {
+        { MB64_CHILD_MODEL_TRANSPARENT_STAR, 1 },
+        { MB64_CHILD_MODEL_STAR, 1 },
+        { MB64_CHILD_MODEL_NUMBER, 1 },
+    };
+    static const mb64_child_model_dependency_t bullet_bill[] = {
+        { MB64_CHILD_MODEL_BULLET_BILL, 1 },
+        { MB64_CHILD_MODEL_SMOKE, 1 },
+        { MB64_CHILD_MODEL_MIST, 1 },
+        { MB64_CHILD_MODEL_EXPLOSION, 1 },
+    };
+    static const mb64_child_model_dependency_t skeeter[] = {
+        { MB64_CHILD_MODEL_IDLE_WATER_WAVE, 1 },
+    };
+    static const mb64_child_model_dependency_t mr_blizzard[] = {
+        { MB64_CHILD_MODEL_WHITE_PARTICLE, 1 },
+    };
+    static const mb64_child_model_dependency_t number[] = {
+        { MB64_CHILD_MODEL_NUMBER, 1 },
+    };
+    static const mb64_child_model_dependency_t flamethrower[] = {
+        { MB64_CHILD_MODEL_MIST, 1 },
+    };
+    static const mb64_child_model_dependency_t fire_spitter[] = {
+        { MB64_CHILD_MODEL_RED_FLAME_SHADOW, 1 },
+    };
+    static const mb64_child_model_dependency_t wooden_platform[] = {
+        { MB64_CHILD_MODEL_NONE, 0 },
     };
     const mb64_child_model_dependency_t *dependencies = 0;
     unsigned char count = 0;
     switch (type) {
         case MB64_OBJECT_TYPE_SNUFIT:
-            dependencies = snufit;
-            count = sizeof(snufit) / sizeof(snufit[0]);
+            dependencies = bowling_ball;
+            count = sizeof(bowling_ball) / sizeof(bowling_ball[0]);
+            break;
+        case MB64_OBJECT_TYPE_BOWLING_BALL:
+            dependencies = bowling_ball;
+            count = sizeof(bowling_ball) / sizeof(bowling_ball[0]);
             break;
         case MB64_OBJECT_TYPE_LAKITU:
             dependencies = lakitu;
@@ -170,9 +259,58 @@ mb64_object_child_model_dependency(unsigned char type, unsigned char index) {
             dependencies = mr_i;
             count = sizeof(mr_i) / sizeof(mr_i[0]);
             break;
+        case MB64_OBJECT_TYPE_RED_COIN_STAR:
+            dependencies = red_coin_star;
+            count = sizeof(red_coin_star) / sizeof(red_coin_star[0]);
+            break;
+        case MB64_OBJECT_TYPE_BULLET_BILL:
+            dependencies = bullet_bill;
+            count = sizeof(bullet_bill) / sizeof(bullet_bill[0]);
+            break;
+        case MB64_OBJECT_TYPE_SKEETER:
+            dependencies = skeeter;
+            count = sizeof(skeeter) / sizeof(skeeter[0]);
+            break;
+        case MB64_OBJECT_TYPE_MR_BLIZZARD:
+            dependencies = mr_blizzard;
+            count = sizeof(mr_blizzard) / sizeof(mr_blizzard[0]);
+            break;
+        case MB64_OBJECT_TYPE_STAR:
+        case MB64_OBJECT_TYPE_BLUE_COIN_SWITCH:
+            dependencies = number;
+            count = sizeof(number) / sizeof(number[0]);
+            break;
+        case MB64_OBJECT_TYPE_FLAMETHROWER:
+            dependencies = flamethrower;
+            count = sizeof(flamethrower) / sizeof(flamethrower[0]);
+            break;
+        case MB64_OBJECT_TYPE_FIRE_SPITTER:
+            dependencies = fire_spitter;
+            count = sizeof(fire_spitter) / sizeof(fire_spitter[0]);
+            break;
+        case MB64_OBJECT_TYPE_WOODPLAT:
+            dependencies = wooden_platform;
+            count = sizeof(wooden_platform) / sizeof(wooden_platform[0]);
+            break;
         default:
             break;
     }
+    return index < count ? &dependencies[index] : 0;
+}
+
+/* Loot and imbue effects are transitive descendants of any authored object
+ * that can release them, so they are cataloged once instead of copied into
+ * every eligible object type. */
+static inline const mb64_child_model_dependency_t *
+mb64_object_runtime_effect_model_dependency(unsigned char index) {
+    static const mb64_child_model_dependency_t dependencies[] = {
+        { MB64_CHILD_MODEL_SPARKLES, 1 },
+        { MB64_CHILD_MODEL_SPARKLES_ANIMATION, 1 },
+        { MB64_CHILD_MODEL_MIST, 1 },
+        { MB64_CHILD_MODEL_TRANSPARENT_STAR, 1 },
+        { MB64_CHILD_MODEL_SMOKE, 1 },
+    };
+    const unsigned char count = sizeof(dependencies) / sizeof(dependencies[0]);
     return index < count ? &dependencies[index] : 0;
 }
 

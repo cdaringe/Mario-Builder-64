@@ -13,6 +13,7 @@ from pathlib import Path
 MANIFEST = Path(__file__).with_name("mb64_coopdx_actor_assets.tsv")
 TEXT_SUFFIXES = {".c", ".h"}
 ASSET_SUFFIXES = TEXT_SUFFIXES | {".png"}
+FULL_ROOT_MODES = {"relocated-root", "coin-namespace", "tree-namespace"}
 
 
 @dataclass(frozen=True)
@@ -24,14 +25,12 @@ class Rule:
 
 
 MODE_OVERRIDES = {
-    Path("actors/chicken/anims/anim_ArmatureAction.inc.c"): "coopdx-animation-abi",
-    Path("actors/metalstar/model.inc.c"): "metalstar-coopdx-symbols",
-    Path("actors/blaster/geo_header.h"): "const-gfx-header",
-    Path("actors/maker/header.h"): "maker-minecraft-header",
-    Path("actors/maker/model.inc.c"): "maker-minecraft-include",
-    Path("actors/onoffblock1/geo_header.h"): "const-gfx-header",
-    Path("actors/onoffblock2/geo_header.h"): "const-gfx-header",
-    Path("actors/onoffswitch/geo_header.h"): "const-gfx-header",
+    Path("actors/mb64_chicken/anims/anim_ArmatureAction.inc.c"): "coopdx-animation-abi",
+    Path("actors/mb64_metalstar/model.inc.c"): "metalstar-coopdx-symbols",
+    Path("actors/mb64_blaster/geo_header.h"): "const-gfx-header",
+    Path("actors/mb64_onoffblock1/geo_header.h"): "const-gfx-header",
+    Path("actors/mb64_onoffblock2/geo_header.h"): "const-gfx-header",
+    Path("actors/mb64_onoffswitch/geo_header.h"): "const-gfx-header",
 }
 
 
@@ -80,16 +79,13 @@ def adapt_text(text: str, source: Path, destination: Path, mode: str) -> str:
         )
     elif mode == "const-gfx-header":
         text = text.replace("extern const Gfx ", "extern Gfx ")
-    elif mode == "maker-minecraft-header":
-        omitted = {
-            "extern Gfx mat_maker_MakerMCWater[];",
-            "extern Gfx mat_maker_MakerMCLava[];",
-            "extern Gfx mat_maker_MakerMCFlowingLava[];",
-        }
-        text = "\n".join(line for line in text.splitlines() if line not in omitted)
-    elif mode == "maker-minecraft-include":
-        text = text.replace('\n#include "actors/maker/minecrafttex.inc.c"\n', "\n")
     elif mode == "metalstar-coopdx-symbols":
+        text = re.sub(
+            r"const Gfx metalstar_seg3_sub_dl_(?:body|eyes)\[\] = \{.*?\n\};\n",
+            "",
+            text,
+            flags=re.DOTALL,
+        )
         replacements = {
             "actors/star/custom_metalstartex.rgba16.inc.c": "actors/metalstar/custom_metalstartex.rgba16.inc.c",
             "actors/star/star_eye.rgba16.inc.c": "actors/metalstar/star_eye.rgba16.inc.c",
@@ -102,7 +98,22 @@ def adapt_text(text: str, source: Path, destination: Path, mode: str) -> str:
         }
         for old, new in replacements.items():
             text = text.replace(old, new)
-    elif mode not in {"verbatim", "renamed-root", "strip-trailing-blank-lines"}:
+    elif mode == "coin-namespace":
+        text = re.sub(r"\bcoin_([A-Za-z0-9_]+)\b", r"mb64_coin_\1", text)
+        text = re.sub(
+            r"\b(yellow|blue|red|silver|green)_coin(_no_shadow)?_geo\b",
+            lambda match: f"mb64_{match.group(0)}",
+            text,
+        )
+        text = text.replace("actors/coin/mb64_coin_", "actors/coin/coin_")
+    elif mode == "tree-namespace":
+        text = re.sub(r"\btree_seg3_([A-Za-z0-9_]+)\b", r"mb64_tree_seg3_\1", text)
+        text = re.sub(
+            r"\b(bubbly|farm|spiky|snow|palm|dead)_tree_geo\b",
+            lambda match: f"mb64_{match.group(0)}",
+            text,
+        )
+    elif mode not in {"verbatim", "relocated-root", "renamed-root", "strip-trailing-blank-lines"}:
         raise SystemExit(f"unsupported adaptation mode {mode} for {destination}")
 
     if source.parent != destination.parent:
@@ -140,14 +151,11 @@ def main() -> int:
         source_root = mb64_root / rule.source
         if not source_root.is_dir():
             raise SystemExit(f"missing MB64 actor root: {source_root}")
-        suffixes = (
-            {".png"}
-            if rule.kind == "texture-root" or rule.mode == "renamed-root"
-            else TEXT_SUFFIXES
-        )
+        suffixes = {".png"} if rule.kind == "texture-root" or rule.mode == "renamed-root" else ASSET_SUFFIXES
         for source_path in sorted(path for path in source_root.rglob("*") if path.suffix in suffixes):
             relative = source_path.relative_to(source_root)
-            if rule.kind == "actor-root" and not (args.coop_root / rule.destination / relative).exists():
+            if (rule.kind == "actor-root" and rule.mode not in FULL_ROOT_MODES
+                    and not (args.coop_root / rule.destination / relative).exists()):
                 continue
             export_file(
                 mb64_root,

@@ -1,49 +1,43 @@
 # kind	coop_path	mb64_path	mode
-actor-root	actors/Rex		verbatim
-actor-root	actors/badge		verbatim
-actor-root	actors/Hammerbro		verbatim
-actor-root	actors/billmask		verbatim
-actor-root	actors/blaster		verbatim
-actor-root	actors/bully		verbatim
-actor-root	actors/chicken		verbatim
-actor-root	actors/cobie2		verbatim
-actor-root	actors/conveyor		verbatim
-actor-root	actors/conveyor_dslope		verbatim
-actor-root	actors/conveyor_half		verbatim
-actor-root	actors/conveyor_slope		verbatim
-actor-root	actors/crab		verbatim
-actor-root	actors/crab_anims		verbatim
-actor-root	actors/crowbar		verbatim
-actor-root	actors/fatplat		verbatim
-actor-root	actors/flyguy		verbatim
-actor-root	actors/gooner		verbatim
-actor-root	actors/hammer		verbatim
-actor-root	actors/imbuet		verbatim
-actor-root	actors/loopingp		verbatim
-actor-root	actors/maker		verbatim
-actor-root	actors/mb64_coin	actors/coin	renamed-root
-actor-root	actors/mb64_penguin	actors/penguin	renamed-root
-actor-root	actors/mb64_toad	actors/toad	renamed-root
-actor-root	actors/mb64_ukiki	actors/ukiki	renamed-root
-actor-root	actors/moleman3		verbatim
-actor-root	actors/motos		verbatim
-actor-root	actors/noteblock		verbatim
-actor-root	actors/onoffblock		verbatim
-actor-root	actors/onoffblock1		verbatim
-actor-root	actors/onoffblock2		verbatim
-actor-root	actors/onoffbutton		verbatim
-actor-root	actors/onoffswitch		verbatim
-actor-root	actors/podoboo		verbatim
-actor-root	actors/rfbox		verbatim
-actor-root	actors/showrunner		verbatim
-actor-root	actors/spooner		verbatim
-actor-root	actors/srball_1		verbatim
-actor-root	actors/srball_2		verbatim
-actor-root	actors/srspike		verbatim
-actor-root	actors/timedbox		verbatim
-actor-root	actors/vanilla_exclamation_box		verbatim
-actor-root	actors/woodplat		verbatim
-actor-root	actors/metalstar		verbatim
-texture-root	actors/mb64_pokey	actors/pokey	renamed-root
-texture-root	actors/mb64_tree	actors/tree	renamed-root
-extra-asset	actors/metalstar/custom_metalstartex.rgba16.png	actors/star/custom_metalstartex.rgba16.png	verbatim
+actor-root	actors/mb64_rex	actors/Rex	relocated-root
+actor-root	actors/mb64_badge	actors/badge	relocated-root
+actor-root	actors/mb64_hammerbro	actors/Hammerbro	relocated-root
+actor-root	actors/mb64_billmask	actors/billmask	relocated-root
+actor-root	actors/mb64_blaster	actors/blaster	relocated-root
+actor-root	actors/mb64_chicken	actors/chicken	relocated-root
+actor-root	actors/mb64_cobie2	actors/cobie2	relocated-root
+actor-root	actors/mb64_conveyor	actors/conveyor	relocated-root
+actor-root	actors/mb64_conveyor_dslope	actors/conveyor_dslope	relocated-root
+actor-root	actors/mb64_conveyor_half	actors/conveyor_half	relocated-root
+actor-root	actors/mb64_conveyor_slope	actors/conveyor_slope	relocated-root
+actor-root	actors/mb64_crab	actors/crab	relocated-root
+actor-root	actors/mb64_crab_anims	actors/crab_anims	relocated-root
+actor-root	actors/mb64_crowbar	actors/crowbar	relocated-root
+actor-root	actors/mb64_fatplat	actors/fatplat	relocated-root
+actor-root	actors/mb64_gooner	actors/gooner	relocated-root
+actor-root	actors/mb64_hammer	actors/hammer	relocated-root
+actor-root	actors/mb64_imbuet	actors/imbuet	relocated-root
+actor-root	actors/mb64_loopingp	actors/loopingp	relocated-root
+actor-root	actors/mb64_maker	actors/maker	relocated-root
+actor-root	actors/mb64_coin	actors/coin	coin-namespace
+actor-root	actors/mb64_moleman3	actors/moleman3	relocated-root
+actor-root	actors/mb64_motos	actors/motos	relocated-root
+actor-root	actors/mb64_noteblock	actors/noteblock	relocated-root
+actor-root	actors/mb64_onoffblock	actors/onoffblock	relocated-root
+actor-root	actors/mb64_onoffblock1	actors/onoffblock1	relocated-root
+actor-root	actors/mb64_onoffblock2	actors/onoffblock2	relocated-root
+actor-root	actors/mb64_onoffbutton	actors/onoffbutton	relocated-root
+actor-root	actors/mb64_onoffswitch	actors/onoffswitch	relocated-root
+actor-root	actors/mb64_podoboo	actors/podoboo	relocated-root
+actor-root	actors/mb64_rfbox	actors/rfbox	relocated-root
+actor-root	actors/mb64_showrunner	actors/showrunner	relocated-root
+actor-root	actors/mb64_spooner	actors/spooner	relocated-root
+actor-root	actors/mb64_srball_1	actors/srball_1	relocated-root
+actor-root	actors/mb64_srball_2	actors/srball_2	relocated-root
+actor-root	actors/mb64_srspike	actors/srspike	relocated-root
+actor-root	actors/mb64_timedbox	actors/timedbox	relocated-root
+actor-root	actors/mb64_vanilla_exclamation_box	actors/vanilla_exclamation_box	relocated-root
+actor-root	actors/mb64_woodplat	actors/woodplat	relocated-root
+actor-root	actors/mb64_metalstar	actors/metalstar	relocated-root
+actor-root	actors/mb64_tree	actors/tree	tree-namespace
+extra-asset	actors/mb64_metalstar/custom_metalstartex.rgba16.png	actors/star/custom_metalstartex.rgba16.png	verbatim

@@ -3,12 +3,13 @@ AR     ?= ar
 CFLAGS += -Wall -Wextra -std=c11 -O2 -I.
 PYTHON ?= python3
 
-SRC    := mb64.c mb64_mesh.c
+SRC    := mb64.c mb64_mesh.c mb64_object_catalog.c
 OBJ    := $(SRC:.c=.o)
 LIB    := libmb64.a
 THEME_DATA := mb64_theme_data.generated.inc.c
 MESH_DATA := mb64_mesh_data.generated.inc.c
-TEST_BIN := test_mesh_parity
+OBJECT_CATALOG_DATA := mb64_object_catalog.generated.inc.c
+TEST_BINS := test_mesh_parity test_object_catalog
 
 .PHONY: all clean test
 
@@ -44,15 +45,35 @@ $(MESH_DATA): ../tools/gen_libmb64_mesh_data.py ../src/mb64/data.c ../src/mb64/b
 
 mb64_mesh.o: $(THEME_DATA) $(MESH_DATA) mb64_faceshapes.h mb64_tile_types.h
 
-$(TEST_BIN): tests/test_mesh_parity.c $(LIB) mb64.h mb64_object_types.h mb64_tile_types.h
+test_mesh_parity: tests/test_mesh_parity.c $(LIB) mb64.h mb64_object_types.h mb64_tile_types.h
 	@set -e; tmp="$@.tmp.$$$$"; \
 	trap 'rm -f "$$tmp"' EXIT INT TERM; \
 	$(CC) $(CFLAGS) tests/test_mesh_parity.c $(LIB) -o "$$tmp"; \
 	mv -f "$$tmp" "$@"; \
 	trap - EXIT INT TERM
 
-test: $(TEST_BIN)
-	./$(TEST_BIN)
+test_object_catalog: tests/test_object_catalog.c $(LIB) mb64_object_catalog.h
+	@set -e; tmp="$@.tmp.$$$$"; \
+	trap 'rm -f "$$tmp"' EXIT INT TERM; \
+	$(CC) $(CFLAGS) tests/test_object_catalog.c $(LIB) -o "$$tmp"; \
+	mv -f "$$tmp" "$@"; \
+	trap - EXIT INT TERM
+
+test: $(TEST_BINS)
+	./test_mesh_parity
+	./test_object_catalog
+
+$(OBJECT_CATALOG_DATA): ../tools/gen_libmb64_object_catalog.py ../src/mb64/data.c mb64_object_types.h
+	@set -e; tmp="$@.tmp.$$$$"; \
+	trap 'rm -f "$$tmp"' EXIT INT TERM; \
+	$(PYTHON) ../tools/gen_libmb64_object_catalog.py \
+		--data-c ../src/mb64/data.c \
+		--object-types-h mb64_object_types.h \
+		--out "$$tmp"; \
+	mv -f "$$tmp" "$@"; \
+	trap - EXIT INT TERM
+
+mb64_object_catalog.o: $(OBJECT_CATALOG_DATA) mb64_object_catalog.h mb64_object_types.h
 
 %.o: %.c mb64.h mb64_log.h
 	@set -e; tmp="$@.tmp.$$$$"; \
@@ -62,4 +83,4 @@ test: $(TEST_BIN)
 	trap - EXIT INT TERM
 
 clean:
-	rm -f $(OBJ) $(LIB) $(THEME_DATA) $(MESH_DATA) $(TEST_BIN)
+	rm -f $(OBJ) $(LIB) $(THEME_DATA) $(MESH_DATA) $(OBJECT_CATALOG_DATA) $(TEST_BINS)

@@ -147,6 +147,8 @@ def main() -> int:
         )
         for source_path in sorted(path for path in source_root.rglob("*") if path.suffix in suffixes):
             relative = source_path.relative_to(source_root)
+            if rule.kind == "actor-root" and not (args.coop_root / rule.destination / relative).exists():
+                continue
             export_file(
                 mb64_root,
                 args.coop_root,

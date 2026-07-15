@@ -1583,8 +1583,21 @@ static void verify_bully_helpers(void) {
                0);
     const mb64_bully_movement_config_t *smallConfig = mb64_bully_movement_config(MB64_BULLY_SIZE_SMALL);
     const mb64_bully_movement_config_t *bigConfig = mb64_bully_movement_config(MB64_BULLY_SIZE_BIG);
+    const mb64_object_hitbox_t *smallHitbox = mb64_bully_hitbox(MB64_BULLY_SIZE_SMALL);
+    const mb64_object_hitbox_t *bigHitbox = mb64_bully_hitbox(MB64_BULLY_SIZE_BIG);
+    const mb64_bully_death_config_t *smallDeath = mb64_bully_death_config(MB64_BULLY_SIZE_SMALL);
+    const mb64_bully_death_config_t *bigDeath = mb64_bully_death_config(MB64_BULLY_SIZE_BIG);
+    expect_int("small bully hitbox radius", smallHitbox->radius, 73);
+    expect_int("small bully hitbox height", smallHitbox->height, 123);
+    expect_int("big bully hitbox radius", bigHitbox->radius, 115);
+    expect_int("big bully hitbox height", bigHitbox->height, 235);
+    expect_int("big bully hurtbox radius", bigHitbox->hurtbox_radius, 105);
+    expect_int("big bully hurtbox height", bigHitbox->hurtbox_height, 225);
     expect_float("small bully wall radius", smallConfig->wall_hitbox_radius, 50.0f);
     expect_float("big bully wall radius", bigConfig->wall_hitbox_radius, 100.0f);
+    expect_float("bully kick numerator", bigConfig->kick_velocity_numerator, 3392.0f);
+    expect_float("big bully kick velocity", mb64_bully_kick_velocity(MB64_BULLY_SIZE_BIG),
+                 3392.0f / 115.0f);
     expect_float("bully gravity", bigConfig->gravity, -4.0f);
     expect_float("bully bounciness", bigConfig->bounciness, -0.5f);
     expect_float("bully drag", bigConfig->drag_strength, 10.0f);
@@ -1605,6 +1618,13 @@ static void verify_bully_helpers(void) {
                mb64_bully_back_up_should_end(15), 1);
     expect_int("bully backup remains recoverable after missed frame",
                mb64_bully_back_up_should_end(16), 1);
+    expect_float("small bully imbue drop height", smallDeath->imbue_drop_y_offset, 384.0f);
+    expect_float("big bully star ceiling clearance", bigDeath->star_ceiling_clearance, 75.0f);
+    expect_float("big bully drop home inset", bigDeath->nonstar_home_inset, 70.0f);
+    expect_int("small bully fallback coin", smallDeath->spawn_fallback_coin, 1);
+    expect_int("big bully no fallback coin", bigDeath->spawn_fallback_coin, 0);
+    expect_int("big bully death mist", bigDeath->spawn_mist, 1);
+    expect_int("MB64 bully suppresses vanilla star", bigDeath->spawn_default_star, 0);
 
     const mb64_wiggler_config_t *wigglerConfig = mb64_wiggler_config();
     expect_float("defeated Wiggler walking speed", wigglerConfig->defeated_walk_speed, 8.0f);

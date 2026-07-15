@@ -441,6 +441,7 @@ typedef struct {
 
 typedef struct {
     float wall_hitbox_radius;
+    float kick_velocity_numerator;
     float gravity;
     float bounciness;
     float drag_strength;
@@ -454,6 +455,17 @@ typedef struct {
     int knockback_recovery_frames;
     float midair_floor_delta;
 } mb64_bully_movement_config_t;
+
+typedef struct {
+    float imbue_drop_y_offset;
+    float star_ceiling_clearance;
+    float nonstar_home_inset;
+    float floor_probe_offset_y;
+    float floor_max_drop;
+    uint8_t spawn_mist;
+    uint8_t spawn_fallback_coin;
+    uint8_t spawn_default_star;
+} mb64_bully_death_config_t;
 
 typedef struct {
     float defeated_walk_speed;
@@ -1509,7 +1521,10 @@ uint8_t mb64_koopa_behavior_param_for_type(uint8_t object_type, uint8_t authored
 const mb64_bully_variant_t *mb64_bully_variant_for_type(uint8_t object_type);
 uint8_t mb64_object_type_is_bully_variant(uint8_t object_type);
 uint8_t mb64_object_type_is_boo_variant(uint8_t object_type);
+const mb64_object_hitbox_t *mb64_bully_hitbox(uint8_t size_param);
 const mb64_bully_movement_config_t *mb64_bully_movement_config(uint8_t size_param);
+const mb64_bully_death_config_t *mb64_bully_death_config(uint8_t size_param);
+float mb64_bully_kick_velocity(uint8_t size_param);
 uint8_t mb64_bully_back_up_should_end(int timer);
 const mb64_wiggler_config_t *mb64_wiggler_config(void);
 const mb64_exclamation_box_config_t *mb64_exclamation_box_config(void);

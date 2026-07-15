@@ -338,9 +338,33 @@ static const mb64_bully_variant_t s_bully_variants[] = {
     { MB64_OBJECT_TYPE_BIG_CHILL_BULLY, MB64_BULLY_SUBTYPE_CHILL, MB64_BULLY_SIZE_BIG, 1, 1 },
 };
 
+static const mb64_object_hitbox_t s_bully_hitboxes[] = {
+    {
+        1,   /* damageOrCoinValue */
+        0,   /* health */
+        0,   /* numLootCoins */
+        0,   /* downOffset */
+        73,  /* radius */
+        123, /* height */
+        63,  /* hurtboxRadius */
+        113, /* hurtboxHeight */
+    },
+    {
+        1,
+        0,
+        0,
+        0,
+        115,
+        235,
+        105,
+        225,
+    },
+};
+
 static const mb64_bully_movement_config_t s_bully_movement_configs[] = {
     {
         50.0f,  /* SET_OBJ_PHYSICS_DEFAULT wall radius */
+        3392.0f, /* kick velocity numerator */
         -4.0f,  /* SET_OBJ_PHYSICS_DEFAULT gravity */
         -0.5f,  /* SET_OBJ_PHYSICS_DEFAULT bounciness */
         10.0f,  /* SET_OBJ_PHYSICS_DEFAULT drag */
@@ -356,6 +380,7 @@ static const mb64_bully_movement_config_t s_bully_movement_configs[] = {
     },
     {
         100.0f, /* SET_OBJ_PHYSICS_DEFAULT wall radius */
+        3392.0f,
         -4.0f,
         -0.5f,
         10.0f,
@@ -368,6 +393,29 @@ static const mb64_bully_movement_config_t s_bully_movement_configs[] = {
         1.0f,
         18,
         4.0f,
+    },
+};
+
+static const mb64_bully_death_config_t s_bully_death_configs[] = {
+    {
+        384.0f, /* MB64_STAR_HEIGHT */
+        75.0f,  /* star ceiling clearance */
+        70.0f,  /* keep non-star drops away from the platform edge */
+        100.0f, /* floor probe above the authored home */
+        100.0f, /* do not move the drop home to a distant floor */
+        0,      /* small bully does not spawn death mist */
+        1,      /* unimbued small bully drops one coin */
+        0,      /* MB64 never uses the vanilla fixed-position star */
+    },
+    {
+        384.0f,
+        75.0f,
+        70.0f,
+        100.0f,
+        100.0f,
+        1,
+        0,
+        0,
     },
 };
 
@@ -1449,11 +1497,29 @@ uint8_t mb64_object_type_is_boo_variant(uint8_t object_type) {
            object_type == MB64_OBJECT_TYPE_BIG_BOO;
 }
 
+const mb64_object_hitbox_t *mb64_bully_hitbox(uint8_t size_param) {
+    return size_param == MB64_BULLY_SIZE_BIG
+        ? &s_bully_hitboxes[MB64_BULLY_SIZE_BIG]
+        : &s_bully_hitboxes[MB64_BULLY_SIZE_SMALL];
+}
+
 const mb64_bully_movement_config_t *mb64_bully_movement_config(uint8_t size_param) {
     if (size_param == MB64_BULLY_SIZE_BIG) {
         return &s_bully_movement_configs[MB64_BULLY_SIZE_BIG];
     }
     return &s_bully_movement_configs[MB64_BULLY_SIZE_SMALL];
+}
+
+const mb64_bully_death_config_t *mb64_bully_death_config(uint8_t size_param) {
+    return size_param == MB64_BULLY_SIZE_BIG
+        ? &s_bully_death_configs[MB64_BULLY_SIZE_BIG]
+        : &s_bully_death_configs[MB64_BULLY_SIZE_SMALL];
+}
+
+float mb64_bully_kick_velocity(uint8_t size_param) {
+    const mb64_object_hitbox_t *hitbox = mb64_bully_hitbox(size_param);
+    const mb64_bully_movement_config_t *movement = mb64_bully_movement_config(size_param);
+    return movement->kick_velocity_numerator / hitbox->radius;
 }
 
 uint8_t mb64_bully_back_up_should_end(int timer) {

@@ -295,10 +295,12 @@ typedef struct {
     float spawner_exclusion_distance;
     float spawner_max_distance;
     float spawner_spawn_odds;
+    float death_barrier_clearance;
     int yaw_approach_step;
     int spawner_period_minus_one;
     uint8_t minimum_waypoint_count;
     uint8_t hide_spawner;
+    uint8_t active_from_afar;
 } mb64_bowling_ball_config_t;
 
 typedef struct {
@@ -1505,8 +1507,17 @@ float mb64_thwomp_floor_probe_offset_y(void);
 uint8_t mb64_thwomp_should_die_on_death_barrier(uint8_t has_floor, uint8_t floor_is_death_plane,
                                                 float thwomp_y, float floor_y);
 const mb64_looping_platform_config_t *mb64_looping_platform_config(void);
+
+/**
+ * Return whether an MB64-authored path platform preserves its uniform object
+ * scale instead of applying the vanilla checkered-platform Y stretch.
+ */
+uint8_t mb64_platform_preserves_uniform_scale(uint8_t object_type);
 const mb64_bowling_ball_config_t *mb64_bowling_ball_config(void);
 float mb64_bowling_ball_clamped_forward_velocity(float forward_velocity);
+uint8_t mb64_bowling_ball_should_retire(uint8_t path_reached_end,
+                                        uint8_t hit_wall,
+                                        uint8_t left_playable_floor);
 const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void);
 const mb64_object_hitbox_t *mb64_bullet_bill_hitbox(void);
 uint8_t mb64_bullet_bill_should_wake(int angle_diff, float distance);

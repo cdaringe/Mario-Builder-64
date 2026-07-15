@@ -469,10 +469,12 @@ static const mb64_bowling_ball_config_t s_bowling_ball_config = {
     1000.0f, /* spawner_exclusion_distance */
     9000.0f, /* spawner_max_distance */
     1.0f,    /* spawner_spawn_odds */
+    100.0f,  /* death_barrier_clearance */
     0x400,   /* yaw_approach_step */
     127,     /* spawner_period_minus_one */
     2,       /* minimum_waypoint_count */
     1,       /* hide_spawner */
+    1,       /* active_from_afar: path children must reach a retirement condition */
 };
 
 static const mb64_bullet_bill_config_t s_bullet_bill_config = {
@@ -1322,6 +1324,11 @@ const mb64_looping_platform_config_t *mb64_looping_platform_config(void) {
     return &s_looping_platform_config;
 }
 
+uint8_t mb64_platform_preserves_uniform_scale(uint8_t object_type) {
+    return object_type == MB64_OBJECT_TYPE_PLATFORM_TRACK ||
+           object_type == MB64_OBJECT_TYPE_PLATFORM_LOOPING;
+}
+
 const mb64_bowling_ball_config_t *mb64_bowling_ball_config(void) {
     return &s_bowling_ball_config;
 }
@@ -1334,6 +1341,12 @@ float mb64_bowling_ball_clamped_forward_velocity(float forward_velocity) {
         return s_bowling_ball_config.maximum_forward_vel;
     }
     return forward_velocity;
+}
+
+uint8_t mb64_bowling_ball_should_retire(uint8_t path_reached_end,
+                                        uint8_t hit_wall,
+                                        uint8_t left_playable_floor) {
+    return path_reached_end || hit_wall || left_playable_floor;
 }
 
 const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void) {

@@ -22,6 +22,16 @@ enum mb64_object_occupancy {
     MB64_OBJECT_OCCUPY_FULL = MB64_OBJECT_OCCUPY_OUTER | MB64_OBJECT_OCCUPY_INNER,
 };
 
+/**
+ * Defines who owns the reward emitted when an object is defeated or broken.
+ * MB64 imbuable objects never inherit a reward from the host behavior: their
+ * authored imbue is the complete reward specification, including IMBUE_NONE.
+ */
+typedef enum {
+    MB64_OBJECT_REWARD_ENGINE_DEFAULT = 0,
+    MB64_OBJECT_REWARD_AUTHORED_IMBUE,
+} mb64_object_reward_policy_t;
+
 typedef struct {
     mb64_object_type_t type;
     const char *name;
@@ -36,6 +46,8 @@ typedef struct {
     uint8_t occupancy;
     uint8_t coin_count;
     uint8_t extra_object_count;
+    mb64_object_reward_policy_t reward_policy;
+    float reward_y_offset;
 } mb64_object_spec_t;
 
 const mb64_object_spec_t *mb64_object_catalog_get(unsigned int type);

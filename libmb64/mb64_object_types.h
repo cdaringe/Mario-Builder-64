@@ -130,6 +130,7 @@ typedef enum {
     MB64_CHILD_MODEL_SPARKLES_ANIMATION,
     MB64_CHILD_MODEL_SPARKLES,
     MB64_CHILD_MODEL_RED_FLAME_SHADOW,
+    MB64_CHILD_MODEL_DIRT_ANIMATION,
 } mb64_child_model_t;
 
 typedef struct {
@@ -156,6 +157,7 @@ static inline const char *mb64_child_model_name(mb64_child_model_t model) {
         case MB64_CHILD_MODEL_SPARKLES_ANIMATION: return "sparkles_animation";
         case MB64_CHILD_MODEL_SPARKLES: return "sparkles";
         case MB64_CHILD_MODEL_RED_FLAME_SHADOW: return "red_flame_shadow";
+        case MB64_CHILD_MODEL_DIRT_ANIMATION: return "dirt_animation";
         case MB64_CHILD_MODEL_NONE:
         default: return "none";
     }
@@ -309,6 +311,7 @@ mb64_object_runtime_effect_model_dependency(unsigned char index) {
         { MB64_CHILD_MODEL_MIST, 1 },
         { MB64_CHILD_MODEL_TRANSPARENT_STAR, 1 },
         { MB64_CHILD_MODEL_SMOKE, 1 },
+        { MB64_CHILD_MODEL_DIRT_ANIMATION, 1 },
     };
     const unsigned char count = sizeof(dependencies) / sizeof(dependencies[0]);
     return index < count ? &dependencies[index] : 0;

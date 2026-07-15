@@ -1221,6 +1221,25 @@ static void verify_looping_platform_helpers(void) {
     expect_int("looping platform immediate activation", config->activates_immediately, 1);
     expect_int("looping platform returns to start", config->returns_to_start, 1);
     expect_int("looping platform does not disappear", config->does_not_disappear, 1);
+    expect_int("activated path platform preserves uniform scale",
+               mb64_platform_preserves_uniform_scale(MB64_OBJECT_TYPE_PLATFORM_TRACK), 1);
+    expect_int("looping path platform preserves uniform scale",
+               mb64_platform_preserves_uniform_scale(MB64_OBJECT_TYPE_PLATFORM_LOOPING), 1);
+    expect_int("unrelated object keeps host scale policy",
+               mb64_platform_preserves_uniform_scale(MB64_OBJECT_TYPE_GOOMBA), 0);
+}
+
+static void verify_bowling_ball_retirement(void) {
+    expect_int("bowling ball remains active until retirement",
+               mb64_bowling_ball_config()->active_from_afar, 1);
+    expect_int("bowling ball continues while on path",
+               mb64_bowling_ball_should_retire(0, 0, 0), 0);
+    expect_int("bowling ball retires at path end",
+               mb64_bowling_ball_should_retire(1, 0, 0), 1);
+    expect_int("bowling ball retires on wall impact",
+               mb64_bowling_ball_should_retire(0, 1, 0), 1);
+    expect_int("bowling ball retires after leaving playable floor",
+               mb64_bowling_ball_should_retire(0, 0, 1), 1);
 }
 
 static void verify_reinforced_box_helpers(void) {
@@ -1258,6 +1277,15 @@ static void verify_breakable_box_helpers(void) {
     expect_int("breakable box fragment lifetime", config->fragment_lifetime_frames, 18);
     expect_int("breakable box fragment model", config->fragment_model,
                MB64_BREAK_FRAGMENT_MODEL_DIRT_ANIMATION);
+    unsigned char runtimeDependency = 0;
+    int foundDirtAnimation = 0;
+    const mb64_child_model_dependency_t *dependency;
+    while ((dependency = mb64_object_runtime_effect_model_dependency(runtimeDependency++)) != NULL) {
+        if (dependency->model == MB64_CHILD_MODEL_DIRT_ANIMATION) {
+            foundDirtAnimation = dependency->runtime_spawn;
+        }
+    }
+    expect_int("breakable box fragment runtime model dependency", foundDirtAnimation, 1);
     expect_float("breakable box fragment minimum vertical velocity",
                  mb64_breakable_box_fragment_vertical_velocity(0.0f), -25.0f);
     expect_float("breakable box fragment maximum vertical velocity",
@@ -2009,8 +2037,11 @@ static void verify_child_model_dependencies(void) {
     expect_int("generic death smoke dependency",
                mb64_object_runtime_effect_model_dependency(4)->model,
                MB64_CHILD_MODEL_SMOKE);
+    expect_int("generic break fragment dependency",
+               mb64_object_runtime_effect_model_dependency(5)->model,
+               MB64_CHILD_MODEL_DIRT_ANIMATION);
     expect_int("generic runtime effect dependency count",
-               mb64_object_runtime_effect_model_dependency(5) == NULL,
+               mb64_object_runtime_effect_model_dependency(6) == NULL,
                1);
     expect_string("bowling ball dependency diagnostic name",
                   mb64_child_model_name(MB64_CHILD_MODEL_BOWLING_BALL),
@@ -2027,6 +2058,9 @@ static void verify_child_model_dependencies(void) {
     expect_string("fire spitter dependency diagnostic name",
                   mb64_child_model_name(MB64_CHILD_MODEL_RED_FLAME_SHADOW),
                   "red_flame_shadow");
+    expect_string("break fragment dependency diagnostic name",
+                  mb64_child_model_name(MB64_CHILD_MODEL_DIRT_ANIMATION),
+                  "dirt_animation");
     expect_string("unknown dependency diagnostic name",
                   mb64_child_model_name((mb64_child_model_t)99),
                   "none");
@@ -2569,6 +2603,7 @@ int main(void) {
     verify_ledge_grab_helpers();
     verify_woodplat_helpers();
     verify_looping_platform_helpers();
+    verify_bowling_ball_retirement();
     verify_breakable_box_helpers();
     verify_flamethrower_helpers();
     verify_reinforced_box_helpers();

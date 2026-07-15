@@ -30,6 +30,15 @@ OCCUPANCY_VALUES = {
     "OBJ_OCCUPY_FULL": (1 << 0) | (1 << 1),
 }
 
+# Most MB64 behaviors use MB64_STAR_HEIGHT when releasing an imbue. Keep the
+# behavior-specific exceptions here so every host consumes the same authored
+# reward placement instead of rediscovering it from native behavior code.
+DEFAULT_REWARD_Y_OFFSET = 384.0
+REWARD_Y_OFFSET_OVERRIDES = {
+    "MB64_OBJECT_TYPE_BOO": 256.0,
+    "MB64_OBJECT_TYPE_BIG_BOO": 128.0,
+}
+
 
 def split_fields(text: str) -> list[str]:
     fields: list[str] = []
@@ -134,6 +143,14 @@ def generate(data_c: Path, object_types_h: Path) -> str:
         name = json.loads(fields[0])
         flags = parse_or_expression(fields[5], FLAG_VALUES)
         occupancy = parse_or_expression(fields[6], OCCUPANCY_VALUES)
+        reward_policy = (
+            "MB64_OBJECT_REWARD_AUTHORED_IMBUE"
+            if flags & FLAG_VALUES["OBJ_TYPE_IMBUABLE"]
+            else "MB64_OBJECT_REWARD_ENGINE_DEFAULT"
+        )
+        reward_y_offset = REWARD_Y_OFFSET_OVERRIDES.get(
+            type_name, DEFAULT_REWARD_Y_OFFSET
+        )
         output.extend([
             f"    [{type_name}] = {{",
             f"        {type_name}, {json.dumps(name)},",
@@ -143,7 +160,8 @@ def generate(data_c: Path, object_types_h: Path) -> str:
             f"        {json.dumps(token_string(fields[11]))},",
             f"        {json.dumps(token_string(fields[12]))},",
             f"        {parse_y_offset(fields[3]):.6f}f, {float(fields[9].rstrip('f')):.6f}f,",
-            f"        {flags}, {occupancy}, {int(fields[7])}, {int(fields[8])}",
+            f"        {flags}, {occupancy}, {int(fields[7])}, {int(fields[8])},",
+            f"        {reward_policy}, {reward_y_offset:.6f}f",
             "    },",
         ])
     output.extend(["};", ""])

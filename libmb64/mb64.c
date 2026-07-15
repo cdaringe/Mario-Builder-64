@@ -670,6 +670,12 @@ static const mb64_floor_switch_config_t s_floor_switch_config = {
     127.5f, /* press_radius */
 };
 
+static const mb64_timed_block_config_t s_timed_block_config = {
+    128.0f, /* collision_distance */
+    257.0f, /* collision_top_y */
+    1,      /* exact_tile_size */
+};
+
 static const mb64_noteblock_config_t s_noteblock_config = {
     5000,                                        /* graph_angle_step */
     0x100,                                       /* min_health */
@@ -1556,6 +1562,10 @@ const mb64_floor_switch_config_t *mb64_floor_switch_config(void) {
     return &s_floor_switch_config;
 }
 
+const mb64_timed_block_config_t *mb64_timed_block_config(void) {
+    return &s_timed_block_config;
+}
+
 int mb64_floor_switch_hidden_box_timer(uint8_t double_time_equipped) {
     return double_time_equipped ? s_floor_switch_config.double_time_timer_frames :
         s_floor_switch_config.timer_frames;
@@ -1584,18 +1594,23 @@ uint8_t mb64_hidden_box_should_blink(int hidden_box_timer) {
         (hidden_box_timer & 1);
 }
 
+mb64_timed_block_state_t mb64_timed_block_state(int hidden_box_timer) {
+    mb64_timed_block_state_t state;
+    state.collision_enabled = hidden_box_timer <= 0;
+    state.visual = hidden_box_timer <= 0 ||
+            (hidden_box_timer < s_floor_switch_config.hidden_box_blink_frames &&
+             (hidden_box_timer & 1))
+        ? MB64_TIMED_BLOCK_VISUAL_SOLID
+        : MB64_TIMED_BLOCK_VISUAL_HOLLOW;
+    return state;
+}
+
 uint8_t mb64_timed_block_is_solid(int hidden_box_timer) {
-    return hidden_box_timer <= 0;
+    return mb64_timed_block_state(hidden_box_timer).collision_enabled;
 }
 
 uint8_t mb64_timed_block_show_on_model(int hidden_box_timer) {
-    if (hidden_box_timer <= 0) {
-        return 1;
-    }
-    if (hidden_box_timer < s_floor_switch_config.hidden_box_blink_frames) {
-        return (uint8_t)(hidden_box_timer & 1);
-    }
-    return 0;
+    return mb64_timed_block_state(hidden_box_timer).visual == MB64_TIMED_BLOCK_VISUAL_SOLID;
 }
 
 uint8_t mb64_conveyor_shape(uint8_t bparam) {

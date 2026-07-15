@@ -1713,8 +1713,20 @@ static void verify_floor_switch_helpers(void) {
     expect_int("hidden box no blink on even final frames", mb64_hidden_box_should_blink(38), 0);
     expect_int("hidden box no blink before final window", mb64_hidden_box_should_blink(40), 0);
     expect_int("hidden box no blink when inactive", mb64_hidden_box_should_blink(0), 0);
+    const mb64_timed_block_config_t *timed_block = mb64_timed_block_config();
+    expect_float("timed block collision distance", timed_block->collision_distance, 128.0f);
+    expect_float("timed block collision top", timed_block->collision_top_y, 257.0f);
+    expect_int("timed block exact tile size", timed_block->exact_tile_size, 1);
     expect_int("timed block solid when timer inactive", mb64_timed_block_is_solid(0), 1);
     expect_int("timed block not solid when timer active", mb64_timed_block_is_solid(400), 0);
+    expect_int("timed block inactive visual is solid",
+        mb64_timed_block_state(0).visual, MB64_TIMED_BLOCK_VISUAL_SOLID);
+    expect_int("timed block active visual is hollow",
+        mb64_timed_block_state(400).visual, MB64_TIMED_BLOCK_VISUAL_HOLLOW);
+    expect_int("timed block final odd blink is solid",
+        mb64_timed_block_state(39).visual, MB64_TIMED_BLOCK_VISUAL_SOLID);
+    expect_int("timed block final even blink is hollow",
+        mb64_timed_block_state(38).visual, MB64_TIMED_BLOCK_VISUAL_HOLLOW);
     expect_int("timed block shows on model when timer inactive", mb64_timed_block_show_on_model(0), 1);
     expect_int("timed block shows off model before blink window", mb64_timed_block_show_on_model(40), 0);
     expect_int("timed block blinks on model on odd final frames", mb64_timed_block_show_on_model(39), 1);

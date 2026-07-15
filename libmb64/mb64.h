@@ -549,6 +549,22 @@ typedef struct {
     float press_radius;
 } mb64_floor_switch_config_t;
 
+typedef enum {
+    MB64_TIMED_BLOCK_VISUAL_HOLLOW,
+    MB64_TIMED_BLOCK_VISUAL_SOLID,
+} mb64_timed_block_visual_t;
+
+typedef struct {
+    float collision_distance;
+    float collision_top_y;
+    uint8_t exact_tile_size;
+} mb64_timed_block_config_t;
+
+typedef struct {
+    mb64_timed_block_visual_t visual;
+    uint8_t collision_enabled;
+} mb64_timed_block_state_t;
+
 typedef struct {
     int graph_angle_step;
     int min_health;
@@ -1532,12 +1548,14 @@ const mb64_exclamation_box_content_t *mb64_exclamation_box_content(uint8_t game,
 uint8_t mb64_exclamation_box_should_explode(int timer);
 uint8_t mb64_exclamation_box_should_respawn(int timer);
 const mb64_floor_switch_config_t *mb64_floor_switch_config(void);
+const mb64_timed_block_config_t *mb64_timed_block_config(void);
 int mb64_floor_switch_hidden_box_timer(uint8_t double_time_equipped);
 int mb64_floor_switch_fast_tick_threshold(uint8_t double_time_equipped);
 uint8_t mb64_floor_switch_should_press(float lateral_distance);
 uint8_t mb64_floor_switch_scale_done(int timer);
 uint8_t mb64_floor_switch_should_timeout(int timer, uint8_t double_time_equipped);
 uint8_t mb64_hidden_box_should_blink(int hidden_box_timer);
+mb64_timed_block_state_t mb64_timed_block_state(int hidden_box_timer);
 uint8_t mb64_timed_block_is_solid(int hidden_box_timer);
 uint8_t mb64_timed_block_show_on_model(int hidden_box_timer);
 uint8_t mb64_conveyor_shape(uint8_t bparam);

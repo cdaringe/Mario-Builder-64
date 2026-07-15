@@ -322,12 +322,12 @@ static void verify_shared_surface_semantics(void) {
 
 static void verify_star_count_helpers(void) {
     mb64_level_t level;
-    mb64_obj_t objects[5];
+    mb64_obj_t objects[7];
 
     memset(&level, 0, sizeof(level));
     memset(objects, 0, sizeof(objects));
     level.header.coinstar = 1;
-    level.header.object_count = 5;
+    level.header.object_count = 7;
     level.objects = objects;
     objects[0].type = MB64_OBJECT_TYPE_STAR;
     objects[1].type = MB64_OBJECT_TYPE_RED_COIN_STAR;
@@ -335,10 +335,17 @@ static void verify_star_count_helpers(void) {
     objects[3].type = MB64_OBJECT_TYPE_GOOMBA;
     objects[3].imbue = MB64_IMBUE_STAR;
     objects[4].type = MB64_OBJECT_TYPE_GOOMBA;
+    objects[5].type = MB64_OBJECT_TYPE_RED_COIN;
+    objects[6].type = MB64_OBJECT_TYPE_GOOMBA;
+    objects[6].imbue = MB64_IMBUE_RED_COIN;
 
     expect_int("star object counts", mb64_object_counts_as_star(&objects[0]), 1);
     expect_int("non-star object ignored", mb64_object_counts_as_star(&objects[4]), 0);
     expect_int("level play star count includes coinstar", (int)mb64_level_play_star_count(&level), 5);
+    expect_int("direct red coin counts", mb64_object_counts_as_red_coin(&objects[5]), 1);
+    expect_int("imbued red coin counts", mb64_object_counts_as_red_coin(&objects[6]), 1);
+    expect_int("non-red object ignored", mb64_object_counts_as_red_coin(&objects[4]), 0);
+    expect_int("level red coin count includes imbues", (int)mb64_level_red_coin_count(&level), 2);
 }
 
 static void verify_shaped_tile_rotation(uint8_t type, uint8_t rot) {

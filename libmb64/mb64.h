@@ -1410,6 +1410,8 @@ int mb64_find_water_query_surface(const mb64_level_t *level,
 const mb64_theme_special_t *mb64_theme_specials_for_level(const mb64_level_t *level);
 uint8_t mb64_object_counts_as_star(const mb64_obj_t *object);
 uint32_t mb64_level_play_star_count(const mb64_level_t *level);
+uint8_t mb64_object_counts_as_red_coin(const mb64_obj_t *object);
+uint32_t mb64_level_red_coin_count(const mb64_level_t *level);
 const mb64_dialog_descriptor_t *mb64_dialog_descriptor_for_selector(uint8_t selector);
 uint8_t mb64_object_type_uses_dialog_selector(uint8_t object_type);
 

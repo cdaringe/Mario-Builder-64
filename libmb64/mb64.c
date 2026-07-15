@@ -513,6 +513,26 @@ uint32_t mb64_level_play_star_count(const mb64_level_t *level) {
     return count;
 }
 
+uint8_t mb64_object_counts_as_red_coin(const mb64_obj_t *object) {
+    if (object == NULL) {
+        return 0;
+    }
+    return object->type == MB64_OBJECT_TYPE_RED_COIN ||
+           object->imbue == MB64_IMBUE_RED_COIN;
+}
+
+uint32_t mb64_level_red_coin_count(const mb64_level_t *level) {
+    if (level == NULL || level->objects == NULL) {
+        return 0;
+    }
+
+    uint32_t count = 0;
+    for (uint32_t i = 0; i < level->header.object_count; i++) {
+        count += mb64_object_counts_as_red_coin(&level->objects[i]);
+    }
+    return count;
+}
+
 static const mb64_reinforced_box_config_t s_reinforced_box_config = {
     46.0f, /* break_coin_radius */
     6.0f,  /* shake_amplitude */

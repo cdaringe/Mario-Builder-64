@@ -1349,6 +1349,20 @@ uint8_t mb64_bowling_ball_should_retire(uint8_t path_reached_end,
     return path_reached_end || hit_wall || left_playable_floor;
 }
 
+int mb64_path_follow_status_xz(float previous_x, float previous_z,
+                               float target_x, float target_z,
+                               float object_x, float object_z,
+                               uint8_t target_is_last) {
+    const float segment_x = target_x - previous_x;
+    const float segment_z = target_z - previous_z;
+    const float remaining_x = target_x - object_x;
+    const float remaining_z = target_z - object_z;
+    if (segment_x * remaining_x + segment_z * remaining_z > 0.0f) {
+        return MB64_PATH_NONE;
+    }
+    return target_is_last ? MB64_PATH_REACHED_END : MB64_PATH_REACHED_WAYPOINT;
+}
+
 const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void) {
     return &s_bullet_bill_config;
 }

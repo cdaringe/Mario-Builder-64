@@ -1240,6 +1240,12 @@ static void verify_bowling_ball_retirement(void) {
                mb64_bowling_ball_should_retire(0, 1, 0), 1);
     expect_int("bowling ball retires after leaving playable floor",
                mb64_bowling_ball_should_retire(0, 0, 1), 1);
+    expect_int("path ignores vertical separation before waypoint",
+               mb64_path_follow_status_xz(0, 0, 100, 0, 25, 0, 1), MB64_PATH_NONE);
+    expect_int("path reaches terminal waypoint in horizontal plane",
+               mb64_path_follow_status_xz(0, 0, 100, 0, 125, 0, 1), MB64_PATH_REACHED_END);
+    expect_int("path reaches nonterminal waypoint in horizontal plane",
+               mb64_path_follow_status_xz(0, 0, 100, 0, 100, 0, 0), MB64_PATH_REACHED_WAYPOINT);
 }
 
 static void verify_reinforced_box_helpers(void) {

@@ -303,6 +303,12 @@ typedef struct {
     uint8_t active_from_afar;
 } mb64_bowling_ball_config_t;
 
+enum mb64_path_follow_status {
+    MB64_PATH_NONE = 0,
+    MB64_PATH_REACHED_WAYPOINT = 1,
+    MB64_PATH_REACHED_END = -1,
+};
+
 typedef struct {
     float cannon_collision_distance;
     float wake_min_distance;
@@ -1518,6 +1524,10 @@ float mb64_bowling_ball_clamped_forward_velocity(float forward_velocity);
 uint8_t mb64_bowling_ball_should_retire(uint8_t path_reached_end,
                                         uint8_t hit_wall,
                                         uint8_t left_playable_floor);
+int mb64_path_follow_status_xz(float previous_x, float previous_z,
+                               float target_x, float target_z,
+                               float object_x, float object_z,
+                               uint8_t target_is_last);
 const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void);
 const mb64_object_hitbox_t *mb64_bullet_bill_hitbox(void);
 uint8_t mb64_bullet_bill_should_wake(int angle_diff, float distance);

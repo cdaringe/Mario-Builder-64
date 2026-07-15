@@ -4,13 +4,22 @@ actor-root	actors/badge		verbatim
 actor-root	actors/Hammerbro		verbatim
 actor-root	actors/billmask		verbatim
 actor-root	actors/blaster		verbatim
+actor-root	actors/bully		verbatim
 actor-root	actors/chicken		verbatim
 actor-root	actors/cobie2		verbatim
+actor-root	actors/conveyor		verbatim
+actor-root	actors/conveyor_dslope		verbatim
+actor-root	actors/conveyor_half		verbatim
+actor-root	actors/conveyor_slope		verbatim
 actor-root	actors/crab		verbatim
+actor-root	actors/crab_anims		verbatim
 actor-root	actors/crowbar		verbatim
+actor-root	actors/fatplat		verbatim
+actor-root	actors/flyguy		verbatim
 actor-root	actors/gooner		verbatim
 actor-root	actors/hammer		verbatim
 actor-root	actors/imbuet		verbatim
+actor-root	actors/loopingp		verbatim
 actor-root	actors/maker		verbatim
 actor-root	actors/mb64_coin	actors/coin	renamed-root
 actor-root	actors/mb64_penguin	actors/penguin	renamed-root
@@ -18,14 +27,23 @@ actor-root	actors/mb64_toad	actors/toad	renamed-root
 actor-root	actors/mb64_ukiki	actors/ukiki	renamed-root
 actor-root	actors/moleman3		verbatim
 actor-root	actors/motos		verbatim
+actor-root	actors/noteblock		verbatim
 actor-root	actors/onoffblock		verbatim
 actor-root	actors/onoffblock1		verbatim
 actor-root	actors/onoffblock2		verbatim
 actor-root	actors/onoffbutton		verbatim
 actor-root	actors/onoffswitch		verbatim
+actor-root	actors/podoboo		verbatim
+actor-root	actors/rfbox		verbatim
 actor-root	actors/showrunner		verbatim
+actor-root	actors/spooner		verbatim
 actor-root	actors/srball_1		verbatim
 actor-root	actors/srball_2		verbatim
 actor-root	actors/srspike		verbatim
+actor-root	actors/timedbox		verbatim
+actor-root	actors/vanilla_exclamation_box		verbatim
+actor-root	actors/woodplat		verbatim
 actor-root	actors/metalstar		verbatim
+texture-root	actors/mb64_pokey	actors/pokey	renamed-root
+texture-root	actors/mb64_tree	actors/tree	renamed-root
 extra-asset	actors/metalstar/custom_metalstartex.rgba16.png	actors/star/custom_metalstartex.rgba16.png	verbatim

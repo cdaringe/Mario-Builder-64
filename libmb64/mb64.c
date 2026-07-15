@@ -410,6 +410,23 @@ static const mb64_looping_platform_config_t s_looping_platform_config = {
     1,     /* does_not_disappear */
 };
 
+static const mb64_bowling_ball_config_t s_bowling_ball_config = {
+    4.0f,    /* MB64_GRAVITY_DEFAULT_STEP */
+    1.0f,    /* friction */
+    1.4f,    /* MB64_BUOYANCY_DEFAULT_STEP */
+    100.0f,  /* wall_hitbox_radius */
+    18.0f,   /* initial_forward_vel */
+    18.0f,   /* minimum_forward_vel */
+    70.0f,   /* maximum_forward_vel */
+    1000.0f, /* spawner_exclusion_distance */
+    9000.0f, /* spawner_max_distance */
+    1.0f,    /* spawner_spawn_odds */
+    0x400,   /* yaw_approach_step */
+    127,     /* spawner_period_minus_one */
+    2,       /* minimum_waypoint_count */
+    1,       /* hide_spawner */
+};
+
 static const mb64_bullet_bill_config_t s_bullet_bill_config = {
     128.0f,  /* cannon_collision_distance */
     400.0f,  /* wake_min_distance */
@@ -1249,6 +1266,20 @@ uint8_t mb64_thwomp_should_die_on_death_barrier(uint8_t has_floor, uint8_t floor
 
 const mb64_looping_platform_config_t *mb64_looping_platform_config(void) {
     return &s_looping_platform_config;
+}
+
+const mb64_bowling_ball_config_t *mb64_bowling_ball_config(void) {
+    return &s_bowling_ball_config;
+}
+
+float mb64_bowling_ball_clamped_forward_velocity(float forward_velocity) {
+    if (forward_velocity < s_bowling_ball_config.minimum_forward_vel) {
+        return s_bowling_ball_config.minimum_forward_vel;
+    }
+    if (forward_velocity > s_bowling_ball_config.maximum_forward_vel) {
+        return s_bowling_ball_config.maximum_forward_vel;
+    }
+    return forward_velocity;
 }
 
 const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void) {

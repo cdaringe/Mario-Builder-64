@@ -285,6 +285,23 @@ typedef struct {
 } mb64_looping_platform_config_t;
 
 typedef struct {
+    float gravity;
+    float friction;
+    float buoyancy;
+    float wall_hitbox_radius;
+    float initial_forward_vel;
+    float minimum_forward_vel;
+    float maximum_forward_vel;
+    float spawner_exclusion_distance;
+    float spawner_max_distance;
+    float spawner_spawn_odds;
+    int yaw_approach_step;
+    int spawner_period_minus_one;
+    uint8_t minimum_waypoint_count;
+    uint8_t hide_spawner;
+} mb64_bowling_ball_config_t;
+
+typedef struct {
     float cannon_collision_distance;
     float wake_min_distance;
     float wake_max_distance;
@@ -1460,6 +1477,8 @@ float mb64_thwomp_floor_probe_offset_y(void);
 uint8_t mb64_thwomp_should_die_on_death_barrier(uint8_t has_floor, uint8_t floor_is_death_plane,
                                                 float thwomp_y, float floor_y);
 const mb64_looping_platform_config_t *mb64_looping_platform_config(void);
+const mb64_bowling_ball_config_t *mb64_bowling_ball_config(void);
+float mb64_bowling_ball_clamped_forward_velocity(float forward_velocity);
 const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void);
 const mb64_object_hitbox_t *mb64_bullet_bill_hitbox(void);
 uint8_t mb64_bullet_bill_should_wake(int angle_diff, float distance);

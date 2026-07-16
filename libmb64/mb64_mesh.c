@@ -130,6 +130,7 @@ static void emit_base_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
                                  const mb64_tile_t *t,
                                  const mb64_shape_face_geometry_t *src,
                                  const mb64_shape_face_uv_t *uv,
+                                 uint8_t growth_type,
                                  int collision_mesh);
 
 #define Q(dir, faceshape, growth, has_alt, alt, ...) { { { __VA_ARGS__ }, dir, faceshape, 4 }, growth, { has_alt, alt } }
@@ -210,6 +211,51 @@ static uint8_t mb64_material_vertical(uint8_t material) {
         return s_material_verticals[material];
     }
     return 0;
+}
+
+static uint8_t top_side_texture_material(uint8_t material) {
+    switch (material) {
+        case MB64_MAT_GRASS:
+        case MB64_MAT_SAND:
+        case MB64_MAT_SNOW:
+        case MB64_MAT_TILES:
+        case MB64_MAT_C_STONETOP:
+        case MB64_MAT_HMC_GRASS:
+        case MB64_MAT_BBH_METAL:
+        case MB64_MAT_BBH_STONE:
+        case MB64_MAT_JRB_TILETOP:
+        case MB64_MAT_SNOW_TILES:
+        case MB64_MAT_FLOWERS:
+        case MB64_MAT_RETRO_TREETOP:
+        case MB64_MAT_MC_GRASS:
+        case MB64_MAT_LAVA_ROCKS:
+        case MB64_MAT_DARK_GRASS:
+        case MB64_MAT_CARTOON_GRASS:
+        case MB64_MAT_ORANGE_GRASS:
+        case MB64_MAT_RED_GRASS:
+        case MB64_MAT_PURPLE_GRASS:
+            return material;
+        default:
+            return UINT8_MAX;
+    }
+}
+
+static void assign_top_side_material(const mb64_level_t *level,
+                                     const mb64_tile_t *tile,
+                                     mb64_mesh_face_t *face) {
+    face->top_side_material = UINT8_MAX;
+    if (face->growth_type == MB64_GROWTH_NONE ||
+        face->growth_type == MB64_GROWTH_FULL ||
+        face->direction == MB64_MESH_FACE_TOP ||
+        face->direction == MB64_MESH_FACE_BOTTOM ||
+        solid_at(tile->x, (int)tile->y + 1, tile->z)) {
+        return;
+    }
+    const uint8_t side = mb64_resolve_tile_material(level, tile, 0);
+    const uint8_t top = mb64_resolve_tile_material(level, tile, 1);
+    if (top != side) {
+        face->top_side_material = top_side_texture_material(top);
+    }
 }
 
 static int tile_is_solid(const mb64_tile_t *t) {
@@ -1105,6 +1151,10 @@ static void emit_face(mb64_mesh_t *mesh, uint32_t *idx,
     face->tile_x = t->x;
     face->tile_y = t->y;
     face->tile_z = t->z;
+    face->growth_type = direction == MB64_MESH_FACE_TOP
+        ? MB64_GROWTH_FULL
+        : (direction == MB64_MESH_FACE_BOTTOM ? MB64_GROWTH_NONE : MB64_GROWTH_NORMAL_SIDE);
+    assign_top_side_material(level, t, face);
     if (!is_water) {
         int16_t local[4][3];
         int16_t x0, x1, y0, y1, z0, z1;
@@ -1323,10 +1373,13 @@ static int shape_face_is_occluded(const mb64_level_t *level,
     if (boundary_occludes_face_neighbor(level, t, direction, ax, ay, az)) {
         return 1;
     }
+    const mb64_tile_t *adj = tile_at(ax, ay, az);
+    if (adj != NULL && adj->type == TILE_TYPE_CULL) {
+        return 1;
+    }
     if (!solid_at(ax, ay, az)) {
         return 0;
     }
-    const mb64_tile_t *adj = tile_at(ax, ay, az);
     if (mb64_cutout_skip_culling_check(level, t, adj, direction)) {
         return 0;
     }
@@ -1399,10 +1452,14 @@ static int full_face_is_occluded(const mb64_level_t *level,
     if (boundary_occludes_face_neighbor(level, t, direction, nx, ny, nz)) {
         return 1;
     }
+    const mb64_tile_t *adj = tile_at(nx, ny, nz);
+    if (adj != NULL && adj->type == TILE_TYPE_CULL) {
+        return 1;
+    }
     if (!solid_at(nx, ny, nz)) {
         return 0;
     }
-    if (!mb64_tile_occludes_face(level, t, tile_at(nx, ny, nz), direction)) {
+    if (!mb64_tile_occludes_face(level, t, adj, direction)) {
         return 0;
     }
     return faceshape_at(nx, ny, nz, direction, collision_mesh) == MB64_FACESHAPE_FULL;
@@ -1462,6 +1519,7 @@ static void emit_base_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
                                  const mb64_tile_t *t,
                                  const mb64_shape_face_geometry_t *src,
                                  const mb64_shape_face_uv_t *uv,
+                                 uint8_t growth_type,
                                  int collision_mesh) {
     int16_t p[4][3];
     int16_t local[4][3];
@@ -1496,6 +1554,8 @@ static void emit_base_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     face->tile_x = t->x;
     face->tile_y = t->y;
     face->tile_z = t->z;
+    face->growth_type = growth_type;
+    assign_top_side_material(level, t, face);
     if (t->type == TILE_TYPE_FENCE) {
         assign_fence_texture_coordinates(face, t, direction);
     } else {
@@ -1833,9 +1893,11 @@ static void emit_bars_faces(mb64_mesh_t *mesh,
         if (BAR_CONNECTED_SIDE(connections[rot])) {
             emit_base_shape_face(mesh, idx, level, &rotated,
                                  &shape->faces[1].geometry, &shape->faces[1].uv,
+                                 shape->faces[1].growth_type,
                                  collision_mesh);
             emit_base_shape_face(mesh, idx, level, &rotated,
                                  &shape->faces[2].geometry, &shape->faces[2].uv,
+                                 shape->faces[2].growth_type,
                                  collision_mesh);
         }
         if (!BAR_CONNECTED_SIDE(connections[rot]) ||
@@ -1843,6 +1905,7 @@ static void emit_bars_faces(mb64_mesh_t *mesh,
              BAR_CONNECTED_SIDE(connections[right_rot]))) {
             emit_base_shape_face(mesh, idx, level, &rotated,
                                  &shape->faces[0].geometry, &shape->faces[0].uv,
+                                 shape->faces[0].growth_type,
                                  collision_mesh);
         }
     }
@@ -1853,11 +1916,13 @@ static void emit_bars_faces(mb64_mesh_t *mesh,
             if (!BAR_CONNECTED_TOP(connections[rot])) {
                 emit_base_shape_face(mesh, idx, level, &rotated,
                                      &shape->faces[3].geometry, &shape->faces[3].uv,
+                                     shape->faces[3].growth_type,
                                      collision_mesh);
             }
             if (!BAR_CONNECTED_BOTTOM(connections[rot])) {
                 emit_base_shape_face(mesh, idx, level, &rotated,
                                      &shape->faces[4].geometry, &shape->faces[4].uv,
+                                     shape->faces[4].growth_type,
                                      collision_mesh);
             }
         }
@@ -1865,11 +1930,13 @@ static void emit_bars_faces(mb64_mesh_t *mesh,
     if (!BAR_CONNECTED_TOP(connections[4])) {
         emit_base_shape_face(mesh, idx, level, t,
                              &shape->faces[5].geometry, &shape->faces[5].uv,
+                             shape->faces[5].growth_type,
                              collision_mesh);
     }
     if (!BAR_CONNECTED_BOTTOM(connections[4])) {
         emit_base_shape_face(mesh, idx, level, t,
                              &shape->faces[6].geometry, &shape->faces[6].uv,
+                             shape->faces[6].growth_type,
                              collision_mesh);
     }
 }
@@ -1900,6 +1967,7 @@ static void emit_terrain_faces_for_tile(mb64_mesh_t *mesh,
             }
             emit_base_shape_face(mesh, out, level, t,
                                  &shape->faces[j].geometry, &shape->faces[j].uv,
+                                 shape->faces[j].growth_type,
                                  collision_mesh);
         }
         return;
@@ -1955,9 +2023,13 @@ static int mb64_build_mesh(const mb64_level_t *level, mb64_mesh_t *mesh, int col
     for (uint32_t i = 0; i < level->header.tile_count; i++) {
         const mb64_tile_t *t = &level->tiles[i];
         const int water = mb64_tile_renders_water(level, t);
+        if (tile_in_range(t)) {
+            /* Cull markers are deliberately non-solid, but native MB64 still
+             * keeps them in its grid so adjacent terrain can see them. */
+            s_tile_grid[t->z][t->y][t->x] = t;
+        }
         if ((collision_mesh ? mb64_tile_has_terrain_collision(t) : tile_is_solid(t))) {
             s_solid_grid[t->z][t->y][t->x] = 1;
-            s_tile_grid[t->z][t->y][t->x] = t;
             mesh->solid_tile_count++;
         }
         if (water) {

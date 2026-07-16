@@ -180,6 +180,8 @@ typedef struct {
     uint8_t tile_x;
     uint8_t tile_y;
     uint8_t tile_z;
+    uint8_t growth_type;
+    uint8_t top_side_material; /* UINT8_MAX when no native top-side decal applies. */
 } mb64_mesh_face_t;
 
 typedef struct {
@@ -359,6 +361,14 @@ typedef struct {
     int initial_loot_coins;
     float imbue_drop_y_offset;
 } mb64_breakable_box_config_t;
+
+typedef struct {
+    float gravity;
+    float friction;
+    float buoyancy;
+    float wall_hitbox_radius;
+    uint8_t preserve_authored_stacks;
+} mb64_throwable_box_config_t;
 
 typedef enum {
     MB64_FLAMETHROWER_VARIANT_RED = 0,
@@ -1541,6 +1551,9 @@ const mb64_breakable_box_config_t *mb64_breakable_box_config(void);
 const mb64_object_hitbox_t *mb64_breakable_box_hitbox(void);
 float mb64_breakable_box_fragment_vertical_velocity(float random_unit);
 uint8_t mb64_breakable_box_fragment_is_active(int timer);
+const mb64_throwable_box_config_t *mb64_throwable_box_config(void);
+uint8_t mb64_throwable_box_has_authored_support(const mb64_level_t *level,
+                                                const mb64_obj_t *object);
 const mb64_flamethrower_config_t *mb64_flamethrower_config(void);
 float mb64_flamethrower_forward_velocity(uint8_t variant);
 int mb64_flamethrower_flame_lifetime(int action_timer);

@@ -522,6 +522,14 @@ static const mb64_breakable_box_config_t s_breakable_box_config = {
     150.0f, /* imbue drop y offset */
 };
 
+static const mb64_throwable_box_config_t s_throwable_box_config = {
+    2.5f,  /* gravity */
+    0.99f, /* friction */
+    1.4f,  /* MB64_BUOYANCY_DEFAULT_STEP */
+    50.0f, /* wall_hitbox_radius */
+    1,     /* preserve authored vertical stacks until interaction */
+};
+
 static const mb64_flamethrower_config_t s_flamethrower_config = {
     2000.0f, /* activation_distance */
     40.0f,   /* flame_spawn_y_offset */
@@ -1422,6 +1430,27 @@ float mb64_breakable_box_fragment_vertical_velocity(float random_unit) {
 
 uint8_t mb64_breakable_box_fragment_is_active(int timer) {
     return timer >= 0 && timer < s_breakable_box_config.fragment_lifetime_frames;
+}
+
+const mb64_throwable_box_config_t *mb64_throwable_box_config(void) {
+    return &s_throwable_box_config;
+}
+
+uint8_t mb64_throwable_box_has_authored_support(const mb64_level_t *level,
+                                                const mb64_obj_t *object) {
+    if (level == NULL || object == NULL || level->objects == NULL ||
+        object->type != MB64_OBJECT_TYPE_BBOX_SMALL || object->y == 0) {
+        return 0;
+    }
+    for (uint32_t i = 0; i < level->header.object_count; i++) {
+        const mb64_obj_t *candidate = &level->objects[i];
+        if (candidate != object && candidate->type == MB64_OBJECT_TYPE_BBOX_SMALL &&
+            candidate->x == object->x && candidate->z == object->z &&
+            candidate->y + 1 == object->y) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 const mb64_flamethrower_config_t *mb64_flamethrower_config(void) {

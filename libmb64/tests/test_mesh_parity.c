@@ -1311,6 +1311,34 @@ static void verify_breakable_box_helpers(void) {
     expect_int("breakable box hurtbox height", hitbox->hurtbox_height, 256);
 }
 
+static void verify_throwable_box_helpers(void) {
+    mb64_level_t level = { 0 };
+    mb64_obj_t objects[3] = { 0 };
+    level.header.object_count = 3;
+    level.objects = objects;
+    objects[0].type = MB64_OBJECT_TYPE_BBOX_SMALL;
+    objects[0].x = 12;
+    objects[0].y = 8;
+    objects[0].z = 20;
+    objects[1] = objects[0];
+    objects[1].y = 9;
+    objects[2] = objects[1];
+    objects[2].x = 13;
+
+    const mb64_throwable_box_config_t *config = mb64_throwable_box_config();
+    expect_float("throwable box gravity", config->gravity, 2.5f);
+    expect_float("throwable box friction", config->friction, 0.99f);
+    expect_float("throwable box buoyancy", config->buoyancy, 1.4f);
+    expect_float("throwable box wall radius", config->wall_hitbox_radius, 50.0f);
+    expect_int("throwable stack preservation", config->preserve_authored_stacks, 1);
+    expect_int("bottom throwable has no object support",
+               mb64_throwable_box_has_authored_support(&level, &objects[0]), 0);
+    expect_int("upper throwable finds authored support",
+               mb64_throwable_box_has_authored_support(&level, &objects[1]), 1);
+    expect_int("offset throwable does not find support",
+               mb64_throwable_box_has_authored_support(&level, &objects[2]), 0);
+}
+
 static void verify_fire_spinner_helpers(void) {
     const mb64_fire_spinner_config_t *config = mb64_fire_spinner_config();
 
@@ -2476,6 +2504,32 @@ static void verify_level_size_boundary_helpers(void) {
     mb64_free_render_mesh(&mesh);
 }
 
+static void verify_cull_marker_omits_adjacent_face(void) {
+    mb64_level_t level;
+    mb64_mesh_t mesh;
+    mb64_tile_t tiles[2];
+    memset(&level, 0, sizeof(level));
+    memset(tiles, 0, sizeof(tiles));
+    level.header.tile_count = 2;
+    level.header.level_size = 2;
+    level.tiles = tiles;
+    tiles[0].x = 32;
+    tiles[0].y = 0;
+    tiles[0].z = 32;
+    tiles[0].type = TILE_TYPE_BLOCK;
+    tiles[1].x = 32;
+    tiles[1].y = 1;
+    tiles[1].z = 32;
+    tiles[1].type = TILE_TYPE_CULL;
+
+    expect_int("cull marker render mesh builds", mb64_build_render_mesh(&level, &mesh), 1);
+    expect_int("cull marker removes marked block top", mesh.face_count, 5);
+    mb64_free_render_mesh(&mesh);
+    expect_int("cull marker collision mesh builds", mb64_build_collision_mesh(&level, &mesh), 1);
+    expect_int("cull marker removes marked collision face", mesh.face_count, 5);
+    mb64_free_render_mesh(&mesh);
+}
+
 static void verify_object_network_descriptors(void) {
     for (unsigned int type = 0; type < MB64_OBJECT_TYPE_COUNT; type++) {
         const mb64_object_network_descriptor_t *descriptor =
@@ -2611,6 +2665,7 @@ int main(void) {
     verify_looping_platform_helpers();
     verify_bowling_ball_retirement();
     verify_breakable_box_helpers();
+    verify_throwable_box_helpers();
     verify_flamethrower_helpers();
     verify_reinforced_box_helpers();
     verify_fire_spinner_helpers();
@@ -2641,6 +2696,7 @@ int main(void) {
     verify_podoboo_helpers();
     verify_pokey_helpers();
     verify_level_size_boundary_helpers();
+    verify_cull_marker_omits_adjacent_face();
     verify_object_network_descriptors();
     verify_dialog_descriptors();
 

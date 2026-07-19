@@ -43,12 +43,21 @@ typedef struct {
 } mb64_btcm_config_t;
 
 typedef struct {
+    uint8_t glyph_size;
+    uint8_t segment_spacing;
+    uint8_t left_edge;
+    uint8_t health_baseline;
+    uint8_t mana_baseline;
+} mb64_btcm_hud_spec_t;
+
+typedef struct {
     uint16_t health;
     uint8_t mana;
     uint8_t hurt_counter;
 } mb64_btcm_hurt_result_t;
 
 const mb64_btcm_config_t *mb64_btcm_config(void);
+const mb64_btcm_hud_spec_t *mb64_btcm_hud_spec(void);
 uint8_t mb64_btcm_badge_is_equipped(uint32_t badges, mb64_btcm_badge_t badge);
 uint8_t mb64_btcm_health_segments(uint16_t health);
 uint8_t mb64_btcm_clamp_mana(unsigned int mana);

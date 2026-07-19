@@ -28,6 +28,7 @@ actor-root	actors/mb64_hammerbro	actors/Hammerbro	relocated-root
 actor-root	actors/mb64_billmask	actors/billmask	relocated-root
 actor-root	actors/mb64_blaster	actors/blaster	relocated-root
 actor-root	actors/mb64_chicken	actors/chicken	relocated-root
+actor-root	actors/mb64_checkerboard_platform	actors/checkerboard_platform	checkerboard-platform-namespace
 actor-root	actors/mb64_cobie2	actors/cobie2	relocated-root
 actor-root	actors/mb64_conveyor	actors/conveyor	relocated-root
 actor-root	actors/mb64_conveyor_dslope	actors/conveyor_dslope	relocated-root
@@ -64,3 +65,6 @@ actor-root	actors/mb64_woodplat	actors/woodplat	relocated-root
 actor-root	actors/mb64_metalstar	actors/metalstar	relocated-root
 actor-root	actors/mb64_tree	actors/tree	tree-namespace
 extra-asset	actors/mb64_metalstar/custom_metalstartex.rgba16.png	actors/star/custom_metalstartex.rgba16.png	verbatim
+extra-asset	textures/mb64_btcm/custom_Empty.rgba16.png	textures/segment2/custom_Empty.rgba16.png	verbatim
+extra-asset	textures/mb64_btcm/custom_BP.rgba16.png	textures/segment2/custom_BP.rgba16.png	verbatim
+extra-asset	textures/mb64_btcm/custom_HP.rgba16.png	textures/segment2/custom_HP.rgba16.png	verbatim

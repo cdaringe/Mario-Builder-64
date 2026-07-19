@@ -6,6 +6,12 @@ int main(void) {
     const mb64_btcm_config_t *config = mb64_btcm_config();
     assert(config->max_health == 8);
     assert(config->max_mana == 8);
+    const mb64_btcm_hud_spec_t *hud = mb64_btcm_hud_spec();
+    assert(hud->glyph_size == 16);
+    assert(hud->segment_spacing == 8);
+    assert(hud->left_edge == 22);
+    assert(hud->health_baseline == 30);
+    assert(hud->mana_baseline == 20);
     assert(config->wither_interval_frames == 451);
     assert(config->brittle_wither_interval_frames == 226);
     assert(mb64_btcm_health_segments(config->initial_health) == 8);

@@ -11,8 +11,21 @@ static const mb64_btcm_config_t s_btcm_config = {
     226,    /* Brittle updates when mario_decay > 225 */
 };
 
+/* Native render_hud_power_meter uses 16x16 V/X/Z glyphs at these positions. */
+static const mb64_btcm_hud_spec_t s_btcm_hud_spec = {
+    16, /* custom HP/BP/empty glyph size */
+    8,  /* overlapping glyph stride */
+    22, /* GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE */
+    30, /* native print_text health baseline */
+    20, /* native print_text mana baseline */
+};
+
 const mb64_btcm_config_t *mb64_btcm_config(void) {
     return &s_btcm_config;
+}
+
+const mb64_btcm_hud_spec_t *mb64_btcm_hud_spec(void) {
+    return &s_btcm_hud_spec;
 }
 
 uint8_t mb64_btcm_badge_is_equipped(uint32_t badges, mb64_btcm_badge_t badge) {

@@ -13,7 +13,12 @@ from pathlib import Path
 MANIFEST = Path(__file__).with_name("mb64_coopdx_actor_assets.tsv")
 TEXT_SUFFIXES = {".c", ".h"}
 ASSET_SUFFIXES = TEXT_SUFFIXES | {".png"}
-FULL_ROOT_MODES = {"relocated-root", "coin-namespace", "tree-namespace"}
+FULL_ROOT_MODES = {
+    "relocated-root",
+    "coin-namespace",
+    "tree-namespace",
+    "checkerboard-platform-namespace",
+}
 
 
 @dataclass(frozen=True)
@@ -98,6 +103,12 @@ def adapt_text(text: str, source: Path, destination: Path, mode: str) -> str:
         }
         for old, new in replacements.items():
             text = text.replace(old, new)
+    elif mode == "checkerboard-platform-namespace":
+        text = re.sub(
+            r"\bcheckerboard_platform_([A-Za-z0-9_]+)\b",
+            r"mb64_checkerboard_platform_\1",
+            text,
+        )
     elif mode == "coin-namespace":
         text = re.sub(r"\bcoin_([A-Za-z0-9_]+)\b", r"mb64_coin_\1", text)
         text = re.sub(
@@ -120,6 +131,11 @@ def adapt_text(text: str, source: Path, destination: Path, mode: str) -> str:
         text = text.replace(
             f'include "{source.parent.as_posix()}/',
             f'include "{destination.parent.as_posix()}/',
+        )
+    if mode == "checkerboard-platform-namespace":
+        text = text.replace(
+            "actors/mb64_checkerboard_platform/mb64_checkerboard_platform_",
+            "actors/mb64_checkerboard_platform/checkerboard_platform_",
         )
     return clean_text(text)
 

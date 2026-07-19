@@ -1259,6 +1259,20 @@ static void verify_bowling_ball_retirement(void) {
                mb64_path_follow_status_xz(0, 0, 100, 0, 125, 0, 1), MB64_PATH_REACHED_END);
     expect_int("path reaches nonterminal waypoint in horizontal plane",
                mb64_path_follow_status_xz(0, 0, 100, 0, 100, 0, 0), MB64_PATH_REACHED_WAYPOINT);
+    expect_float("path waypoint collision tolerance", mb64_path_waypoint_reach_radius(), 8.0f);
+    expect_int("path reaches collision-clamped waypoint inside tolerance",
+               mb64_path_follow_status_xz(0, 0, 100, 0, 94, 0, 0), MB64_PATH_REACHED_WAYPOINT);
+    expect_int("path rejects incomplete segment outside collision tolerance",
+               mb64_path_follow_status_xz(0, 0, 100, 0, 90, 0, 0), MB64_PATH_NONE);
+    expect_float("koopa race finish radius", mb64_koopa_race_finish_radius(), 400.0f);
+    expect_int("koopa reaches blocked finish inside endpoint radius",
+               mb64_path_follow_status_xz_with_radius(
+                   0, 0, 1000, 0, 605, 0, 1, mb64_koopa_race_finish_radius()),
+               MB64_PATH_REACHED_END);
+    expect_int("koopa remains racing outside endpoint radius",
+               mb64_path_follow_status_xz_with_radius(
+                   0, 0, 1000, 0, 599, 0, 1, mb64_koopa_race_finish_radius()),
+               MB64_PATH_NONE);
 }
 
 static void verify_reinforced_box_helpers(void) {

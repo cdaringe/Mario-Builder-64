@@ -1565,6 +1565,13 @@ int mb64_path_follow_status_xz(float previous_x, float previous_z,
                                float target_x, float target_z,
                                float object_x, float object_z,
                                uint8_t target_is_last);
+int mb64_path_follow_status_xz_with_radius(float previous_x, float previous_z,
+                                           float target_x, float target_z,
+                                           float object_x, float object_z,
+                                           uint8_t target_is_last,
+                                           float reach_radius);
+float mb64_path_waypoint_reach_radius(void);
+float mb64_koopa_race_finish_radius(void);
 const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void);
 const mb64_object_hitbox_t *mb64_bullet_bill_hitbox(void);
 uint8_t mb64_bullet_bill_should_wake(int angle_diff, float distance);

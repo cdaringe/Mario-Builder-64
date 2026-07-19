@@ -1362,14 +1362,35 @@ int mb64_path_follow_status_xz(float previous_x, float previous_z,
                                float target_x, float target_z,
                                float object_x, float object_z,
                                uint8_t target_is_last) {
+    return mb64_path_follow_status_xz_with_radius(
+        previous_x, previous_z, target_x, target_z, object_x, object_z,
+        target_is_last, mb64_path_waypoint_reach_radius());
+}
+
+int mb64_path_follow_status_xz_with_radius(float previous_x, float previous_z,
+                                           float target_x, float target_z,
+                                           float object_x, float object_z,
+                                           uint8_t target_is_last,
+                                           float reach_radius) {
     const float segment_x = target_x - previous_x;
     const float segment_z = target_z - previous_z;
     const float remaining_x = target_x - object_x;
     const float remaining_z = target_z - object_z;
-    if (segment_x * remaining_x + segment_z * remaining_z > 0.0f) {
+    const float remaining_distance_squared =
+        remaining_x * remaining_x + remaining_z * remaining_z;
+    if (segment_x * remaining_x + segment_z * remaining_z > 0.0f &&
+        remaining_distance_squared > reach_radius * reach_radius) {
         return MB64_PATH_NONE;
     }
     return target_is_last ? MB64_PATH_REACHED_END : MB64_PATH_REACHED_WAYPOINT;
+}
+
+float mb64_path_waypoint_reach_radius(void) {
+    return 8.0f;
+}
+
+float mb64_koopa_race_finish_radius(void) {
+    return 400.0f;
 }
 
 const mb64_bullet_bill_config_t *mb64_bullet_bill_config(void) {

@@ -618,3 +618,14 @@ Gfx badge_material_revert_render_settings[] = {
 	gsSPEndDisplayList(),
 };
 
+/* Ordered to match enum badge_enum; badge 11 intentionally uses actor b12. */
+Gfx *mb64_badge_icon_table[] = {
+	b0_Plane_001_mesh, b1_Plane_001_mesh, b2_Plane_001_mesh,
+	b3_Plane_001_mesh, b4_Plane_001_mesh, b5_Plane_001_mesh,
+	b6_Plane_001_mesh, b7_Plane_001_mesh, b8_Plane_001_mesh,
+	b9_Plane_001_mesh, b10_Plane_001_mesh, b12_Plane_001_mesh,
+	b13_Plane_001_mesh, b14_Plane_001_mesh, b15_Plane_001_mesh,
+	b16_Plane_001_mesh, b17_Plane_001_mesh, b18_Plane_001_mesh,
+	b19_Plane_001_mesh, b20_Plane_001_mesh, b21_Plane_001_mesh,
+	b22_Plane_001_mesh, b23_Plane_mesh,
+};

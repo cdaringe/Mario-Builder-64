@@ -449,6 +449,7 @@ static const mb64_woodplat_config_t s_woodplat_config = {
     2.0f,    /* water_float_max */
     384,     /* death_drop_offset */
     -20,     /* steep_slope_degrees */
+    1,       /* native floor interactions carry it with moving platforms */
 };
 
 static const mb64_looping_platform_config_t s_looping_platform_config = {

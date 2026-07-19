@@ -8,7 +8,6 @@
 #define MB64_GRID_SIZE 64
 #define MB64_GRID_CENTRE 32
 #define MB64_TILE_SUBUNITS 16
-#define MB64_THEME_CUSTOM 10
 #define MB64_MATERIAL_SLOT_COUNT 10
 #define MB64_DEATH_PLANE_GRID_Y (-40)
 #define MB64_WATER_LEVEL_ORIGIN 32
@@ -546,6 +545,15 @@ const mb64_theme_special_t *mb64_theme_specials_for_level(const mb64_level_t *le
     return &s_theme_specials[theme];
 }
 
+mb64_texture_filter_t mb64_texture_filter_for_level(const mb64_level_t *level) {
+    if (level != NULL &&
+        (level->header.theme == MB64_THEME_RETRO ||
+         level->header.theme == MB64_THEME_MC)) {
+        return MB64_TEXTURE_FILTER_POINT;
+    }
+    return MB64_TEXTURE_FILTER_BILERP;
+}
+
 static uint8_t mb64_resolve_face_material(const mb64_level_t *level,
                                           const mb64_tile_t *tile,
                                           uint8_t direction) {
@@ -766,6 +774,7 @@ static void emit_boundary_floor_face(mb64_mesh_t *mesh, uint32_t *idx,
     face->tile_x = UINT8_MAX;
     face->tile_y = UINT8_MAX;
     face->tile_z = UINT8_MAX;
+    face->top_side_material = UINT8_MAX;
 
     const int16_t gridScale = (int16_t)(mb64_level_grid_size(level) / 4);
     for (uint8_t i = 0; i < 4; i++) {
@@ -850,6 +859,7 @@ static void emit_boundary_wall_face(mb64_mesh_t *mesh, uint32_t *idx,
     face->tile_x = UINT8_MAX;
     face->tile_y = UINT8_MAX;
     face->tile_z = UINT8_MAX;
+    face->top_side_material = UINT8_MAX;
 
     const int16_t gridScale = (int16_t)(mb64_level_grid_size(level) / 4);
     const int16_t yHeight = (int16_t)(y_top - y_bottom);
@@ -975,6 +985,15 @@ mb64_material_texture_animation_t mb64_texture_animation_for_material(uint8_t ma
         default:
             return (mb64_material_texture_animation_t) { 0, 0, 0, 0, 0 };
     }
+}
+
+uint16_t mb64_texture_animation_wrapped_offset(uint32_t tick,
+                                               uint16_t step,
+                                               uint16_t window_span) {
+    if (step == 0 || window_span == 0) {
+        return 0;
+    }
+    return (uint16_t)(((uint64_t)tick * step) % window_span);
 }
 
 mb64_material_texture_animation_t mb64_texture_animation_for_water(const mb64_level_t *level) {
@@ -1133,7 +1152,9 @@ static void assign_tile_texture_coordinates(mb64_mesh_face_t *face,
                                             uint8_t faceshape,
                                             uint8_t material,
                                             const int8_t alt_uvs[4][2],
-                                            uint8_t use_alt_uvs);
+                                            uint8_t use_alt_uvs,
+                                            uint8_t force_vertical,
+                                            uint8_t clamp_v);
 
 static void emit_face(mb64_mesh_t *mesh, uint32_t *idx,
                       const mb64_level_t *level,
@@ -1167,7 +1188,14 @@ static void emit_face(mb64_mesh_t *mesh, uint32_t *idx,
         }
         assign_tile_texture_coordinates(face, t, local, direction,
                                         MB64_FACESHAPE_FULL, face->resolved_material,
-                                        NULL, 0);
+                                        NULL, 0, 0, 0);
+        if (face->top_side_material != UINT8_MAX) {
+            mb64_mesh_face_t decal = *face;
+            assign_tile_texture_coordinates(&decal, t, local, direction,
+                                            MB64_FACESHAPE_FULL, face->top_side_material,
+                                            NULL, 1, 1, 1);
+            memcpy(face->top_side_tc, decal.tc, sizeof(face->top_side_tc));
+        }
     }
     orient_face_to_direction(face);
 }
@@ -1250,9 +1278,12 @@ static void assign_tile_texture_coordinates(mb64_mesh_face_t *face,
                                             uint8_t faceshape,
                                             uint8_t material,
                                             const int8_t alt_uvs[4][2],
-                                            uint8_t use_alt_uvs) {
+                                            uint8_t use_alt_uvs,
+                                            uint8_t force_vertical,
+                                            uint8_t clamp_v) {
     uint8_t uv_direction = direction;
-    if (mb64_material_vertical(material) && faceshape > MB64_FACESHAPE_EMPTY) {
+    if ((force_vertical || mb64_material_vertical(material)) &&
+        faceshape > MB64_FACESHAPE_EMPTY) {
         uv_direction = rotate_direction((uint8_t)((faceshape - MB64_FACESHAPE_EMPTY) + 1), tile->rot);
     }
     uint8_t u_axis;
@@ -1278,7 +1309,9 @@ static void assign_tile_texture_coordinates(mb64_mesh_face_t *face,
             }
         }
         u = (int16_t)(u - u_pos * 16);
-        v = (int16_t)(v - v_pos * 16);
+        if (!clamp_v) {
+            v = (int16_t)(v - v_pos * 16);
+        }
         if (material == MB64_RENDER_MATERIAL_BARS) {
             /* MB64 bar side materials use N64 tile shift 15 on S/T, which
              * doubles texture frequency. Apply the same scale to generated
@@ -1561,7 +1594,14 @@ static void emit_base_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     } else {
         assign_tile_texture_coordinates(face, t, local, direction,
                                         src->faceshape, face->resolved_material,
-                                        uv->alt_uvs, uv->has_alt_uvs);
+                                        uv->alt_uvs, uv->has_alt_uvs, 0, 0);
+        if (face->top_side_material != UINT8_MAX) {
+            mb64_mesh_face_t decal = *face;
+            assign_tile_texture_coordinates(&decal, t, local, direction,
+                                            src->faceshape, face->top_side_material,
+                                            uv->alt_uvs, 1, 1, 1);
+            memcpy(face->top_side_tc, decal.tc, sizeof(face->top_side_tc));
+        }
     }
     orient_face_to_direction(face);
 }
@@ -2242,6 +2282,10 @@ static int mb64_visit_mesh(const mb64_level_t *level,
 
     mb64_mesh_info_t info;
     info.face_count = mesh.face_count;
+    info.top_side_face_count = 0;
+    for (uint32_t i = 0; i < mesh.face_count; i++) {
+        info.top_side_face_count += mesh.faces[i].top_side_material != UINT8_MAX;
+    }
     info.solid_tile_count = mesh.solid_tile_count;
     info.water_tile_count = mesh.water_tile_count;
     info.duplicate_face_count = count_duplicate_mesh_faces(&mesh);

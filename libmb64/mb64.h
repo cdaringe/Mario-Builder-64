@@ -170,6 +170,7 @@ typedef enum {
 typedef struct {
     int16_t v[4][3];      /* MB64 coordinates in sixteenths of one tile */
     int16_t tc[4][2];     /* Optional texture coordinates in native N64 units */
+    int16_t top_side_tc[4][2]; /* Native clamped UVs for the top-side decal pass. */
     uint8_t material;
     uint8_t resolved_material;
     uint8_t tile_type;
@@ -193,6 +194,7 @@ typedef struct {
 
 typedef struct {
     uint32_t face_count;
+    uint32_t top_side_face_count;
     uint32_t solid_tile_count;
     uint32_t water_tile_count;
     uint32_t duplicate_face_count;
@@ -272,6 +274,7 @@ typedef struct {
     float water_float_max;
     int death_drop_offset;
     int steep_slope_degrees;
+    uint8_t follows_moving_floors;
 } mb64_woodplat_config_t;
 
 typedef struct {
@@ -1275,6 +1278,26 @@ typedef enum {
 } mb64_material_id_t;
 
 typedef enum {
+    MB64_THEME_GENERIC = 0,
+    MB64_THEME_SSL,
+    MB64_THEME_RHR,
+    MB64_THEME_HMC,
+    MB64_THEME_CASTLE,
+    MB64_THEME_VIRTUAPLEX,
+    MB64_THEME_SNOW,
+    MB64_THEME_BBH,
+    MB64_THEME_JRB,
+    MB64_THEME_RETRO,
+    MB64_THEME_CUSTOM,
+    MB64_THEME_MC,
+} mb64_theme_id_t;
+
+typedef enum {
+    MB64_TEXTURE_FILTER_BILERP = 0,
+    MB64_TEXTURE_FILTER_POINT,
+} mb64_texture_filter_t;
+
+typedef enum {
     MB64_FENCE_NORMAL = 0,
     MB64_FENCE_WOOD2,
     MB64_FENCE_DESERT,
@@ -1409,6 +1432,9 @@ uint8_t mb64_surface_has_no_camera_collision(int16_t surface_type);
 uint8_t mb64_surface_is_vanish_cap_passable(int16_t surface_type);
 mb64_material_texture_animation_t mb64_texture_animation_for_material(uint8_t material);
 mb64_material_texture_animation_t mb64_texture_animation_for_water(const mb64_level_t *level);
+uint16_t mb64_texture_animation_wrapped_offset(uint32_t tick,
+                                               uint16_t step,
+                                               uint16_t window_span);
 int mb64_render_binding_for_face(const mb64_level_t *level,
                                  const mb64_mesh_face_t *face,
                                  mb64_render_binding_t *out);
@@ -1471,6 +1497,7 @@ int mb64_find_water_query_surface(const mb64_level_t *level,
  * uses during mesh generation.
  */
 const mb64_theme_special_t *mb64_theme_specials_for_level(const mb64_level_t *level);
+mb64_texture_filter_t mb64_texture_filter_for_level(const mb64_level_t *level);
 uint8_t mb64_object_counts_as_star(const mb64_obj_t *object);
 uint32_t mb64_level_play_star_count(const mb64_level_t *level);
 uint8_t mb64_object_counts_as_red_coin(const mb64_obj_t *object);

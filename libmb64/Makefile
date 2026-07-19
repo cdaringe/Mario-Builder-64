@@ -3,13 +3,13 @@ AR     ?= ar
 CFLAGS += -Wall -Wextra -std=c11 -O2 -I.
 PYTHON ?= python3
 
-SRC    := mb64.c mb64_mesh.c mb64_object_catalog.c
+SRC    := mb64.c mb64_btcm.c mb64_mesh.c mb64_object_catalog.c
 OBJ    := $(SRC:.c=.o)
 LIB    := libmb64.a
 THEME_DATA := mb64_theme_data.generated.inc.c
 MESH_DATA := mb64_mesh_data.generated.inc.c
 OBJECT_CATALOG_DATA := mb64_object_catalog.generated.inc.c
-TEST_BINS := test_mesh_parity test_object_catalog
+TEST_BINS := test_mesh_parity test_object_catalog test_btcm
 
 .PHONY: all clean test
 
@@ -59,9 +59,17 @@ test_object_catalog: tests/test_object_catalog.c $(LIB) mb64_object_catalog.h
 	mv -f "$$tmp" "$@"; \
 	trap - EXIT INT TERM
 
+test_btcm: tests/test_btcm.c $(LIB) mb64_btcm.h
+	@set -e; tmp="$@.tmp.$$$$"; \
+	trap 'rm -f "$$tmp"' EXIT INT TERM; \
+	$(CC) $(CFLAGS) tests/test_btcm.c $(LIB) -o "$$tmp"; \
+	mv -f "$$tmp" "$@"; \
+	trap - EXIT INT TERM
+
 test: $(TEST_BINS)
 	./test_mesh_parity
 	./test_object_catalog
+	./test_btcm
 
 $(OBJECT_CATALOG_DATA): ../tools/gen_libmb64_object_catalog.py ../src/mb64/data.c mb64_object_types.h
 	@set -e; tmp="$@.tmp.$$$$"; \

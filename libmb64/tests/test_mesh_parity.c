@@ -1054,7 +1054,17 @@ static void verify_render_binding_descriptors(void) {
 
     memset(&level, 0, sizeof(level));
     memset(&face, 0, sizeof(face));
-    level.header.theme = 0;
+    level.header.theme = MB64_THEME_GENERIC;
+
+    expect_int("generic theme uses bilinear texture filtering",
+               mb64_texture_filter_for_level(&level), MB64_TEXTURE_FILTER_BILERP);
+    level.header.theme = MB64_THEME_RETRO;
+    expect_int("retro theme uses point texture filtering",
+               mb64_texture_filter_for_level(&level), MB64_TEXTURE_FILTER_POINT);
+    level.header.theme = MB64_THEME_MC;
+    expect_int("minecraft theme uses point texture filtering",
+               mb64_texture_filter_for_level(&level), MB64_TEXTURE_FILTER_POINT);
+    level.header.theme = MB64_THEME_GENERIC;
 
     face.resolved_material = MB64_RENDER_MATERIAL_FENCE;
     expect_int("fence binding resolves", mb64_render_binding_for_face(&level, &face, &binding), 1);
@@ -1169,6 +1179,7 @@ static void verify_shaped_corner_under_block_keeps_shell_faces(void) {
 }
 
 static void verify_woodplat_helpers(void) {
+    const mb64_woodplat_config_t *config = mb64_woodplat_config();
     const uint8_t thin_fat_thin[] = { 0, 1, 0 };
 
     expect_float("woodplat thin height", mb64_woodplat_piece_height(0), 96.0f);
@@ -1188,6 +1199,8 @@ static void verify_woodplat_helpers(void) {
                mb64_woodplat_should_use_simple_wall_checks(1, 1, 1), 0);
     expect_int("woodplat simple walls enabled on upward conveyor while airborne",
                mb64_woodplat_should_use_simple_wall_checks(1, 1, 0), 1);
+    expect_int("woodplat follows moving floor displacement",
+               config->follows_moving_floors, 1);
     expect_float("thwomp floor probe offset", mb64_thwomp_floor_probe_offset_y(), 30.0f);
     expect_int("thwomp unknown floor does not die",
                mb64_thwomp_should_die_on_death_barrier(0, 0, 0.0f, 0.0f), 0);
@@ -2444,6 +2457,10 @@ static void verify_level_size_boundary_helpers(void) {
         return;
     }
     expect_int("medium boundary floor face count", (int)mesh.face_count, 16);
+    expect_int("inner boundary has no zero-uv top-side decal",
+               mesh.faces[0].top_side_material, UINT8_MAX);
+    expect_int("outer boundary has no zero-uv top-side decal",
+               mesh.faces[4].top_side_material, UINT8_MAX);
     expect_vertex("medium inner boundary extent", mesh.faces[0].v[0], 384, -512, 384);
     expect_int("medium inner boundary tc u", mesh.faces[0].tc[0][0], 24576);
     expect_int("medium inner boundary tc v", mesh.faces[0].tc[0][1], 24576);
@@ -2658,6 +2675,12 @@ int main(void) {
     verify_render_mesh_winding_matches_face_direction();
     verify_stacked_water_query_uses_top_surface();
     verify_render_binding_descriptors();
+    expect_int("animated window offset advances inside texture period",
+               mb64_texture_animation_wrapped_offset(127, 1, 128), 127);
+    expect_int("animated window offset wraps before tile endpoint inversion",
+               mb64_texture_animation_wrapped_offset(128, 1, 128), 0);
+    expect_int("animated window offset handles long sessions",
+               mb64_texture_animation_wrapped_offset(4095, 1, 128), 127);
     verify_face_surface_descriptors();
     verify_shaped_corner_under_block_keeps_shell_faces();
     verify_ledge_grab_helpers();

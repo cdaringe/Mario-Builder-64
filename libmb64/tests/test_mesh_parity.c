@@ -176,7 +176,7 @@ static void verify_fence_rotation(uint8_t rot,
         expect_int("back uses explicit fence texture coordinates", mesh.faces[1].use_tc, 1);
         for (int i = 0; i < 4; i++) {
             static const int16_t expected_tc[4][2] = {
-                { 7152, -16 }, { 7152, 1008 }, { 9200, -16 }, { 9200, 1008 },
+                { 7152, -16 }, { 7152, 496 }, { 9200, -16 }, { 9200, 496 },
             };
             snprintf(label, sizeof(label), "rot %u front v%d", rot, i);
             expect_vertex(label, mesh.faces[0].v[i], front[i][0], front[i][1], front[i][2]);
@@ -219,6 +219,26 @@ static void verify_adjacent_fence_uv_phase(void) {
     }
 
     mb64_free_render_mesh(&mesh);
+}
+
+static void verify_fence_texture_dimensions(void) {
+    const mb64_fence_texture_dimensions_t normal =
+        mb64_fence_texture_dimensions(MB64_FENCE_NORMAL);
+    const mb64_fence_texture_dimensions_t hmc =
+        mb64_fence_texture_dimensions(MB64_FENCE_HMC);
+    const mb64_fence_texture_dimensions_t retro =
+        mb64_fence_texture_dimensions(MB64_FENCE_RETRO);
+    const mb64_fence_texture_dimensions_t minecraft =
+        mb64_fence_texture_dimensions(MB64_FENCE_MC);
+
+    expect_int("normal fence texture width", normal.width, 32);
+    expect_int("normal fence texture height", normal.height, 16);
+    expect_int("HMC fence texture width", hmc.width, 16);
+    expect_int("HMC fence texture height", hmc.height, 16);
+    expect_int("retro fence texture width", retro.width, 16);
+    expect_int("retro fence texture height", retro.height, 16);
+    expect_int("Minecraft fence texture width", minecraft.width, 16);
+    expect_int("Minecraft fence texture height", minecraft.height, 8);
 }
 
 static void verify_fence_collision_keeps_both_sides_next_to_solid(void) {
@@ -2675,6 +2695,7 @@ int main(void) {
     verify_fence_rotation(2, MB64_MESH_FACE_NEG_Z, MB64_MESH_FACE_POS_Z, front2, back2);
     verify_fence_rotation(3, MB64_MESH_FACE_NEG_X, MB64_MESH_FACE_POS_X, front3, back3);
     verify_adjacent_fence_uv_phase();
+    verify_fence_texture_dimensions();
     verify_fence_collision_keeps_both_sides_next_to_solid();
     verify_bars_match_mb64_connection_rendering();
     verify_shared_surface_semantics();

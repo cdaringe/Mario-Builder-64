@@ -554,6 +554,18 @@ mb64_texture_filter_t mb64_texture_filter_for_level(const mb64_level_t *level) {
     return MB64_TEXTURE_FILTER_BILERP;
 }
 
+mb64_fence_texture_dimensions_t mb64_fence_texture_dimensions(uint8_t fence) {
+    switch (fence) {
+        case MB64_FENCE_HMC:
+        case MB64_FENCE_RETRO:
+            return (mb64_fence_texture_dimensions_t) { 16, 16 };
+        case MB64_FENCE_MC:
+            return (mb64_fence_texture_dimensions_t) { 16, 8 };
+        default:
+            return (mb64_fence_texture_dimensions_t) { 32, 16 };
+    }
+}
+
 static uint8_t mb64_resolve_face_material(const mb64_level_t *level,
                                           const mb64_tile_t *tile,
                                           uint8_t direction) {
@@ -1251,6 +1263,7 @@ static int16_t mb64_uv_wrap_offset(int32_t value) {
 }
 
 static void assign_fence_texture_coordinates(mb64_mesh_face_t *face,
+                                             const mb64_level_t *level,
                                              const mb64_tile_t *tile,
                                              uint8_t direction) {
     uint8_t u_axis;
@@ -1260,13 +1273,19 @@ static void assign_fence_texture_coordinates(mb64_mesh_face_t *face,
                            : tile_axis_value(tile, u_axis);
     (void)v_axis; /* MB64 clamps fence V coordinates for growth render type 3. */
     u_pos = mb64_uv_wrap_offset(u_pos * 2);
+    const mb64_fence_texture_dimensions_t dimensions =
+        mb64_fence_texture_dimensions(mb64_theme_specials_for_level(level)->fence);
 
     for (uint8_t i = 0; i < face->vertex_count; i++) {
         int16_t u = (int16_t)(16 - s_fence_alt_uvs[i][0]);
         int16_t v = (int16_t)(16 - s_fence_alt_uvs[i][1]);
         u = (int16_t)(u - u_pos * 16);
         face->tc[i][0] = (int16_t)(u * 64 - 16);
-        face->tc[i][1] = (int16_t)(v * 64 - 16);
+        /* Fence faces are half a block high. Their imported textures are also
+         * half-height (32x16, 16x8, or 16x16), while ordinary MB64 terrain
+         * assumes a 32-pixel T period. Traverse exactly one authored texture
+         * height so the fence is not repeated and vertically compressed. */
+        face->tc[i][1] = (int16_t)(v * dimensions.height * 2 - 16);
     }
     face->use_tc = 1;
 }
@@ -1590,7 +1609,7 @@ static void emit_base_shape_face(mb64_mesh_t *mesh, uint32_t *idx,
     face->growth_type = growth_type;
     assign_top_side_material(level, t, face);
     if (t->type == TILE_TYPE_FENCE) {
-        assign_fence_texture_coordinates(face, t, direction);
+        assign_fence_texture_coordinates(face, level, t, direction);
     } else {
         assign_tile_texture_coordinates(face, t, local, direction,
                                         src->faceshape, face->resolved_material,

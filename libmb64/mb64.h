@@ -1315,6 +1315,11 @@ typedef enum {
     MB64_FENCE_MC,
 } mb64_fence_id_t;
 
+typedef struct {
+    uint8_t width;
+    uint8_t height;
+} mb64_fence_texture_dimensions_t;
+
 typedef enum {
     MB64_BAR_GENERIC = 0,
     MB64_BAR_RHR,
@@ -1498,6 +1503,7 @@ int mb64_find_water_query_surface(const mb64_level_t *level,
  * uses during mesh generation.
  */
 const mb64_theme_special_t *mb64_theme_specials_for_level(const mb64_level_t *level);
+mb64_fence_texture_dimensions_t mb64_fence_texture_dimensions(uint8_t fence);
 mb64_texture_filter_t mb64_texture_filter_for_level(const mb64_level_t *level);
 uint8_t mb64_object_counts_as_star(const mb64_obj_t *object);
 uint32_t mb64_level_play_star_count(const mb64_level_t *level);

@@ -376,6 +376,7 @@ static const mb64_bully_movement_config_t s_bully_movement_configs[] = {
         10.0f,  /* recovery begins below this speed */
         1.0f,   /* recovery walk speed */
         18,     /* recovery counter frames */
+        1,      /* knockback may carry the bully over an exposed ledge */
         4.0f,   /* oBullyInMidair floor delta */
     },
     {
@@ -392,6 +393,7 @@ static const mb64_bully_movement_config_t s_bully_movement_configs[] = {
         10.0f,
         1.0f,
         18,
+        1,
         4.0f,
     },
 };

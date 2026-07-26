@@ -1700,6 +1700,8 @@ static void verify_bully_helpers(void) {
     expect_float("bully knockback stop speed", bigConfig->knockback_stop_speed, 10.0f);
     expect_float("bully knockback recovery speed", bigConfig->knockback_recovery_speed, 1.0f);
     expect_int("bully knockback recovery frames", bigConfig->knockback_recovery_frames, 18);
+    expect_int("bully knockback permits exposed ledge drops",
+               bigConfig->knockback_allows_ledge_drop, 1);
     expect_float("bully midair floor delta", bigConfig->midair_floor_delta, 4.0f);
     expect_int("bully backup remains active before recovery frame",
                mb64_bully_back_up_should_end(14), 0);

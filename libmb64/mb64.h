@@ -474,6 +474,7 @@ typedef struct {
     float knockback_stop_speed;
     float knockback_recovery_speed;
     int knockback_recovery_frames;
+    uint8_t knockback_allows_ledge_drop;
     float midair_floor_delta;
 } mb64_bully_movement_config_t;
 
